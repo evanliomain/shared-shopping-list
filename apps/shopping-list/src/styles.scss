@@ -29,6 +29,7 @@
   --sl-text: #1a1917;
   --sl-text-muted: #6f6b64;
   --sl-text-on-brand: #ffffff;
+  --sl-text-on-danger: #ffffff;
 
   /* Espacements — échelle de 4 px. */
   --sl-space-1: 0.25rem;
@@ -89,8 +90,10 @@
     --sl-border: #32363a;
     --sl-text: #f4f3f1;
     --sl-text-muted: #9b9a96;
-    /* Encre foncée sur le vert clair : le blanc y était illisible. */
+    /* Encre foncée sur le vert clair : le blanc y était illisible. Même
+       raisonnement sur le rouge clair. */
     --sl-text-on-brand: #052e17;
+    --sl-text-on-danger: #3d100b;
 
     --sl-shadow: 0 1px 2px rgb(0 0 0 / 40%);
     --sl-shadow-lg: 0 2px 6px rgb(0 0 0 / 40%), 0 18px 40px rgb(0 0 0 / 45%);

@@ -4,6 +4,7 @@ import {
   addItem,
   archiveProduct,
   clearCheckedItems,
+  clearList,
   createProduct,
   ensureList,
   removeItem,
@@ -234,6 +235,56 @@ describe('opérations sur le CRDT', () => {
       const remaining = itemsOf(doc).filter((i) => null === i.removedAt);
       expect(remaining).toHaveLength(1);
       expect(remaining[0].productId).toBe(pain);
+    });
+  });
+
+  describe('clearList', () => {
+    it('retire tout, coché ou non, et garde le catalogue', () => {
+      const doc = freshDoc();
+      const lait = createProduct(doc, { label: 'Lait' }, NOW);
+      const pain = createProduct(doc, { label: 'Pain' }, NOW);
+
+      const laitItem = addItem(doc, {
+        listId: LIST,
+        productId: lait,
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW,
+      });
+      addItem(doc, {
+        listId: LIST,
+        productId: pain,
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW,
+      });
+      setItemChecked(doc, LIST, laitItem, true);
+
+      clearList(doc, LIST, NOW + 5);
+
+      expect(itemsOf(doc).filter((i) => null === i.removedAt)).toHaveLength(0);
+      // Vider la liste n'est pas vider l'historique : c'est ce qui permet de
+      // refaire les courses sans rien retaper.
+      expect(Object.keys(readSnapshot(doc).catalog)).toHaveLength(2);
+    });
+
+    it('ne réécrit pas la date des lignes déjà retirées', () => {
+      // Sinon chaque « vider » produirait un delta par tombstone à
+      // synchroniser, et effacerait la date où la ligne a réellement disparu.
+      const doc = freshDoc();
+      const productId = createProduct(doc, { label: 'Lait' }, NOW);
+      const itemId = addItem(doc, {
+        listId: LIST,
+        productId,
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW,
+      });
+      removeItem(doc, LIST, itemId, NOW + 1);
+
+      clearList(doc, LIST, NOW + 5);
+
+      expect(itemsOf(doc)[0].removedAt).toBe(NOW + 1);
     });
   });
 

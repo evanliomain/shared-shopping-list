@@ -35,6 +35,7 @@ import { normalize } from '@shopping-list/util/categories';
 import { AddBar } from '../add-bar/add-bar';
 import { HistoryPane } from '../history-pane/history-pane';
 import { ItemRow } from '../item-row/item-row';
+import { ListMenu } from '../list-menu/list-menu';
 import { ListUiStore } from '../list-ui.store';
 
 @Component({
@@ -45,6 +46,7 @@ import { ListUiStore } from '../list-ui.store';
     EmptyState,
     HistoryPane,
     ItemRow,
+    ListMenu,
     PluralPipe,
     RouterLink,
     SyncBadge,
@@ -231,5 +233,15 @@ export class ListPage {
   protected clearChecked(): void {
     this.ui.dismissUndo();
     this.store.dispatch(listActions.articlesCochésVidés());
+  }
+
+  /**
+   * Vide la liste, pas l'historique : les produits restent au catalogue, donc
+   * les prochaines courses se refont en tapant sur ce qu'on achète déjà.
+   */
+  protected clearList(): void {
+    this.ui.closeListMenu();
+    this.ui.dismissUndo();
+    this.store.dispatch(listActions.listeVidée());
   }
 }

@@ -239,8 +239,35 @@ export function clearCheckedItems(
   listId: ListId,
   now: number,
 ): void {
+  softRemoveWhere(doc, listId, now, (node) => true === node.get('checked'));
+}
+
+/**
+ * « Vider la liste » : tout retirer, coché ou non.
+ *
+ * Ne touche pas au catalogue — c'est précisément la différence avec
+ * l'historique. Recommencer une liste de zéro ne doit pas faire oublier ce
+ * qu'on achète d'habitude, sinon les suggestions repartiraient de rien.
+ */
+export function clearList(doc: Y.Doc, listId: ListId, now: number): void {
+  softRemoveWhere(doc, listId, now, () => true);
+}
+
+/**
+ * Pose un tombstone sur les lignes retenues, en une seule passe.
+ *
+ * Les lignes déjà retirées sont laissées telles quelles : réécrire leur
+ * `removedAt` produirait une mise à jour Yjs à synchroniser sans rien changer,
+ * et écraserait la date à laquelle elles ont réellement disparu.
+ */
+function softRemoveWhere(
+  doc: Y.Doc,
+  listId: ListId,
+  now: number,
+  keep: (node: YNode) => boolean,
+): void {
   for (const node of itemsMap(doc, listId).values()) {
-    if (true === node.get('checked') && null === node.get('removedAt')) {
+    if (null === node.get('removedAt') && keep(node)) {
       node.set('removedAt', now);
     }
   }

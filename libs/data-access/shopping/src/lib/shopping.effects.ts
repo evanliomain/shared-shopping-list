@@ -5,6 +5,7 @@ import {
   addItem,
   archiveProduct,
   clearCheckedItems,
+  clearList,
   createProduct,
   removeItem,
   restoreItem,
@@ -56,6 +57,7 @@ export const writeListIntents = createEffect(
         listActions.quantitéModifiée,
         listActions.noteModifiée,
         listActions.articlesCochésVidés,
+        listActions.listeVidée,
       ),
       tap((action) => {
         const now = Date.now();
@@ -123,8 +125,12 @@ export const writeListIntents = createEffect(
               setItemNote(doc, DEFAULT_LIST_ID, action.itemId, action.note);
               return;
 
-            default:
+            case listActions.articlesCochésVidés.type:
               clearCheckedItems(doc, DEFAULT_LIST_ID, now);
+              return;
+
+            default:
+              clearList(doc, DEFAULT_LIST_ID, now);
               return;
           }
         });

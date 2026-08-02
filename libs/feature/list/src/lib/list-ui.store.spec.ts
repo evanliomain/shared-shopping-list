@@ -68,6 +68,33 @@ describe('ListUiStore', () => {
     expect(ui.openMenuFor()).toBeNull();
   });
 
+  it('demande confirmation avant de vider la liste', () => {
+    // Vider ne s'annule pas : le menu doit passer par une question.
+    const ui = store();
+
+    ui.toggleListMenu();
+    expect(ui.listMenu()).toBe('open');
+
+    ui.askClearList();
+    expect(ui.listMenu()).toBe('confirmingClear');
+
+    ui.closeListMenu();
+    expect(ui.listMenu()).toBe('closed');
+  });
+
+  it('n’ouvre jamais deux popovers à la fois', () => {
+    const ui = store();
+
+    ui.toggleMenu('item-1');
+    ui.toggleListMenu();
+    expect(ui.openMenuFor()).toBeNull();
+    expect(ui.listMenu()).toBe('open');
+
+    ui.toggleMenu('item-1');
+    expect(ui.listMenu()).toBe('closed');
+    expect(ui.openMenuFor()).toBe('item-1');
+  });
+
   it('bascule l’affichage du panier', () => {
     const ui = store();
 

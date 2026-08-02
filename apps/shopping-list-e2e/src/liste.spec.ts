@@ -28,6 +28,29 @@ async function removeArticle(page: Page, label: string): Promise<void> {
   await page.getByRole('menuitem', { name: 'Retirer de la liste' }).click();
 }
 
+/**
+ * Glisse une ligne de `dx` pixels, depuis son centre.
+ *
+ * Le premier pas est volontairement séparé des suivants : c'est lui qui décide
+ * de l'axe du geste, et un saut direct au seuil ne dirait rien de ce
+ * discernement.
+ */
+async function swipe(page: Page, label: string, dx: number): Promise<void> {
+  const box = await row(page, label).boundingBox();
+  if (null === box) {
+    throw new Error(`Ligne absente de l'écran : ${label}`);
+  }
+
+  const y = box.y + box.height / 2;
+  const from = box.x + box.width / 2;
+
+  await page.mouse.move(from, y);
+  await page.mouse.down();
+  await page.mouse.move(from + Math.sign(dx) * 20, y);
+  await page.mouse.move(from + dx, y, { steps: 4 });
+  await page.mouse.up();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/liste');
   await expect(page.locator('h1')).toBeVisible();
@@ -130,6 +153,60 @@ test('vider le panier retire les articles cochés et garde les autres', async ({
 
   await expect(row(page, 'Lait')).toHaveCount(0);
   await expect(row(page, 'Pain')).toBeVisible();
+});
+
+test('glisser à droite coche, glisser à gauche retire', async ({ page }) => {
+  // Les deux gestes du pouce, ceux qu'on fait en poussant un caddie.
+  await createArticle(page, 'Lait');
+  await createArticle(page, 'Pain');
+  await page.getByRole('button', { name: 'Fermer' }).click();
+
+  await swipe(page, 'Lait', 120);
+
+  await expect(
+    page.getByRole('button', { name: /Dans le panier \(1\)/ }),
+  ).toBeVisible();
+  // Un seul basculement : le clic qui suit le glissé ne doit pas décocher.
+  await expect(page.getByText('1 restant')).toBeVisible();
+
+  await swipe(page, 'Pain', -120);
+
+  await expect(row(page, 'Pain')).toHaveCount(0);
+  await expect(page.getByText('Tout est dans le panier')).toBeVisible();
+});
+
+test('un glissé trop court ne fait rien', async ({ page }) => {
+  await createArticle(page, 'Lait');
+  await page.getByRole('button', { name: 'Fermer' }).click();
+
+  await swipe(page, 'Lait', 40);
+
+  await expect(page.getByText('1 restant')).toBeVisible();
+  await expect(row(page, 'Lait')).toBeVisible();
+});
+
+test('vider la liste garde l’historique', async ({ page }) => {
+  await createArticle(page, 'Lait');
+  await createArticle(page, 'Pain');
+  await page.getByRole('button', { name: 'Fermer' }).click();
+
+  // Se raviser doit rester possible : le geste est sans retour en arrière.
+  await page.getByLabel('Menu de la liste').click();
+  await page.getByRole('menuitem', { name: 'Vider la liste' }).click();
+  await expect(page.getByText(/Retirer les 2 articles/)).toBeVisible();
+  await page.getByRole('menuitem', { name: 'Annuler' }).click();
+  await expect(row(page, 'Lait')).toBeVisible();
+
+  await page.getByLabel('Menu de la liste').click();
+  await page.getByRole('menuitem', { name: 'Vider la liste' }).click();
+  await page.getByRole('menuitem', { name: 'Vider', exact: true }).click();
+
+  await expect(page.getByText('La liste est vide')).toBeVisible();
+
+  // Le catalogue, lui, est intact : c'est toute la différence entre vider la
+  // liste et vider l'historique.
+  await input(page).click();
+  await expect(page.locator('.suggestion')).toHaveCount(2);
 });
 
 test('distingue deux produits de même libellé par leur description', async ({

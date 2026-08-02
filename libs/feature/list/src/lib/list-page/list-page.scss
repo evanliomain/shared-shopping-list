@@ -140,19 +140,11 @@ main.dimmed {
   overflow: visible;
 }
 
-/* Filet inter-lignes aligné sur le texte, comme une liste iOS. En
-   pseudo-élément plutôt qu'en bordure : une marge décalerait la ligne. */
-.card li + li {
-  position: relative;
-}
-
-.card li + li::before {
-  content: '';
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline: 3.875rem 0;
-  block-size: 1px;
-  background: var(--sl-border);
+/* Filet inter-lignes : c'est la ligne elle-même qui le dessine, parce que son
+   décalage dépend de ce qu'elle affiche à gauche. La carte dit seulement
+   lesquelles en portent un — la première, non. */
+.card li + li sl-item-row {
+  --sl-row-rule: var(--sl-border);
 }
 
 .basket {

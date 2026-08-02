@@ -43,6 +43,8 @@ export const listActions = createActionGroup({
     'Quantité modifiée': props<{ itemId: ItemId; qty: string | null }>(),
     'Note modifiée': props<{ itemId: ItemId; note: string | null }>(),
     'Articles cochés vidés': emptyProps(),
+    /** Repart d'une liste vide, sans toucher au catalogue. */
+    'Liste vidée': emptyProps(),
   },
 });
 
