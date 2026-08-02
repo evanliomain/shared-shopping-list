@@ -521,6 +521,7 @@ libs/
   core/sync/                  interface SyncProvider + registre
   core/sync-indexeddb/        y-indexeddb + BroadcastChannel
   core/sync-github/           client API, polling ETag, push avec retry 409, envoi des images
+  core/qr/                    rendu SVG et lecture caméra de QR codes
   core/sync-qr/               découpage/réassemblage de trames, scanner, machine à états
   data-access/shopping/       NgRx : actions, reducer, selectors, effects
                               (liste ET catalogue : deux tranches d'une seule

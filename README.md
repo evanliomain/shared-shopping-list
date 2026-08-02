@@ -61,7 +61,7 @@ npx playwright install chromium webkit --with-deps
 ```
 apps/shopping-list/       l'application
 apps/shopping-list-e2e/   Playwright
-libs/core/                CRDT, blobs, providers de synchro
+libs/core/                CRDT, QR, providers de synchro (IndexedDB, GitHub)
 libs/data-access/         NgRx (actions, reducers, selectors, effects)
 libs/feature/             pages et parcours
 libs/ui/                  composants muets
@@ -84,7 +84,7 @@ Angular reprenne la main.
 
 - [x] **Lot 0** — Workspace, PWA installable, CI vers Pages
 - [x] **Lot 1** — CRDT, store NgRx, UI liste, fiche produit, suggestions
-- [ ] **Lot 2** — Synchro GitHub à deux appareils
+- [x] **Lot 2** — Synchro GitHub à deux appareils
 - [ ] **Lot 3** — File offline, sonde réseau, bannières
 - [ ] **Lot 4** — Échange QR de proximité
 - [ ] **Lot 5** — Photos des produits

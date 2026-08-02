@@ -12,6 +12,11 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('@shopping-list/feature/product').then((m) => m.ProductPage),
   },
+  {
+    path: 'synchronisation',
+    loadComponent: () =>
+      import('@shopping-list/feature/pairing').then((m) => m.PairingPage),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'liste' },
   { path: '**', redirectTo: 'liste' },
 ];

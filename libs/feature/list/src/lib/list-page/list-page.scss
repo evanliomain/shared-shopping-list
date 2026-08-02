@@ -12,6 +12,18 @@ header {
   background: var(--sl-surface);
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sl-space-2);
+}
+
+.sync {
+  flex: none;
+  text-decoration: none;
+}
+
 h1 {
   margin: 0;
   font-size: 1.375rem;

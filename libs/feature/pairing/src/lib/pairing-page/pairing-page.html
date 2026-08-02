@@ -1,0 +1,116 @@
+<header>
+  <button type="button" class="back" (click)="close()">← Retour</button>
+  <h1>Synchronisation</h1>
+</header>
+
+<main>
+  @if (null !== error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+  } @if ('scanning' === mode()) {
+  <section class="scanner">
+    <video #video muted playsinline></video>
+    <p class="hint">Visez le QR affiché sur l'autre téléphone.</p>
+    <button type="button" class="secondary" (click)="stopScan()">
+      Annuler
+    </button>
+  </section>
+  } @else if ('showing-qr' === mode()) {
+  <section class="qr">
+    <img [src]="qrDataUrl()" alt="QR code d'appairage" />
+    <p class="warning">
+      ⚠️ Ce code contient le jeton d'accès. Ne le photographiez pas et ne le
+      laissez pas traîner dans un album partagé.
+    </p>
+    <button type="button" class="secondary" (click)="hideQr()">Fermer</button>
+  </section>
+  } @else if (null !== config()) {
+  <section class="paired">
+    <p class="state">
+      <span class="dot" [attr.data-status]="providerState()?.status"></span>
+      {{ config()!.owner }}/{{ config()!.repo }}
+    </p>
+
+    @switch (providerState()?.status) { @case ('live') {
+    <p class="detail">Synchronisé.</p>
+    } @case ('offline') {
+    <p class="detail">
+      Hors ligne — les modifications partiront au retour du réseau.
+    </p>
+    } @case ('error') {
+    <p class="detail error-text">{{ providerState()?.lastError }}</p>
+    } @default {
+    <p class="detail">Connexion…</p>
+    } }
+
+    <button type="button" (click)="showQr()">Appairer un autre appareil</button>
+    <button type="button" class="danger" (click)="unpair()">
+      Dissocier cet appareil
+    </button>
+  </section>
+  } @else {
+  <section class="setup">
+    <p class="lead">
+      La liste se synchronise via un dépôt GitHub privé qui vous appartient. Pas
+      de serveur, pas d'abonnement.
+    </p>
+
+    @if (canScan) {
+    <button type="button" class="primary" (click)="startScan()">
+      Scanner le QR de l'autre téléphone
+    </button>
+    <p class="or">ou saisissez les informations</p>
+    }
+
+    <label>
+      <span>Compte GitHub</span>
+      <input
+        type="text"
+        name="owner"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        placeholder="evanliomain"
+        [ngModel]="owner()"
+        (ngModelChange)="owner.set($event)"
+      />
+    </label>
+
+    <label>
+      <span>Dépôt privé</span>
+      <input
+        type="text"
+        name="repo"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        [ngModel]="repo()"
+        (ngModelChange)="repo.set($event)"
+      />
+    </label>
+
+    <label>
+      <span>Jeton d'accès</span>
+      <input
+        type="password"
+        name="token"
+        autocomplete="off"
+        [ngModel]="token()"
+        (ngModelChange)="token.set($event)"
+      />
+      <small>
+        Jeton fine-grained, avec la permission « Contents : Read and write » sur
+        ce seul dépôt.
+      </small>
+    </label>
+
+    <button
+      type="button"
+      class="primary"
+      [disabled]="!canSubmit()"
+      (click)="submit()"
+    >
+      {{ busy() ? 'Vérification…' : 'Connecter' }}
+    </button>
+  </section>
+  }
+</main>

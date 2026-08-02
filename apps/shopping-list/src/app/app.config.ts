@@ -8,6 +8,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { provideEffects } from '@ngrx/effects';
 import { provideStore } from '@ngrx/store';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
+import { provideGithubSync } from '@shopping-list/core/sync-github';
 import { provideLocalSync } from '@shopping-list/core/sync-indexeddb';
 import { provideShopping } from '@shopping-list/data-access/shopping';
 
@@ -26,6 +27,7 @@ export const appConfig: ApplicationConfig = {
      * doivent être branchés avant que `provideShopping` n'amorce le document.
      */
     provideLocalSync(),
+    provideGithubSync(),
     provideShopping(),
 
     provideServiceWorker('ngsw-worker.js', {

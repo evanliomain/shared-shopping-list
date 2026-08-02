@@ -1,0 +1,169 @@
+import { Location } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { QrScanner, renderQrDataUrl, ScanError } from '@shopping-list/core/qr';
+import {
+  GithubConfigService,
+  GithubSyncProvider,
+  PairingPayload,
+  parsePairingPayload,
+} from '@shopping-list/core/sync-github';
+import { SyncRegistry } from '@shopping-list/core/sync';
+
+type Mode = 'idle' | 'scanning' | 'showing-qr';
+
+/**
+ * Appairage de la synchronisation GitHub.
+ *
+ * Deux chemins, selon l'appareil :
+ *
+ *  - **le premier** saisit dépôt et jeton une fois, puis affiche un QR ;
+ *  - **le second** scanne ce QR et n'a rien à taper.
+ *
+ * La saisie manuelle reste toujours accessible : `BarcodeDetector` n'existe pas
+ * partout, et ouvrir une caméra qui ne détectera jamais rien serait pire que de
+ * proposer le formulaire d'emblée.
+ */
+@Component({
+  selector: 'sl-pairing-page',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule],
+  templateUrl: './pairing-page.html',
+  styleUrl: './pairing-page.scss',
+})
+export class PairingPage {
+  private readonly configService = inject(GithubConfigService);
+  private readonly provider = inject(GithubSyncProvider);
+  private readonly scanner = inject(QrScanner);
+  private readonly registry = inject(SyncRegistry);
+  private readonly location = inject(Location);
+
+  private readonly videoRef = viewChild<ElementRef<HTMLVideoElement>>('video');
+  private abort: AbortController | null = null;
+
+  protected readonly mode = signal<Mode>('idle');
+  protected readonly busy = signal(false);
+  protected readonly error = signal<string | null>(null);
+  protected readonly qrDataUrl = signal<string | null>(null);
+
+  protected readonly owner = signal('');
+  protected readonly repo = signal('shopping-list-data');
+  protected readonly token = signal('');
+
+  protected readonly config = this.configService.config;
+  protected readonly canScan = this.scanner.isSupported();
+
+  protected readonly providerState = computed(() =>
+    this.registry.states().find((s) => 'github' === s.id),
+  );
+
+  protected readonly canSubmit = computed(
+    () =>
+      '' !== this.owner().trim() &&
+      '' !== this.repo().trim() &&
+      '' !== this.token().trim() &&
+      !this.busy(),
+  );
+
+  protected async submit(): Promise<void> {
+    if (!this.canSubmit()) {
+      return;
+    }
+    await this.applyPairing({
+      v: 1,
+      owner: this.owner(),
+      repo: this.repo(),
+      token: this.token(),
+    });
+  }
+
+  protected async startScan(): Promise<void> {
+    this.error.set(null);
+    this.mode.set('scanning');
+
+    // Laisse Angular rendre l'élément vidéo avant de brancher le flux.
+    await Promise.resolve();
+
+    const video = this.videoRef()?.nativeElement;
+    if (undefined === video) {
+      this.mode.set('idle');
+      return;
+    }
+
+    this.abort = new AbortController();
+
+    try {
+      const raw = await this.scanner.scanOnce(video, this.abort.signal);
+      await this.applyPairing(parsePairingPayload(raw));
+    } catch (error) {
+      if (error instanceof ScanError && 'aborted' === error.reason) {
+        return;
+      }
+      this.error.set(describe(error));
+      this.mode.set('idle');
+    }
+  }
+
+  protected stopScan(): void {
+    this.abort?.abort();
+    this.abort = null;
+    this.mode.set('idle');
+  }
+
+  protected async showQr(): Promise<void> {
+    const payload = this.configService.toPairingPayload();
+    if (null === payload) {
+      return;
+    }
+
+    this.qrDataUrl.set(await renderQrDataUrl(JSON.stringify(payload)));
+    this.mode.set('showing-qr');
+  }
+
+  protected hideQr(): void {
+    this.mode.set('idle');
+    this.qrDataUrl.set(null);
+  }
+
+  protected async unpair(): Promise<void> {
+    await this.configService.unpair();
+    this.provider.disconnect();
+    this.qrDataUrl.set(null);
+    this.mode.set('idle');
+  }
+
+  protected close(): void {
+    this.stopScan();
+    this.location.back();
+  }
+
+  private async applyPairing(payload: PairingPayload): Promise<void> {
+    this.busy.set(true);
+    this.error.set(null);
+
+    try {
+      // `pair` vérifie l'accès avant d'enregistrer : découvrir un jeton
+      // invalide au milieu des courses serait bien pire qu'une erreur ici.
+      const config = await this.configService.pair(payload);
+      this.provider.restart(config);
+      this.mode.set('idle');
+      this.token.set('');
+    } catch (error) {
+      this.error.set(describe(error));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+}
+
+function describe(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}

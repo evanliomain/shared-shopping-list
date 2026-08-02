@@ -177,3 +177,37 @@ test('archiver un produit le retire des suggestions', async ({ page }) => {
   // Archivé : plus proposé, mais toujours présent dans l'historique.
   await expect(page.locator('.suggestion')).toHaveCount(0);
 });
+
+test('la pastille de synchro mène à l’écran d’appairage', async ({ page }) => {
+  // Sans appairage, on annonce « appareil seul » : rien n'est en panne.
+  await expect(page.locator('sl-sync-badge')).toHaveAttribute(
+    'data-status',
+    'unpaired',
+  );
+  await expect(page.locator('sl-sync-badge')).toContainText('appareil seul');
+
+  await page.getByLabel('Synchronisation').click();
+
+  await expect(page).toHaveURL(/\/synchronisation$/);
+  await expect(
+    page.getByRole('heading', { name: 'Synchronisation' }),
+  ).toBeVisible();
+  await expect(page.getByLabel('Compte GitHub')).toBeVisible();
+});
+
+test('refuse un appairage vers un dépôt inaccessible', async ({ page }) => {
+  await page.route('https://api.github.com/**', (route) =>
+    route.fulfill({ status: 404, body: '{}' }),
+  );
+
+  await page.getByLabel('Synchronisation').click();
+  await page.getByLabel('Compte GitHub').fill('evanliomain');
+  await page.getByLabel('Dépôt privé').fill('inexistant');
+  await page.getByLabel("Jeton d'accès").fill('github_pat_faux');
+  await page.getByRole('button', { name: 'Connecter' }).click();
+
+  // On vérifie l'accès AVANT d'enregistrer : découvrir un jeton invalide au
+  // milieu des courses serait bien pire qu'une erreur ici.
+  await expect(page.getByRole('alert')).toContainText('Dépôt introuvable');
+  await expect(page.getByLabel('Compte GitHub')).toBeVisible();
+});

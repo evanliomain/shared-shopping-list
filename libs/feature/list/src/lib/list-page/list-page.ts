@@ -19,7 +19,9 @@ import {
   selectSuggestions,
   SuggestionView,
 } from '@shopping-list/data-access/shopping';
-import { EmptyState } from '@shopping-list/ui';
+import { RouterLink } from '@angular/router';
+import { SyncRegistry } from '@shopping-list/core/sync';
+import { EmptyState, SyncBadge, SyncBadgeStatus } from '@shopping-list/ui';
 import { normalize } from '@shopping-list/util/categories';
 
 import { AddBar } from '../add-bar/add-bar';
@@ -29,7 +31,7 @@ import { ListUiStore } from '../list-ui.store';
 @Component({
   selector: 'sl-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AddBar, EmptyState, ItemRow],
+  imports: [AddBar, EmptyState, ItemRow, RouterLink, SyncBadge],
   providers: [ListUiStore],
   templateUrl: './list-page.html',
   styleUrl: './list-page.scss',
@@ -45,6 +47,19 @@ export class ListPage {
   protected readonly remaining = this.store.selectSignal(selectRemainingCount);
   protected readonly checkedCount = this.store.selectSignal(selectCheckedCount);
   protected readonly isEmpty = this.store.selectSignal(selectIsEmpty);
+
+  private readonly registry = inject(SyncRegistry);
+
+  /**
+   * Sans appairage, on dit « appareil seul » plutôt que « hors ligne » : rien
+   * n'est en panne, il n'y a simplement personne à qui parler.
+   */
+  protected readonly syncStatus = computed<SyncBadgeStatus>(() => {
+    const github = this.registry.states().find((s) => 'github' === s.id);
+    return undefined === github || 'idle' === github.status
+      ? 'unpaired'
+      : (github.status as SyncBadgeStatus);
+  });
 
   private readonly allSuggestions = this.store.selectSignal(selectSuggestions);
 

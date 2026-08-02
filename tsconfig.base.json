@@ -51,6 +51,12 @@
       ],
       "@shopping-list/core/sync-github": [
         "./libs/core/sync-github/src/index.ts"
+      ],
+      "@shopping-list/core/qr": [
+        "./libs/core/qr/src/index.ts"
+      ],
+      "@shopping-list/feature/pairing": [
+        "./libs/feature/pairing/src/index.ts"
       ]
     }
   },
