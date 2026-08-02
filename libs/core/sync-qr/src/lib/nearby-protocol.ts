@@ -1,3 +1,4 @@
+import { TranslatableError } from '@shopping-list/util/i18n';
 import * as Y from 'yjs';
 
 /**
@@ -69,7 +70,7 @@ export function encodeMessage(message: NearbyMessage): Uint8Array {
 
 export function decodeMessage(bytes: Uint8Array): NearbyMessage {
   if (0 === bytes.length) {
-    throw new Error('Message vide.');
+    throw new TranslatableError('errors.nearby.emptyMessage');
   }
 
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -78,12 +79,12 @@ export function decodeMessage(bytes: Uint8Array): NearbyMessage {
 
   const readSegment = (): Uint8Array => {
     if (offset + 4 > bytes.length) {
-      throw new Error('Message tronqué.');
+      throw new TranslatableError('errors.nearby.truncatedMessage');
     }
     const length = view.getUint32(offset);
     offset += 4;
     if (offset + length > bytes.length) {
-      throw new Error('Message tronqué.');
+      throw new TranslatableError('errors.nearby.truncatedMessage');
     }
     const segment = bytes.slice(offset, offset + length);
     offset += length;
@@ -100,7 +101,9 @@ export function decodeMessage(bytes: Uint8Array): NearbyMessage {
     case MESSAGE_DIFF:
       return { kind: MESSAGE_DIFF, diff: readSegment() };
     default:
-      throw new Error(`Type de message inconnu : ${kind}.`);
+      throw new TranslatableError('errors.nearby.unknownMessage', {
+        kind: kind ?? '?',
+      });
   }
 }
 
@@ -116,7 +119,7 @@ export function announce(doc: Y.Doc): NearbyMessage {
  */
 export function respond(doc: Y.Doc, message: NearbyMessage): NearbyMessage {
   if (MESSAGE_STATE_VECTOR !== message.kind) {
-    throw new Error("Ce code ne correspond pas à cette étape de l'échange.");
+    throw new TranslatableError('errors.nearby.wrongStep');
   }
 
   return {
@@ -133,7 +136,7 @@ export function completeAsInitiator(
   origin: unknown,
 ): NearbyMessage {
   if (MESSAGE_DIFF_AND_VECTOR !== message.kind) {
-    throw new Error("Ce code ne correspond pas à cette étape de l'échange.");
+    throw new TranslatableError('errors.nearby.wrongStep');
   }
 
   Y.applyUpdate(doc, message.diff, origin);
@@ -151,7 +154,7 @@ export function completeAsResponder(
   origin: unknown,
 ): void {
   if (MESSAGE_DIFF !== message.kind) {
-    throw new Error("Ce code ne correspond pas à cette étape de l'échange.");
+    throw new TranslatableError('errors.nearby.wrongStep');
   }
 
   Y.applyUpdate(doc, message.diff, origin);

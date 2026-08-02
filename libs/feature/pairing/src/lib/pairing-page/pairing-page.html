@@ -1,6 +1,8 @@
 <header>
-  <button type="button" class="back" (click)="close()">← Retour</button>
-  <h1>Synchronisation</h1>
+  <button type="button" class="back" (click)="close()">
+    ← {{ 'common.back' | transloco }}
+  </button>
+  <h1>{{ 'pairing.title' | transloco }}</h1>
 </header>
 
 <main>
@@ -19,19 +21,18 @@
   <p class="error" role="alert">{{ error() }}</p>
   } @if ('scanning' === mode()) {
   <section class="scanner">
-    <p class="hint">Visez le QR affiché sur l'autre téléphone.</p>
+    <p class="hint">{{ 'pairing.scanHint' | transloco }}</p>
     <button type="button" class="secondary" (click)="stopScan()">
-      Annuler
+      {{ 'common.cancel' | transloco }}
     </button>
   </section>
   } @else if ('showing-qr' === mode()) {
   <section class="qr">
-    <img [src]="qrDataUrl()" alt="QR code d'appairage" />
-    <p class="warning">
-      ⚠️ Ce code contient le jeton d'accès. Ne le photographiez pas et ne le
-      laissez pas traîner dans un album partagé.
-    </p>
-    <button type="button" class="secondary" (click)="hideQr()">Fermer</button>
+    <img [src]="qrDataUrl()" [alt]="'pairing.qrAlt' | transloco" />
+    <p class="warning">{{ 'pairing.qrWarning' | transloco }}</p>
+    <button type="button" class="secondary" (click)="hideQr()">
+      {{ 'common.close' | transloco }}
+    </button>
   </section>
   } @else if (null !== config()) {
   <section class="paired">
@@ -41,38 +42,35 @@
     </p>
 
     @switch (providerState()?.status) { @case ('live') {
-    <p class="detail">Synchronisé.</p>
+    <p class="detail">{{ 'pairing.synced' | transloco }}</p>
     } @case ('offline') {
-    <p class="detail">
-      Hors ligne — les modifications partiront au retour du réseau.
-    </p>
+    <p class="detail">{{ 'pairing.offline' | transloco }}</p>
     } @case ('error') {
     <p class="detail error-text">{{ providerState()?.lastError }}</p>
     } @default {
-    <p class="detail">Connexion…</p>
+    <p class="detail">{{ 'pairing.connecting' | transloco }}</p>
     } }
 
-    <button type="button" (click)="showQr()">Appairer un autre appareil</button>
+    <button type="button" (click)="showQr()">
+      {{ 'pairing.pairAnother' | transloco }}
+    </button>
     <button type="button" class="danger" (click)="unpair()">
-      Dissocier cet appareil
+      {{ 'pairing.unpair' | transloco }}
     </button>
   </section>
   } @else {
   <section class="setup">
-    <p class="lead">
-      La liste se synchronise via un dépôt GitHub privé qui vous appartient. Pas
-      de serveur, pas d'abonnement.
-    </p>
+    <p class="lead">{{ 'pairing.lead' | transloco }}</p>
 
     @if (canScan) {
     <button type="button" class="primary" (click)="startScan()">
-      Scanner le QR de l'autre téléphone
+      {{ 'pairing.scanOther' | transloco }}
     </button>
-    <p class="or">ou saisissez les informations</p>
+    <p class="or">{{ 'pairing.or' | transloco }}</p>
     }
 
     <label>
-      <span>Compte GitHub</span>
+      <span>{{ 'pairing.owner' | transloco }}</span>
       <input
         type="text"
         name="owner"
@@ -86,7 +84,7 @@
     </label>
 
     <label>
-      <span>Dépôt privé</span>
+      <span>{{ 'pairing.repo' | transloco }}</span>
       <input
         type="text"
         name="repo"
@@ -99,7 +97,7 @@
     </label>
 
     <label>
-      <span>Jeton d'accès</span>
+      <span>{{ 'pairing.token' | transloco }}</span>
       <input
         type="password"
         name="token"
@@ -107,10 +105,7 @@
         [ngModel]="token()"
         (ngModelChange)="token.set($event)"
       />
-      <small>
-        Jeton fine-grained, avec la permission « Contents : Read and write » sur
-        ce seul dépôt.
-      </small>
+      <small>{{ 'pairing.tokenHint' | transloco }}</small>
     </label>
 
     <button
@@ -119,17 +114,16 @@
       [disabled]="!canSubmit()"
       (click)="submit()"
     >
-      {{ busy() ? 'Vérification…' : 'Connecter' }}
+      {{ (busy() ? 'pairing.checking' : 'pairing.connect') | transloco }}
     </button>
   </section>
   }
 
   <section class="nearby">
-    <h2>Sans réseau</h2>
-    <p class="lead">
-      Au fond d'un rayon où rien ne passe, les deux téléphones peuvent
-      s'échanger leurs modifications par QR code.
-    </p>
-    <a class="link-button" routerLink="/proximite">Échanger à proximité</a>
+    <h2>{{ 'pairing.nearbyTitle' | transloco }}</h2>
+    <p class="lead">{{ 'pairing.nearbyLead' | transloco }}</p>
+    <a class="link-button" routerLink="/proximite">
+      {{ 'pairing.nearbyLink' | transloco }}
+    </a>
   </section>
 </main>

@@ -11,14 +11,15 @@ import {
 import {
   crdtActions,
   DEFAULT_LIST_ID,
-  DEFAULT_LIST_NAME,
   shoppingFeature,
 } from '@shopping-list/data-access/shopping';
 import * as Y from 'yjs';
+import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { ProductPage } from './product-page';
 
 const NOW = 1_764_000_000_000;
+const LIST_NAME = 'Nos courses';
 
 /**
  * On monte un vrai Store avec la vraie tranche, et on l'alimente par un
@@ -28,13 +29,14 @@ const NOW = 1_764_000_000_000;
  */
 async function render(seed: (doc: Y.Doc) => ProductId) {
   const doc = new Y.Doc({ gc: true });
-  ensureList(doc, DEFAULT_LIST_ID, DEFAULT_LIST_NAME, NOW);
+  ensureList(doc, DEFAULT_LIST_ID, LIST_NAME, NOW);
   const productId = seed(doc);
 
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
       provideLocationMocks(),
+      provideTestI18n(),
       provideStore({ [shoppingFeature.name]: shoppingFeature.reducer }),
     ],
   });
@@ -91,6 +93,7 @@ describe('ProductPage', () => {
       providers: [
         provideRouter([]),
         provideLocationMocks(),
+        provideTestI18n(),
         provideStore({ [shoppingFeature.name]: shoppingFeature.reducer }),
       ],
     });

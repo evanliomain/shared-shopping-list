@@ -22,26 +22,44 @@ export const AISLES = [
 
 export type Aisle = (typeof AISLES)[number];
 
-export interface AisleInfo {
-  readonly label: string;
-  readonly emoji: string;
-}
-
-export const AISLE_INFO: Record<Aisle, AisleInfo> = {
-  'fruits-legumes': { label: 'Fruits & légumes', emoji: '🥕' },
-  boucherie: { label: 'Boucherie', emoji: '🥩' },
-  poissonnerie: { label: 'Poissonnerie', emoji: '🐟' },
-  cremerie: { label: 'Crèmerie', emoji: '🧀' },
-  boulangerie: { label: 'Boulangerie', emoji: '🥖' },
-  'epicerie-salee': { label: 'Épicerie salée', emoji: '🥫' },
-  'epicerie-sucree': { label: 'Épicerie sucrée', emoji: '🍪' },
-  boissons: { label: 'Boissons', emoji: '🧃' },
-  surgeles: { label: 'Surgelés', emoji: '🧊' },
-  hygiene: { label: 'Hygiène', emoji: '🧴' },
-  entretien: { label: 'Entretien', emoji: '🧽' },
-  bebe: { label: 'Bébé', emoji: '🍼' },
-  animaux: { label: 'Animaux', emoji: '🐾' },
-  divers: { label: 'Divers', emoji: '🛒' },
+/**
+ * Emoji par rayon.
+ *
+ * Le libellé, lui, n'est pas ici : il dépend de la langue, et cette
+ * bibliothèque est pure. Il vit sous la clé `aisles.<rayon>` de `util/i18n`,
+ * et c'est la clé de rayon qui voyage jusqu'au template, traduite au dernier
+ * moment. C'est aussi ce que réclame le CRDT : ce qui est stocké et
+ * synchronisé doit être la clé, identique sur tous les appareils, quelle que
+ * soit la langue de chacun.
+ */
+export const AISLE_EMOJI: Readonly<Record<Aisle, string>> = {
+  'fruits-legumes': '🥕',
+  boucherie: '🥩',
+  poissonnerie: '🐟',
+  cremerie: '🧀',
+  boulangerie: '🥖',
+  'epicerie-salee': '🥫',
+  'epicerie-sucree': '🍪',
+  boissons: '🧃',
+  surgeles: '🧊',
+  hygiene: '🧴',
+  entretien: '🧽',
+  bebe: '🍼',
+  animaux: '🐾',
+  divers: '🛒',
 };
 
 export const DEFAULT_AISLE: Aisle = 'divers';
+
+/**
+ * Ramène n'importe quelle catégorie stockée sur un rayon connu.
+ *
+ * Le CRDT accepte des chaînes libres, et un produit peut arriver d'un appareil
+ * plus récent avec un rayon qu'on ne connaît pas encore. Mieux vaut le ranger
+ * dans « divers » que le faire disparaître de l'écran.
+ */
+export function aisleOf(category: string): Aisle {
+  return Object.hasOwn(AISLE_EMOJI, category)
+    ? (category as Aisle)
+    : DEFAULT_AISLE;
+}

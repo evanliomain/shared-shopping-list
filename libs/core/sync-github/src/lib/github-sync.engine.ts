@@ -1,3 +1,4 @@
+import { TranslatableError } from '@shopping-list/util/i18n';
 import * as Y from 'yjs';
 
 import { ReadResult, WriteResult } from './github-api';
@@ -93,7 +94,7 @@ export class GithubSyncEngine {
    * dans le cas courant — personne n'a écrit depuis notre dernière lecture —
    * c'est **une seule requête**. On ne relit qu'en cas de refus.
    */
-  async push(message: string): Promise<void> {
+  async push(): Promise<void> {
     for (let attempt = 0; attempt < this.maxAttempts; attempt++) {
       const result = await this.port.write(
         Y.encodeStateAsUpdate(this.doc),
@@ -114,9 +115,9 @@ export class GithubSyncEngine {
       await this.wait(attempt);
     }
 
-    throw new Error(
-      `Impossible de publier après ${this.maxAttempts} tentatives : le dépôt est modifié en permanence. ${message}`,
-    );
+    throw new TranslatableError('errors.github.publishFailed', {
+      attempts: this.maxAttempts,
+    });
   }
 
   /** Relecture inconditionnelle, pour repartir d'un `sha` frais. */

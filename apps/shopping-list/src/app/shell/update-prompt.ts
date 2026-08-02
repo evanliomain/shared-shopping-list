@@ -5,6 +5,7 @@ import {
   signal,
 } from '@angular/core';
 import { SwUpdate } from '@angular/service-worker';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 /**
  * Propose la nouvelle version, sans l'imposer.
@@ -16,13 +17,16 @@ import { SwUpdate } from '@angular/service-worker';
 @Component({
   selector: 'sl-update-prompt',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslocoPipe],
   template: `
     @if (available()) {
       <div class="prompt" role="status">
-        <span>Nouvelle version disponible.</span>
-        <button type="button" (click)="reload()">Mettre à jour</button>
+        <span>{{ 'update.available' | transloco }}</span>
+        <button type="button" (click)="reload()">
+          {{ 'update.reload' | transloco }}
+        </button>
         <button type="button" class="dismiss" (click)="dismiss()">
-          Plus tard
+          {{ 'update.later' | transloco }}
         </button>
       </div>
     }

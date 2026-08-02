@@ -57,6 +57,7 @@ npx playwright install chromium webkit --with-deps
 | NgRx                                               | ~21.1   | Dernière stable. Store + Effects pour le domaine, SignalStore pour l'UI |
 | Yjs                                                | ^13.6   | Le CRDT                                                                 |
 | [taninsam](https://evanliomain.github.io/taninsam) | ^1.17   | Transformations de données                                              |
+| [Transloco](https://jsverse.gitbook.io/transloco)  | ^8.4    | i18n : traductions embarquées, pas de requête au démarrage              |
 
 ## Structure
 
@@ -67,9 +68,38 @@ libs/core/                CRDT, QR, providers de synchro (IndexedDB, GitHub)
 libs/data-access/         NgRx (actions, reducers, selectors, effects)
 libs/feature/             pages et parcours (liste, produit, appairage, proximité)
 libs/ui/                  composants muets
-libs/util/                dictionnaire rayons/emoji
+libs/util/                dictionnaire rayons/emoji, internationalisation
 docs/architecture.md      le document de référence
 ```
+
+## Langues
+
+L'interface existe en **français** et en **anglais**. La langue est celle du
+navigateur — pas de sélecteur : on parcourt les langues annoncées par
+`navigator.languages` et on prend la première traduite, français à défaut.
+
+Les traductions vivent dans
+[`libs/util/i18n/src/lib/translations/`](libs/util/i18n/src/lib/translations/),
+gérées par [Transloco](https://jsverse.gitbook.io/transloco). Elles sont
+**embarquées dans le bundle**, pas chargées en HTTP : l'application doit
+s'afficher au fond d'un rayon sans réseau, et deux fichiers de quelques
+kilo-octets ne justifient pas une requête de plus au démarrage.
+
+Ajouter une langue :
+
+1. copier `fr.json` et le traduire ;
+2. l'ajouter à `AVAILABLE_LANGS` dans
+   [`langs.ts`](libs/util/i18n/src/lib/langs.ts) et au chargeur ;
+3. ajouter les mots-clés de cette langue dans
+   [`libs/util/categories/`](libs/util/categories/src/lib/), sur le modèle de
+   `keywords.en.ts` — le dictionnaire qui devine le rayon d'un produit est
+   fusionné, pas traduit : on tape « pasta » dans une interface française.
+
+Un test compare les jeux de clés des deux langues et échoue si l'un dérive.
+
+Les pluriels s'écrivent en formes nommées et sont accordés par
+`Intl.PluralRules` — « 0 produit archivé » est correct en français,
+« 0 archived products » en anglais.
 
 ## Déploiement
 

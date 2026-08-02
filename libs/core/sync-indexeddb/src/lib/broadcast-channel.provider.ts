@@ -30,7 +30,7 @@ type Message =
 @Injectable({ providedIn: 'root' })
 export class BroadcastChannelSyncProvider implements SyncProvider {
   readonly id = 'broadcast-channel';
-  readonly label = 'Autres onglets';
+  readonly labelKey = 'sync.providers.broadcast';
 
   private readonly statusSignal = signal<SyncStatus>('idle');
   private readonly errorSignal = signal<string | null>(null);

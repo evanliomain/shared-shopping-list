@@ -1,0 +1,205 @@
+{
+  "app": {
+    "title": "Liste de courses",
+    "shortName": "Courses",
+    "description": "Liste de courses partagée, hors ligne, sans serveur.",
+    "defaultListName": "Nos courses"
+  },
+  "common": {
+    "back": "Retour",
+    "close": "Fermer",
+    "cancel": "Annuler"
+  },
+  "update": {
+    "available": "Nouvelle version disponible.",
+    "reload": "Mettre à jour",
+    "later": "Plus tard"
+  },
+  "sync": {
+    "alone": "Hors ligne · appareil seul",
+    "connecting": "Connexion…",
+    "synced": "Synchronisé",
+    "failed": "Synchro en panne",
+    "sending": {
+      "=0": "Envoi…",
+      "one": "Envoi… · {{count}} modif en attente",
+      "other": "Envoi… · {{count}} modifs en attente"
+    },
+    "offline": {
+      "=0": "Hors ligne",
+      "one": "Hors ligne · {{count}} modif en attente",
+      "other": "Hors ligne · {{count}} modifs en attente"
+    },
+    "providers": {
+      "github": "GitHub",
+      "indexeddb": "Stockage local",
+      "broadcast": "Autres onglets"
+    }
+  },
+  "list": {
+    "historyLink": "Historique",
+    "syncLink": "Synchronisation",
+    "loading": "Chargement…",
+    "allInBasket": "Tout est dans le panier",
+    "remaining": {
+      "one": "{{count}} article à prendre",
+      "other": "{{count}} articles à prendre"
+    },
+    "emptyTitle": "La liste est vide",
+    "emptyHint": "Ajoutez un article ci-dessous. Il sera mémorisé pour les prochaines courses.",
+    "basket": "Dans le panier ({{count}})",
+    "clearBasket": "Vider",
+    "unknownItem": "Article inconnu"
+  },
+  "addBar": {
+    "placeholder": "Ajouter un article…",
+    "emptyHistory": "Rien dans l'historique pour l'instant. Tapez un article, il y sera la prochaine fois.",
+    "alreadyInList": "déjà dans la liste",
+    "create": "Créer « {{label}} »"
+  },
+  "itemRow": {
+    "actions": "Actions pour {{label}}",
+    "edit": "Modifier le produit",
+    "remove": "Retirer de la liste"
+  },
+  "product": {
+    "title": "Fiche produit",
+    "missing": "Ce produit n'existe pas ou plus.",
+    "unnamed": "Sans nom",
+    "label": "Libellé",
+    "description": "Description",
+    "descriptionPlaceholder": "à la vanille, pour le petit…",
+    "descriptionHint": "Ce qui distingue ce produit d'un autre au même nom.",
+    "defaultQty": "Quantité habituelle",
+    "defaultQtyPlaceholder": "un pack de 4, 500 g…",
+    "aisle": "Rayon",
+    "photo": "Photo",
+    "takePhoto": "Prendre une photo",
+    "photoBusy": "Traitement…",
+    "clearPhoto": "Revenir à un emoji",
+    "photoHint": "Réduite à 160 px et encodée en WebP : quelques kilo-octets, synchronisés à part de la liste.",
+    "emoji": "Emoji",
+    "chooseEmoji": "Choisir {{emoji}}",
+    "photoWins": "La photo est utilisée à la place de l'emoji.",
+    "archive": "Archiver",
+    "save": "Enregistrer"
+  },
+  "catalog": {
+    "title": "Historique",
+    "search": "Rechercher un produit…",
+    "showArchived": {
+      "one": "Afficher le {{count}} produit archivé",
+      "other": "Afficher les {{count}} produits archivés"
+    },
+    "emptyTitle": "L'historique est vide",
+    "emptyHint": "Chaque article ajouté à la liste y entre automatiquement. Il servira à composer les prochaines courses.",
+    "noMatchTitle": "Aucun produit ne correspond",
+    "noMatchHint": "Essayez un autre mot, ou affichez les produits archivés.",
+    "usage": {
+      "one": "{{count}} achat",
+      "other": "{{count}} achats"
+    },
+    "add": "Ajouter {{label}} à la liste",
+    "archive": "Archiver",
+    "unarchive": "Réactiver"
+  },
+  "pairing": {
+    "title": "Synchronisation",
+    "scanHint": "Visez le QR affiché sur l'autre téléphone.",
+    "qrAlt": "QR code d'appairage",
+    "qrWarning": "⚠️ Ce code contient le jeton d'accès. Ne le photographiez pas et ne le laissez pas traîner dans un album partagé.",
+    "synced": "Synchronisé.",
+    "offline": "Hors ligne — les modifications partiront au retour du réseau.",
+    "connecting": "Connexion…",
+    "pairAnother": "Appairer un autre appareil",
+    "unpair": "Dissocier cet appareil",
+    "lead": "La liste se synchronise via un dépôt GitHub privé qui vous appartient. Pas de serveur, pas d'abonnement.",
+    "scanOther": "Scanner le QR de l'autre téléphone",
+    "or": "ou saisissez les informations",
+    "owner": "Compte GitHub",
+    "repo": "Dépôt privé",
+    "token": "Jeton d'accès",
+    "tokenHint": "Jeton fine-grained, avec la permission « Contents : Read and write » sur ce seul dépôt.",
+    "connect": "Connecter",
+    "checking": "Vérification…",
+    "nearbyTitle": "Sans réseau",
+    "nearbyLead": "Au fond d'un rayon où rien ne passe, les deux téléphones peuvent s'échanger leurs modifications par QR code.",
+    "nearbyLink": "Échanger à proximité"
+  },
+  "nearby": {
+    "title": "Échange à proximité",
+    "lead": "Sans aucun réseau, les deux téléphones s'échangent leurs modifications par QR code. Trois codes, deux scans.",
+    "decide": "Décidez qui commence : l'un montre, l'autre scanne.",
+    "iStart": "Je commence — montrer un code",
+    "otherStarts": "L'autre commence — scanner son code",
+    "noCamera": "Ce navigateur ne sait pas lire les QR codes : c'est à l'autre téléphone de scanner.",
+    "frameAlt": "Code à scanner",
+    "framePosition": "Écran {{position}} sur {{total}} — laissez défiler, ça tourne en boucle.",
+    "shown": "C'est scanné",
+    "scanProgress": "{{received}} / {{total}} écrans lus",
+    "doneTitle": "Les deux listes sont à jour.",
+    "backToList": "Revenir à la liste",
+    "restart": "Recommencer",
+    "giveUp": "Abandonner",
+    "showFirst": "Faites scanner ce code par l'autre téléphone.",
+    "showLast": "Faites scanner ce dernier code. L'échange sera terminé.",
+    "scan": "Scannez le code affiché sur l'autre téléphone.",
+    "showThenWait": "Faites scanner ce code par l'autre téléphone, puis attendez le sien."
+  },
+  "aisles": {
+    "fruits-legumes": "Fruits & légumes",
+    "boucherie": "Boucherie",
+    "poissonnerie": "Poissonnerie",
+    "cremerie": "Crèmerie",
+    "boulangerie": "Boulangerie",
+    "epicerie-salee": "Épicerie salée",
+    "epicerie-sucree": "Épicerie sucrée",
+    "boissons": "Boissons",
+    "surgeles": "Surgelés",
+    "hygiene": "Hygiène",
+    "entretien": "Entretien",
+    "bebe": "Bébé",
+    "animaux": "Animaux",
+    "divers": "Divers"
+  },
+  "errors": {
+    "camera": {
+      "previewFailed": "L'aperçu caméra n'a pas pu être initialisé. Saisissez les informations à la main.",
+      "unavailable": "Caméra indisponible.",
+      "denied": "L'accès à la caméra a été refusé.",
+      "none": "Aucune caméra n'est disponible."
+    },
+    "scan": {
+      "unsupportedBrowser": "Ce navigateur ne sait pas lire les QR codes. Saisissez les informations à la main.",
+      "unsupportedDevice": "La lecture de QR codes n'est pas disponible sur cet appareil. Saisissez les informations à la main.",
+      "aborted": "Lecture interrompue."
+    },
+    "pairing": {
+      "invalidCode": "Ce code n'est pas un appairage valide."
+    },
+    "github": {
+      "tokenInvalid": "Le jeton GitHub est invalide ou a expiré.",
+      "tokenForbidden": "Le jeton GitHub n'a pas les droits sur ce dépôt.",
+      "rateLimited": "Quota GitHub épuisé.",
+      "readFailed": "Lecture GitHub impossible (HTTP {{status}}).",
+      "writeFailed": "Écriture GitHub impossible (HTTP {{status}}).",
+      "repoNotFound": "Dépôt introuvable : {{owner}}/{{repo}}. Vérifiez le nom, et que le jeton porte bien sur ce dépôt.",
+      "repoUnreachable": "Dépôt inaccessible (HTTP {{status}}).",
+      "imageUnreachable": "Image inaccessible (HTTP {{status}}).",
+      "imageUploadFailed": "Envoi de l'image impossible (HTTP {{status}}).",
+      "publishFailed": "Impossible de publier après {{attempts}} tentatives : le dépôt est modifié en permanence."
+    },
+    "nearby": {
+      "emptyMessage": "Message vide.",
+      "truncatedMessage": "Message tronqué.",
+      "unknownMessage": "Type de message inconnu : {{kind}}.",
+      "wrongStep": "Ce code ne correspond pas à cette étape de l'échange.",
+      "corrupted": "Lecture corrompue. Recommencez l'échange.",
+      "incomplete": "Lecture incomplète.",
+      "tooLarge": "Trop de données pour un échange par QR ({{frames}} écrans). Refaites-le avec du réseau."
+    },
+    "image": {
+      "processingFailed": "Impossible de préparer l'image."
+    }
+  }
+}

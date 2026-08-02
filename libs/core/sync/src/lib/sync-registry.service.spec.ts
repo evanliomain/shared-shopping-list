@@ -14,7 +14,7 @@ function fakeProvider(
 
   return {
     id,
-    label: id,
+    labelKey: id,
     status: signal(status).asReadonly(),
     lastError: signal(lastError).asReadonly(),
     connect: (doc: Y.Doc) => connected.push(doc),
@@ -72,14 +72,14 @@ describe('SyncRegistry', () => {
     expect(registry.states()).toEqual([
       {
         id: 'indexeddb',
-        label: 'indexeddb',
+        labelKey: 'indexeddb',
         status: 'live',
         lastError: null,
         pending: 0,
       },
       {
         id: 'github',
-        label: 'github',
+        labelKey: 'github',
         status: 'error',
         lastError: 'Jeton expiré',
         pending: 0,

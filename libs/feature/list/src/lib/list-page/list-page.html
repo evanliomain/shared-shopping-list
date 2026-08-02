@@ -1,29 +1,38 @@
 <header>
   <div class="title-row">
     <h1>{{ listName() }}</h1>
-    <a class="history" routerLink="/historique" aria-label="Historique">📖</a>
-    <a class="sync" routerLink="/synchronisation" aria-label="Synchronisation">
+    <a
+      class="history"
+      routerLink="/historique"
+      [attr.aria-label]="'list.historyLink' | transloco"
+      >📖</a
+    >
+    <a
+      class="sync"
+      routerLink="/synchronisation"
+      [attr.aria-label]="'list.syncLink' | transloco"
+    >
       <sl-sync-badge [status]="syncStatus()" [pending]="syncPending()" />
     </a>
   </div>
   <p class="count">
-    @if (!loaded()) { Chargement… } @else if (0 === remaining()) { Tout est dans
-    le panier } @else { {{ remaining() }} {{ 1 === remaining() ? 'article' :
-    'articles' }} à prendre }
+    @if (!loaded()) { {{ 'list.loading' | transloco }} } @else if (0 ===
+    remaining()) { {{ 'list.allInBasket' | transloco }} } @else { {{
+    'list.remaining' | plural: remaining() }} }
   </p>
 </header>
 
 <main>
   @if (isEmpty()) {
   <sl-empty-state
-    title="La liste est vide"
-    hint="Ajoutez un article ci-dessous. Il sera mémorisé pour les prochaines courses."
+    [title]="'list.emptyTitle' | transloco"
+    [hint]="'list.emptyHint' | transloco"
   />
   } @for (group of groups(); track group.aisle) {
   <section class="aisle" [attr.data-aisle]="group.aisle">
     <h2>
       <span aria-hidden="true">{{ group.emoji }}</span>
-      {{ group.label }}
+      {{ 'aisles.' + group.aisle | transloco }}
     </h2>
     <ul>
       @for (item of group.items; track item.id) {
@@ -52,11 +61,11 @@
         <span class="chevron" aria-hidden="true">
           {{ ui.showChecked() ? '▾' : '▸' }}
         </span>
-        Dans le panier ({{ checkedCount() }})
+        {{ 'list.basket' | transloco: { count: checkedCount() } }}
       </button>
 
       <button type="button" class="clear" (click)="clearChecked()">
-        Vider
+        {{ 'list.clearBasket' | transloco }}
       </button>
     </div>
 

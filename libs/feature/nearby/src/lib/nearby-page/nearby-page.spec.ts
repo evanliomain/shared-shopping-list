@@ -2,6 +2,7 @@ import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { QrScanner } from '@shopping-list/core/qr';
+import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { NearbyPage } from './nearby-page';
 
@@ -28,6 +29,7 @@ function setup(supported = true) {
     providers: [
       provideRouter([]),
       provideLocationMocks(),
+      provideTestI18n(),
       { provide: QrScanner, useValue: scanner },
     ],
   });

@@ -212,7 +212,7 @@ describe('checkAccess', () => {
     const { fetch } = stubFetch(() => new Response(null, { status: 404 }));
 
     await expect(checkAccess(CONFIG, fetch)).rejects.toThrow(
-      /Dépôt introuvable/,
+      'errors.github.repoNotFound',
     );
   });
 

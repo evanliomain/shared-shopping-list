@@ -242,7 +242,7 @@ test('l’historique permet de retrouver et d’archiver', async ({ page }) => {
 
   // Archivé : masqué par défaut, mais toujours là.
   await expect(page.locator('li')).toHaveCount(0);
-  await page.getByText('Afficher les 1 produits archivés').click();
+  await page.getByText('Afficher le 1 produit archivé').click();
   await expect(page.locator('li').filter({ hasText: 'Bougie' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Réactiver' }).click();

@@ -14,11 +14,18 @@ import { crdtActions } from './shopping.actions';
  * constante est le seul endroit qui en dépende.
  */
 export const DEFAULT_LIST_ID: ListId = 'maison';
-export const DEFAULT_LIST_NAME = 'Nos courses';
 
 export interface ShoppingState {
   readonly catalog: Readonly<Record<ProductId, Product>>;
   readonly items: Readonly<Record<ItemId, ListItem>>;
+  /**
+   * Nom porté par le CRDT, donc vide tant que rien n'est chargé.
+   *
+   * Ce n'est pas un libellé d'interface : c'est de la donnée, saisie une fois
+   * et répliquée telle quelle sur tous les appareils, quelle que soit la
+   * langue de chacun. L'écran affiche un nom par défaut traduit le temps que
+   * le vrai arrive.
+   */
   readonly listName: string;
   /**
    * Passe à `true` au premier snapshot reçu. Avant ça, une liste vide veut
@@ -31,7 +38,7 @@ export interface ShoppingState {
 const initialState: ShoppingState = {
   catalog: {},
   items: {},
-  listName: DEFAULT_LIST_NAME,
+  listName: '',
   loaded: false,
 };
 

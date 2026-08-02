@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
+import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { App } from './app';
 
@@ -10,6 +11,7 @@ describe('App', () => {
       imports: [App],
       providers: [
         provideRouter([]),
+        provideTestI18n(),
         // La coquille héberge l'invite de mise à jour, qui injecte SwUpdate.
         // Désactivé ici : on ne veut pas d'enregistrement de service worker.
         provideServiceWorker('ngsw-worker.js', { enabled: false }),

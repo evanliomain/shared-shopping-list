@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { SyncProvider, SyncStatus } from '@shopping-list/core/sync';
+import { ErrorText } from '@shopping-list/util/i18n';
 import * as Y from 'yjs';
 
 import {
@@ -33,7 +34,7 @@ export const PUSH_DEBOUNCE_MS = 500;
 @Injectable({ providedIn: 'root' })
 export class GithubSyncProvider implements SyncProvider {
   readonly id = 'github';
-  readonly label = 'GitHub';
+  readonly labelKey = 'sync.providers.github';
 
   private readonly statusSignal = signal<SyncStatus>('idle');
   private readonly errorSignal = signal<string | null>(null);
@@ -50,6 +51,7 @@ export class GithubSyncProvider implements SyncProvider {
   readonly pending = this.pendingSignal.asReadonly();
 
   private readonly configService = inject(GithubConfigService);
+  private readonly errorText = inject(ErrorText);
 
   private doc: Y.Doc | null = null;
   private engine: GithubSyncEngine | null = null;
@@ -225,7 +227,7 @@ export class GithubSyncProvider implements SyncProvider {
 
     this.pushing = true;
     try {
-      await this.engine.push(this.commitMessage());
+      await this.engine.push();
       this.pendingSignal.update((count) => Math.max(0, count - publishing));
       this.statusSignal.set('live');
       this.errorSignal.set(null);
@@ -242,24 +244,17 @@ export class GithubSyncProvider implements SyncProvider {
   }
 
   private reportFailure(error: unknown): void {
-    if (error instanceof GithubAuthError) {
-      // Sans intervention, rien ne repartira : autant le dire clairement.
-      this.statusSignal.set('error');
-      this.errorSignal.set(error.message);
-      return;
-    }
+    // Les erreurs voyagent en clés ; c'est ici, au bord de l'interface, qu'on
+    // les rend dans la langue de l'utilisateur.
+    this.errorSignal.set(this.errorText.describe(error));
 
-    if (error instanceof GithubRateLimitError) {
-      this.statusSignal.set('error');
-      this.errorSignal.set(error.message);
-      return;
-    }
-
-    // Tout le reste est très probablement le réseau : on réessaiera au
-    // prochain tour, sans alarmer l'utilisateur.
-    this.statusSignal.set('offline');
-    this.errorSignal.set(
-      error instanceof Error ? error.message : String(error),
+    // Un jeton refusé ou un quota épuisé ne repartiront pas tout seuls :
+    // autant le dire. Tout le reste est très probablement le réseau, et on
+    // réessaiera au prochain tour sans alarmer l'utilisateur.
+    this.statusSignal.set(
+      error instanceof GithubAuthError || error instanceof GithubRateLimitError
+        ? 'error'
+        : 'offline',
     );
   }
 }

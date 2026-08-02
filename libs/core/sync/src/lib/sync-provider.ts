@@ -23,10 +23,10 @@ export type SyncStatus = 'idle' | 'connecting' | 'live' | 'offline' | 'error';
 export interface SyncProvider {
   /** Identifiant technique stable, utilisé comme clé dans le store. */
   readonly id: string;
-  /** Nom affiché à l'utilisateur. */
-  readonly label: string;
+  /** Clé de traduction du nom affiché — voir `sync.providers.*`. */
+  readonly labelKey: string;
   readonly status: Signal<SyncStatus>;
-  /** Détail de la dernière erreur, à afficher tel quel. */
+  /** Dernière erreur, **déjà traduite**, à afficher telle quelle. */
   readonly lastError: Signal<string | null>;
   /**
    * Modifications locales pas encore transmises.

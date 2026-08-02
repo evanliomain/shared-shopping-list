@@ -1,0 +1,205 @@
+{
+  "app": {
+    "title": "Shopping list",
+    "shortName": "Groceries",
+    "description": "Shared shopping list, offline, no server.",
+    "defaultListName": "Our groceries"
+  },
+  "common": {
+    "back": "Back",
+    "close": "Close",
+    "cancel": "Cancel"
+  },
+  "update": {
+    "available": "A new version is available.",
+    "reload": "Update",
+    "later": "Later"
+  },
+  "sync": {
+    "alone": "Offline · this device only",
+    "connecting": "Connecting…",
+    "synced": "Synced",
+    "failed": "Sync is down",
+    "sending": {
+      "=0": "Sending…",
+      "one": "Sending… · {{count}} change pending",
+      "other": "Sending… · {{count}} changes pending"
+    },
+    "offline": {
+      "=0": "Offline",
+      "one": "Offline · {{count}} change pending",
+      "other": "Offline · {{count}} changes pending"
+    },
+    "providers": {
+      "github": "GitHub",
+      "indexeddb": "Local storage",
+      "broadcast": "Other tabs"
+    }
+  },
+  "list": {
+    "historyLink": "History",
+    "syncLink": "Sync",
+    "loading": "Loading…",
+    "allInBasket": "Everything is in the basket",
+    "remaining": {
+      "one": "{{count}} item to pick up",
+      "other": "{{count}} items to pick up"
+    },
+    "emptyTitle": "The list is empty",
+    "emptyHint": "Add an item below. It will be remembered for your next shopping trip.",
+    "basket": "In the basket ({{count}})",
+    "clearBasket": "Clear",
+    "unknownItem": "Unknown item"
+  },
+  "addBar": {
+    "placeholder": "Add an item…",
+    "emptyHistory": "Nothing in the history yet. Type an item and it will be there next time.",
+    "alreadyInList": "already in the list",
+    "create": "Create “{{label}}”"
+  },
+  "itemRow": {
+    "actions": "Actions for {{label}}",
+    "edit": "Edit product",
+    "remove": "Remove from list"
+  },
+  "product": {
+    "title": "Product details",
+    "missing": "This product doesn't exist any more.",
+    "unnamed": "Unnamed",
+    "label": "Name",
+    "description": "Description",
+    "descriptionPlaceholder": "vanilla, for the little one…",
+    "descriptionHint": "What tells this product apart from another with the same name.",
+    "defaultQty": "Usual quantity",
+    "defaultQtyPlaceholder": "a pack of 4, 500 g…",
+    "aisle": "Aisle",
+    "photo": "Photo",
+    "takePhoto": "Take a photo",
+    "photoBusy": "Processing…",
+    "clearPhoto": "Back to an emoji",
+    "photoHint": "Shrunk to 160 px and encoded as WebP: a few kilobytes, synced separately from the list.",
+    "emoji": "Emoji",
+    "chooseEmoji": "Choose {{emoji}}",
+    "photoWins": "The photo is used instead of the emoji.",
+    "archive": "Archive",
+    "save": "Save"
+  },
+  "catalog": {
+    "title": "History",
+    "search": "Search for a product…",
+    "showArchived": {
+      "one": "Show {{count}} archived product",
+      "other": "Show {{count}} archived products"
+    },
+    "emptyTitle": "The history is empty",
+    "emptyHint": "Every item you add to the list goes in automatically. It will help build your next shopping trips.",
+    "noMatchTitle": "No product matches",
+    "noMatchHint": "Try another word, or show archived products.",
+    "usage": {
+      "one": "{{count}} purchase",
+      "other": "{{count}} purchases"
+    },
+    "add": "Add {{label}} to the list",
+    "archive": "Archive",
+    "unarchive": "Restore"
+  },
+  "pairing": {
+    "title": "Sync",
+    "scanHint": "Point at the QR code shown on the other phone.",
+    "qrAlt": "Pairing QR code",
+    "qrWarning": "⚠️ This code carries the access token. Don't photograph it, and don't leave it lying around in a shared album.",
+    "synced": "Synced.",
+    "offline": "Offline — changes will go out when the network is back.",
+    "connecting": "Connecting…",
+    "pairAnother": "Pair another device",
+    "unpair": "Unpair this device",
+    "lead": "The list syncs through a private GitHub repository that belongs to you. No server, no subscription.",
+    "scanOther": "Scan the QR code on the other phone",
+    "or": "or enter the details",
+    "owner": "GitHub account",
+    "repo": "Private repository",
+    "token": "Access token",
+    "tokenHint": "A fine-grained token with the “Contents: Read and write” permission on this repository only.",
+    "connect": "Connect",
+    "checking": "Checking…",
+    "nearbyTitle": "No network",
+    "nearbyLead": "Deep in an aisle where nothing gets through, the two phones can exchange their changes by QR code.",
+    "nearbyLink": "Exchange nearby"
+  },
+  "nearby": {
+    "title": "Nearby exchange",
+    "lead": "With no network at all, the two phones exchange their changes by QR code. Three codes, two scans.",
+    "decide": "Decide who starts: one shows, the other scans.",
+    "iStart": "I'll start — show a code",
+    "otherStarts": "The other starts — scan their code",
+    "noCamera": "This browser can't read QR codes: the other phone has to do the scanning.",
+    "frameAlt": "Code to scan",
+    "framePosition": "Screen {{position}} of {{total}} — let it run, it loops.",
+    "shown": "It's scanned",
+    "scanProgress": "{{received}} / {{total}} screens read",
+    "doneTitle": "Both lists are up to date.",
+    "backToList": "Back to the list",
+    "restart": "Start over",
+    "giveUp": "Give up",
+    "showFirst": "Have the other phone scan this code.",
+    "showLast": "Have this last code scanned. The exchange will then be complete.",
+    "scan": "Scan the code shown on the other phone.",
+    "showThenWait": "Have the other phone scan this code, then wait for theirs."
+  },
+  "aisles": {
+    "fruits-legumes": "Fruit & vegetables",
+    "boucherie": "Butcher",
+    "poissonnerie": "Fishmonger",
+    "cremerie": "Dairy",
+    "boulangerie": "Bakery",
+    "epicerie-salee": "Savoury groceries",
+    "epicerie-sucree": "Sweet groceries",
+    "boissons": "Drinks",
+    "surgeles": "Frozen",
+    "hygiene": "Toiletries",
+    "entretien": "Household",
+    "bebe": "Baby",
+    "animaux": "Pets",
+    "divers": "Other"
+  },
+  "errors": {
+    "camera": {
+      "previewFailed": "The camera preview could not be started. Enter the details by hand.",
+      "unavailable": "Camera unavailable.",
+      "denied": "Camera access was denied.",
+      "none": "No camera is available."
+    },
+    "scan": {
+      "unsupportedBrowser": "This browser can't read QR codes. Enter the details by hand.",
+      "unsupportedDevice": "Reading QR codes isn't available on this device. Enter the details by hand.",
+      "aborted": "Reading interrupted."
+    },
+    "pairing": {
+      "invalidCode": "This code is not a valid pairing."
+    },
+    "github": {
+      "tokenInvalid": "The GitHub token is invalid or has expired.",
+      "tokenForbidden": "The GitHub token has no rights on this repository.",
+      "rateLimited": "GitHub quota exhausted.",
+      "readFailed": "Could not read from GitHub (HTTP {{status}}).",
+      "writeFailed": "Could not write to GitHub (HTTP {{status}}).",
+      "repoNotFound": "Repository not found: {{owner}}/{{repo}}. Check the name, and that the token covers this repository.",
+      "repoUnreachable": "Repository unreachable (HTTP {{status}}).",
+      "imageUnreachable": "Image unreachable (HTTP {{status}}).",
+      "imageUploadFailed": "Could not upload the image (HTTP {{status}}).",
+      "publishFailed": "Could not publish after {{attempts}} attempts: the repository is being changed constantly."
+    },
+    "nearby": {
+      "emptyMessage": "Empty message.",
+      "truncatedMessage": "Truncated message.",
+      "unknownMessage": "Unknown message type: {{kind}}.",
+      "wrongStep": "This code doesn't match this step of the exchange.",
+      "corrupted": "Corrupted read. Start the exchange over.",
+      "incomplete": "Incomplete read.",
+      "tooLarge": "Too much data for a QR exchange ({{frames}} screens). Do it again with a network."
+    },
+    "image": {
+      "processingFailed": "Could not prepare the image."
+    }
+  }
+}

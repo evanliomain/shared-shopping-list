@@ -1,3 +1,5 @@
+import { TranslatableError } from '@shopping-list/util/i18n';
+
 import { fromBase64, toBase64 } from './base64';
 
 /** Où et avec quoi lire et écrire l'état partagé. */
@@ -14,21 +16,21 @@ export const DEFAULT_BRANCH = 'main';
 export const DEFAULT_STATE_PATH = 'state.bin';
 
 /** Le jeton est refusé ou expiré : réappairage nécessaire, inutile de réessayer. */
-export class GithubAuthError extends Error {
+export class GithubAuthError extends TranslatableError {
   constructor(readonly status: number) {
     super(
       401 === status
-        ? 'Le jeton GitHub est invalide ou a expiré.'
-        : "Le jeton GitHub n'a pas les droits sur ce dépôt.",
+        ? 'errors.github.tokenInvalid'
+        : 'errors.github.tokenForbidden',
     );
     this.name = 'GithubAuthError';
   }
 }
 
 /** Quota horaire épuisé. Rare : le polling conditionnel n'en consomme presque pas. */
-export class GithubRateLimitError extends Error {
+export class GithubRateLimitError extends TranslatableError {
   constructor(readonly resetAt: Date | null) {
-    super('Quota GitHub épuisé.');
+    super('errors.github.rateLimited');
     this.name = 'GithubRateLimitError';
   }
 }
@@ -111,7 +113,9 @@ export async function readState(
   assertUsable(response);
 
   if (!response.ok) {
-    throw new Error(`Lecture GitHub impossible (HTTP ${response.status}).`);
+    throw new TranslatableError('errors.github.readFailed', {
+      status: response.status,
+    });
   }
 
   const body = (await response.json()) as { sha: string; content: string };
@@ -158,7 +162,9 @@ export async function writeState(
   assertUsable(response);
 
   if (!response.ok) {
-    throw new Error(`Écriture GitHub impossible (HTTP ${response.status}).`);
+    throw new TranslatableError('errors.github.writeFailed', {
+      status: response.status,
+    });
   }
 
   const body = (await response.json()) as { content: { sha: string } };
@@ -178,11 +184,14 @@ export async function checkAccess(
   assertUsable(response);
 
   if (404 === response.status) {
-    throw new Error(
-      `Dépôt introuvable : ${config.owner}/${config.repo}. Vérifiez le nom, et que le jeton porte bien sur ce dépôt.`,
-    );
+    throw new TranslatableError('errors.github.repoNotFound', {
+      owner: config.owner,
+      repo: config.repo,
+    });
   }
   if (!response.ok) {
-    throw new Error(`Dépôt inaccessible (HTTP ${response.status}).`);
+    throw new TranslatableError('errors.github.repoUnreachable', {
+      status: response.status,
+    });
   }
 }

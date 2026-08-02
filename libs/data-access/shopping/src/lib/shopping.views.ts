@@ -5,7 +5,7 @@ import {
   ProductId,
   usageTotal,
 } from '@shopping-list/core/crdt';
-import { emojiForAisle } from '@shopping-list/util/categories';
+import { Aisle, emojiForAisle } from '@shopping-list/util/categories';
 
 /** Une ligne de liste, déjà jointe à son produit — prête à afficher. */
 export interface ItemView {
@@ -20,15 +20,27 @@ export interface ItemView {
   readonly imageRef: ImageRef | null;
   /** Emoji de repli, toujours renseigné, même sans image. */
   readonly emoji: string;
-  readonly aisle: string;
+  /** Rayon connu : la vue ne laisse jamais passer une catégorie inconnue. */
+  readonly aisle: Aisle;
+  /**
+   * Le produit correspondant manque encore.
+   *
+   * L'écran doit alors afficher un libellé traduit, ce que seul un template
+   * peut faire — d'où un drapeau plutôt qu'une phrase toute faite ici.
+   */
+  readonly unknownProduct: boolean;
   readonly addedBy: string;
   readonly createdAt: number;
 }
 
-/** Les articles d'un rayon, dans l'ordre de parcours du magasin. */
+/**
+ * Les articles d'un rayon, dans l'ordre de parcours du magasin.
+ *
+ * Pas de libellé : la clé de rayon suffit, et c'est le template qui la traduit
+ * — un selector est pur et mémoïsé, il n'a rien à savoir de la langue.
+ */
 export interface AisleGroup {
-  readonly aisle: string;
-  readonly label: string;
+  readonly aisle: Aisle;
   readonly emoji: string;
   readonly items: readonly ItemView[];
 }
@@ -41,7 +53,7 @@ export interface SuggestionView {
   readonly defaultQty: string;
   readonly imageRef: ImageRef | null;
   readonly emoji: string;
-  readonly aisle: string;
+  readonly aisle: Aisle;
   readonly usage: number;
   readonly lastUsedAt: number;
   /** Déjà dans la liste en cours : on l'affiche, mais grisé. */

@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { TranslatableError } from '@shopping-list/util/i18n';
 
 import {
   checkAccess,
@@ -103,7 +104,7 @@ export function parsePairingPayload(raw: string): PairingPayload {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error("Ce code n'est pas un appairage valide.");
+    throw new TranslatableError('errors.pairing.invalidCode');
   }
 
   const candidate = parsed as Partial<PairingPayload>;
@@ -114,7 +115,7 @@ export function parsePairingPayload(raw: string): PairingPayload {
     'string' !== typeof candidate.repo ||
     'string' !== typeof candidate.token
   ) {
-    throw new Error("Ce code n'est pas un appairage valide.");
+    throw new TranslatableError('errors.pairing.invalidCode');
   }
 
   return {

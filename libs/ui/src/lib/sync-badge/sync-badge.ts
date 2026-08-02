@@ -2,8 +2,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
 } from '@angular/core';
+import { Plural } from '@shopping-list/util/i18n';
 
 export type SyncBadgeStatus =
   | 'unpaired'
@@ -82,24 +84,30 @@ export class SyncBadge {
   /** Modifications écrites localement mais pas encore publiées. */
   readonly pending = input(0);
 
-  protected readonly text = computed(() => {
-    const pending = this.pending();
-    const waiting =
-      0 === pending
-        ? ''
-        : ` · ${pending} ${1 === pending ? 'modif' : 'modifs'} en attente`;
-
+  /**
+   * Le nombre en attente fait partie du message, pas d'une concaténation.
+   *
+   * « 1 modif » contre « 3 modifs » est une règle de langue, pas une
+   * condition : c'est à `Plural` de la trancher, langue par langue.
+   */
+  private readonly key = computed(() => {
     switch (this.status()) {
       case 'live':
-        return 0 === pending ? 'Synchronisé' : `Envoi…${waiting}`;
+        return 0 === this.pending() ? 'sync.synced' : 'sync.sending';
       case 'connecting':
-        return 'Connexion…';
+        return 'sync.connecting';
       case 'offline':
-        return `Hors ligne${waiting}`;
+        return 'sync.offline';
       case 'error':
-        return 'Synchro en panne';
+        return 'sync.failed';
       default:
-        return 'Hors ligne · appareil seul';
+        return 'sync.alone';
     }
   });
+
+  private readonly plural = inject(Plural);
+
+  protected readonly text = computed(() =>
+    this.plural.translate(this.key(), this.pending()),
+  );
 }

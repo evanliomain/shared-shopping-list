@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Location } from '@angular/common';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { Store } from '@ngrx/store';
 import { BlobService } from '@shopping-list/core/blobs';
 import { ImageRef, ProductId } from '@shopping-list/core/crdt';
@@ -19,7 +20,7 @@ import {
   selectCatalog,
 } from '@shopping-list/data-access/shopping';
 import { ProductAvatar } from '@shopping-list/ui';
-import { AISLES, AISLE_INFO } from '@shopping-list/util/categories';
+import { AISLE_EMOJI, AISLES } from '@shopping-list/util/categories';
 
 /** Quelques emoji courants, pour ne pas imposer le clavier système. */
 const EMOJI_CHOICES = [
@@ -83,7 +84,7 @@ const EMOJI_CHOICES = [
 @Component({
   selector: 'sl-product-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, ProductAvatar],
+  imports: [FormsModule, ProductAvatar, TranslocoPipe],
   templateUrl: './product-page.html',
   styleUrl: './product-page.scss',
 })
@@ -101,7 +102,7 @@ export class ProductPage {
   protected readonly product = computed(() => this.catalog()[this.productId()]);
   protected readonly aisles = AISLES.map((aisle) => ({
     key: aisle,
-    ...AISLE_INFO[aisle],
+    emoji: AISLE_EMOJI[aisle],
   }));
   protected readonly emojiChoices = EMOJI_CHOICES;
 

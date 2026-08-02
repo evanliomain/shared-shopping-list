@@ -4,6 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { SuggestionView } from '@shopping-list/data-access/shopping';
 import { ProductAvatar } from '@shopping-list/ui';
 
@@ -18,15 +19,12 @@ import { ProductAvatar } from '@shopping-list/ui';
 @Component({
   selector: 'sl-add-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProductAvatar],
+  imports: [ProductAvatar, TranslocoPipe],
   template: `
     @if (picking()) {
       <div class="panel">
         @if (0 === suggestions().length && !canCreate()) {
-          <p class="hint">
-            Rien dans l'historique pour l'instant. Tapez un article, il y sera
-            la prochaine fois.
-          </p>
+          <p class="hint">{{ 'addBar.emptyHistory' | transloco }}</p>
         }
 
         <ul class="suggestions">
@@ -48,7 +46,9 @@ import { ProductAvatar } from '@shopping-list/ui';
                   }
                 </span>
                 @if (suggestion.alreadyInList) {
-                  <span class="badge">déjà dans la liste</span>
+                  <span class="badge">
+                    {{ 'addBar.alreadyInList' | transloco }}
+                  </span>
                 }
               </button>
             </li>
@@ -58,7 +58,7 @@ import { ProductAvatar } from '@shopping-list/ui';
         @if (canCreate()) {
           <button type="button" class="create" (click)="created.emit(query())">
             <span class="plus" aria-hidden="true">＋</span>
-            Créer «&nbsp;{{ query() }}&nbsp;»
+            {{ 'addBar.create' | transloco: { label: query() } }}
           </button>
         }
       </div>
@@ -70,7 +70,7 @@ import { ProductAvatar } from '@shopping-list/ui';
         name="article"
         autocomplete="off"
         enterkeyhint="done"
-        placeholder="Ajouter un article…"
+        [placeholder]="'addBar.placeholder' | transloco"
         [value]="query()"
         (input)="onInput($event)"
         (focus)="focused.emit()"
@@ -78,7 +78,7 @@ import { ProductAvatar } from '@shopping-list/ui';
 
       @if (picking()) {
         <button type="button" class="close" (click)="dismissed.emit()">
-          Fermer
+          {{ 'common.close' | transloco }}
         </button>
       }
     </form>

@@ -536,7 +536,11 @@ libs/
   feature/pairing/            appairage GitHub, réglages
   feature/nearby/             assistant d'échange QR (rôle, trames animées, scan)
   ui/                         composants muets, tokens de design, <sl-product-image>
-  util/categories/            dictionnaire produit → rayon + emoji par défaut (français)
+  util/categories/            dictionnaire produit → rayon + emoji par défaut
+                              (français et anglais fusionnés : ce qu'on tape ne
+                              suit pas la langue de l'interface)
+  util/i18n/                  langues disponibles, détection navigateur, chargeur
+                              embarqué, pluriels, traductions fr/en
 ```
 
 Les tags Nx font respecter les frontières :
@@ -560,7 +564,99 @@ flowchart TD
 
 ---
 
-## 10. Stack et versions
+## 10. Internationalisation
+
+Français et anglais. La langue est **celle du navigateur**, et rien d'autre :
+pas de sélecteur, pas de paramètre d'URL, pas de préférence à stocker. C'est le
+seul choix qui ne demande rien à quelqu'un qui ouvre l'application pour la
+première fois, et la langue d'un téléphone est une information déjà fiable. On
+parcourt tout `navigator.languages` plutôt que la seule première entrée : un
+appareil réglé sur `['es', 'en', 'fr']` doit obtenir l'anglais, pas le repli.
+
+[Transloco](https://jsverse.gitbook.io/transloco) fait le travail, avec deux
+écarts par rapport à sa configuration par défaut, tous deux dictés par le
+local-first.
+
+**Les traductions sont dans le bundle, pas en HTTP.** Le chargeur par défaut va
+chercher `assets/i18n/<lang>.json`. Pour une application qui doit s'afficher au
+fond d'un rayon sans réseau, ça ajoute une requête au démarrage, un
+`HttpClient` à provisionner et une entrée de cache de service worker à tenir à
+jour — pour deux fichiers de quelques kilo-octets. `BundledTranslationsLoader`
+les importe statiquement et les rend de façon **synchrone** : rien ne clignote
+entre le premier rendu et l'arrivée des libellés.
+
+**Les pluriels passent par `Intl.PluralRules`, pas par MessageFormat.** Le
+plugin officiel embarque un compilateur ICU complet : ~19 ko compressés, plus
+que Transloco lui-même, pour cinq messages au pluriel — de quoi faire sortir
+l'application de son budget de bundle. Une forme plurielle s'écrit donc comme
+un petit objet, une entrée par forme, et le pipe `plural` choisit la bonne :
+
+```json
+"offline": {
+  "=0": "Hors ligne",
+  "one": "Hors ligne · {{count}} modif en attente",
+  "other": "Hors ligne · {{count}} modifs en attente"
+}
+```
+
+Ce que ça achète : « 0 produit archivé » est correct en français, « 0 archived
+products » l'est en anglais. Aucun `count === 1` écrit à la main dans un
+template ne connaît cette règle, et l'écrire pour chaque langue ajoutée est un
+piège.
+
+### Ce qui est une clé, et ce qui est une donnée
+
+La distinction structure tout le reste.
+
+| Sujet                | Nature | Où il vit                                       |
+| -------------------- | ------ | ----------------------------------------------- |
+| Rayon d'un produit   | clé    | CRDT (`cremerie`), traduit à l'affichage        |
+| Emoji d'un rayon     | clé    | `util/categories`, indépendant de la langue     |
+| Nom de la liste      | donnée | CRDT, semé une fois depuis la traduction        |
+| Libellé d'un produit | donnée | CRDT, saisi par l'utilisateur                   |
+| Message d'erreur     | clé    | levé par la couche basse, rendu par l'interface |
+
+Tout ce qui traverse le CRDT est une **clé** : deux téléphones du même foyer
+peuvent être réglés dans deux langues différentes, et ils doivent malgré tout
+converger sur le même document. Un rayon stocké comme « Crèmerie » se
+retrouverait à côté de « Dairy » à la première synchro. Les selectors NgRx
+propagent donc la clé de rayon, et c'est le template qui la traduit — un
+selector est pur et mémoïsé, il n'a rien à savoir de la langue.
+
+Le **nom de la liste** est le cas limite intéressant : sa valeur initiale est un
+libellé, mais dès `ensureList` c'est de la donnée répliquée. Un appareil anglais
+qui rejoint une liste créée en français gardera « Nos courses » — c'est le nom
+que le foyer a choisi, pas un élément d'interface.
+
+Les **erreurs** suivent la même règle à l'envers. `core/qr`, `core/sync-github`
+et `core/sync-qr` sont des fonctions pures, sans injection : elles lèvent des
+`TranslatableError` qui portent une clé et ses paramètres, jamais une phrase.
+C'est la couche d'affichage qui les rend, via `ErrorText`. Ce qui échappe à ce
+mécanisme — un `TypeError: Failed to fetch` d'un réseau coupé — est affiché tel
+quel : imparfait, mais préférable à un écran qui échoue en silence.
+
+### Le dictionnaire de mots-clés n'est pas traduit, il est fusionné
+
+`util/categories` devine le rayon et l'emoji d'un produit à partir de son
+libellé. Ce dictionnaire couvre les deux langues **en même temps**, sans
+regarder celle de l'interface : ce qu'on tape ne la suit pas. On écrit « pasta »
+dans une interface française et « baguette » dans une interface anglaise. Un
+dictionnaire par langue ferait dépendre le rangement d'un réglage système, alors
+que le rayon proposé finit dans un document partagé entre des appareils qui ne
+sont pas forcément réglés pareil.
+
+### Ce que `index.html` ne peut pas faire
+
+`index.html` est servi tel quel à tout le monde, avec les libellés de la langue
+source. Une fois la langue résolue, `applyDocumentLang` reprend ce qu'aucun
+template Angular n'atteint : l'attribut `lang` dont dépendent la césure et les
+lecteurs d'écran, le titre de l'onglet, la meta description, et le
+`link[rel=manifest]` — pointé vers `manifest.en.webmanifest` en anglais, pour
+que la PWA s'installe sous le bon nom sur l'écran d'accueil.
+
+---
+
+## 11. Stack et versions
 
 | Brique     | Version | Pourquoi                                                 |
 | ---------- | ------- | -------------------------------------------------------- |
@@ -569,6 +665,7 @@ flowchart TD
 | NgRx       | ~21.1   | Dernière stable. Déclare `@angular/core: ^21.0.0`        |
 | Yjs        | ^13.6   | CRDT mature, léger, écosystème de providers              |
 | taninsam   | ^1.17   | Transformations de données                               |
+| Transloco  | ^8.4    | i18n : chargeur embarqué, pas de requête au démarrage    |
 | TypeScript | ~5.9    | Requis par Angular 21                                    |
 
 > **Pourquoi pas Angular 22 ?** NgRx stable est en 21 et déclare `@angular/core: ^21.0.0` ; seule
@@ -583,7 +680,7 @@ flowchart TD
 
 ---
 
-## 11. PWA et déploiement
+## 12. PWA et déploiement
 
 - `@angular/service-worker` : app shell en `prefetch`, invite `SwUpdate` (« Nouvelle version
   disponible ») plutôt qu'un rechargement sauvage au milieu des courses.
@@ -596,7 +693,7 @@ flowchart TD
 
 ---
 
-## 12. Découpage en lots
+## 13. Découpage en lots
 
 | Lot      | Contenu                                                                             | Ce qui marche à la fin                                                          |
 | -------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -618,7 +715,7 @@ lourde pour le bénéfice le plus faible.
 
 ---
 
-## 13. Stratégie de test
+## 14. Stratégie de test
 
 ### Unitaires (Vitest)
 

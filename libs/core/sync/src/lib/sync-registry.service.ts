@@ -12,7 +12,7 @@ import { SYNC_PROVIDERS, SyncProvider, SyncStatus } from './sync-provider';
 
 export interface ProviderState {
   readonly id: string;
-  readonly label: string;
+  readonly labelKey: string;
   readonly status: SyncStatus;
   readonly lastError: string | null;
   readonly pending: number;
@@ -38,7 +38,7 @@ export class SyncRegistry {
         .chain(
           map((provider: SyncProvider) => ({
             id: provider.id,
-            label: provider.label,
+            labelKey: provider.labelKey,
             status: provider.status(),
             lastError: provider.lastError(),
             // Facultatif : un canal purement local n'a rien à mettre en attente.

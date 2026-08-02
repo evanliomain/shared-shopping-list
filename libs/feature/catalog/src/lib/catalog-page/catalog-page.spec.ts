@@ -13,15 +13,16 @@ import { provideStore, Store } from '@ngrx/store';
 import {
   crdtActions,
   DEFAULT_LIST_ID,
-  DEFAULT_LIST_NAME,
   shoppingFeature,
 } from '@shopping-list/data-access/shopping';
 import { signal } from '@angular/core';
 import * as Y from 'yjs';
+import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { CatalogPage } from './catalog-page';
 
 const NOW = 1_764_000_000_000;
+const LIST_NAME = 'Nos courses';
 
 class FakeBlobs {
   readonly available = signal(new Set<string>());
@@ -38,13 +39,14 @@ class FakeBlobs {
 
 async function render(seed: (doc: Y.Doc) => void) {
   const doc = new Y.Doc({ gc: true });
-  ensureList(doc, DEFAULT_LIST_ID, DEFAULT_LIST_NAME, NOW);
+  ensureList(doc, DEFAULT_LIST_ID, LIST_NAME, NOW);
   seed(doc);
 
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
       provideLocationMocks(),
+      provideTestI18n(),
       provideStore({ [shoppingFeature.name]: shoppingFeature.reducer }),
       { provide: BlobService, useClass: FakeBlobs },
       {
@@ -93,8 +95,10 @@ describe('CatalogPage', () => {
     });
 
     expect(labels(fixture)).toEqual(['Lait']);
+    // Le singulier français vaut aussi pour un : c'est `Intl.PluralRules`
+    // qui l'a tranché, pas un `count === 1` écrit à la main.
     expect(fixture.nativeElement.textContent).toContain(
-      'Afficher les 1 produits archivés',
+      'Afficher le 1 produit archivé',
     );
   });
 

@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { AppLang } from '@shopping-list/util/i18n';
+import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { SyncBadge, SyncBadgeStatus } from './sync-badge';
 
@@ -6,7 +8,11 @@ describe('SyncBadge', () => {
   async function textFor(
     status: SyncBadgeStatus,
     pending = 0,
+    lang: AppLang = 'fr',
   ): Promise<string> {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideTestI18n(lang)] });
+
     const fixture = TestBed.createComponent(SyncBadge);
     fixture.componentRef.setInput('status', status);
     fixture.componentRef.setInput('pending', pending);
@@ -42,7 +48,22 @@ describe('SyncBadge', () => {
     expect(await textFor('error')).toBe('Synchro en panne');
   });
 
+  it('dit la même chose en anglais, avec le pluriel anglais', async () => {
+    expect(await textFor('unpaired', 0, 'en')).toBe(
+      'Offline · this device only',
+    );
+    expect(await textFor('offline', 1, 'en')).toBe(
+      'Offline · 1 change pending',
+    );
+    expect(await textFor('offline', 3, 'en')).toBe(
+      'Offline · 3 changes pending',
+    );
+  });
+
   it('expose le statut en attribut, pour le style et les tests', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideTestI18n()] });
+
     const fixture = TestBed.createComponent(SyncBadge);
     fixture.componentRef.setInput('status', 'offline');
     await fixture.whenStable();
