@@ -1,0 +1,22 @@
+{
+  "name": "util-categories",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/util/categories/src",
+  "prefix": "sl",
+  "projectType": "library",
+  "tags": [
+    "type:util",
+    "scope:shared"
+  ],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "reportsDirectory": "../../../coverage/libs/util/categories"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

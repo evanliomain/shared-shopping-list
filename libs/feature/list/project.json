@@ -1,0 +1,22 @@
+{
+  "name": "feature-list",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/feature/list/src",
+  "prefix": "sl",
+  "projectType": "library",
+  "tags": [
+    "type:feature",
+    "scope:shared"
+  ],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "reportsDirectory": "coverage/libs/feature/list"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

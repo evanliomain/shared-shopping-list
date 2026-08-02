@@ -1,0 +1,22 @@
+{
+  "name": "data-access-catalog",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/data-access/catalog/src",
+  "prefix": "sl",
+  "projectType": "library",
+  "tags": [
+    "type:data-access",
+    "scope:shared"
+  ],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "reportsDirectory": "coverage/libs/data-access/catalog"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

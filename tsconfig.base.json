@@ -1,0 +1,61 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "esnext",
+    "lib": [
+      "ES2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "paths": {
+      "@shopping-list/util/categories": [
+        "./libs/util/categories/src/index.ts"
+      ],
+      "@shopping-list/ui": [
+        "./libs/ui/src/index.ts"
+      ],
+      "@shopping-list/core/crdt": [
+        "./libs/core/crdt/src/index.ts"
+      ],
+      "@shopping-list/core/sync": [
+        "./libs/core/sync/src/index.ts"
+      ],
+      "@shopping-list/core/sync-indexeddb": [
+        "./libs/core/sync-indexeddb/src/index.ts"
+      ],
+      "@shopping-list/data-access/list": [
+        "./libs/data-access/list/src/index.ts"
+      ],
+      "@shopping-list/data-access/catalog": [
+        "./libs/data-access/catalog/src/index.ts"
+      ],
+      "@shopping-list/feature/list": [
+        "./libs/feature/list/src/index.ts"
+      ],
+      "@shopping-list/feature/product": [
+        "./libs/feature/product/src/index.ts"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
+}

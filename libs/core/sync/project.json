@@ -1,0 +1,22 @@
+{
+  "name": "core-sync",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/core/sync/src",
+  "prefix": "sl",
+  "projectType": "library",
+  "tags": [
+    "type:core",
+    "scope:shared"
+  ],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "reportsDirectory": "coverage/libs/core/sync"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

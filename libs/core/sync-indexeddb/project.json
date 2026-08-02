@@ -1,0 +1,22 @@
+{
+  "name": "core-sync-indexeddb",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/core/sync-indexeddb/src",
+  "prefix": "sl",
+  "projectType": "library",
+  "tags": [
+    "type:core",
+    "scope:shared"
+  ],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "reportsDirectory": "coverage/libs/core/sync-indexeddb"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

@@ -1,0 +1,121 @@
+/* Styles globaux et jetons de design.
+   Mobile d'abord : l'app est utilisée à une main, dans un rayon, parfois avec
+   des gants. Les cibles tactiles ne descendent jamais sous 44 px. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Couleurs — la marque est le vert du caddie. */
+  --sl-brand: #16a34a;
+  --sl-brand-strong: #15803d;
+  --sl-brand-soft: #dcfce7;
+  --sl-danger: #dc2626;
+  --sl-warning: #d97706;
+
+  --sl-bg: #ffffff;
+  --sl-surface: #ffffff;
+  --sl-surface-sunken: #f4f4f5;
+  --sl-border: #e4e4e7;
+  --sl-text: #18181b;
+  --sl-text-muted: #71717a;
+  --sl-text-on-brand: #ffffff;
+
+  /* Espacements — échelle de 4 px. */
+  --sl-space-1: 0.25rem;
+  --sl-space-2: 0.5rem;
+  --sl-space-3: 0.75rem;
+  --sl-space-4: 1rem;
+  --sl-space-5: 1.5rem;
+  --sl-space-6: 2rem;
+
+  --sl-radius: 0.75rem;
+  --sl-radius-sm: 0.5rem;
+  --sl-radius-full: 999px;
+
+  --sl-tap-target: 2.75rem;
+
+  --sl-shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 4px 12px rgb(0 0 0 / 6%);
+
+  /* Encoches et barre système des téléphones. */
+  --sl-safe-top: env(safe-area-inset-top, 0px);
+  --sl-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sl-brand: #22c55e;
+    --sl-brand-strong: #16a34a;
+    --sl-brand-soft: #14532d;
+
+    --sl-bg: #09090b;
+    --sl-surface: #18181b;
+    --sl-surface-sunken: #27272a;
+    --sl-border: #3f3f46;
+    --sl-text: #fafafa;
+    --sl-text-muted: #a1a1aa;
+
+    --sl-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 12px rgb(0 0 0 / 40%);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--sl-bg);
+  color: var(--sl-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+
+  /* Pas de rebond élastique : au supermarché on scrolle vite et de travers. */
+  overscroll-behavior-y: none;
+}
+
+/* Pas de surlignage bleu au tap sur mobile. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sl-brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

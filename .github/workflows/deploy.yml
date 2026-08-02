@@ -1,0 +1,67 @@
+name: Déploiement GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Un seul déploiement à la fois ; on laisse finir celui en cours.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npx nx run-many -t lint --parallel
+
+      - name: Tests unitaires
+        run: npx nx run-many -t test --parallel
+
+      - name: Navigateurs Playwright
+        run: npx playwright install chromium webkit --with-deps
+
+      - name: Tests end-to-end
+        run: npx nx e2e shopping-list-e2e
+
+      - name: Build
+        run: npx nx build shopping-list --configuration=github-pages
+
+      - name: Préparer l'artefact Pages
+        run: |
+          # GitHub Pages sert le site depuis /shopping-list/. Les routes profondes
+          # (/shopping-list/liste) n'existent pas côté serveur : Pages renvoie
+          # 404.html, qu'on fait pointer sur l'app pour que le routeur reprenne
+          # la main. .nojekyll empêche Jekyll d'ignorer les fichiers en _.
+          cp dist/apps/shopping-list/browser/index.html dist/apps/shopping-list/browser/404.html
+          touch dist/apps/shopping-list/browser/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/apps/shopping-list/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

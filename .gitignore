@@ -1,0 +1,45 @@
+# compiled output
+dist
+tmp
+out-tsc
+
+# dependencies
+node_modules
+
+# IDEs and editors
+.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/extensions.json
+
+# misc
+.sass-cache
+connect.lock
+coverage
+libpeerconnection.log
+testem.log
+typings
+
+# System files
+.DS_Store
+Thumbs.db
+
+.nx/cache
+.nx/workspace-data
+
+.angular
+
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+
+test-output
+playwright-report
+blob-report
+.playwright
+
+__screenshots__/
