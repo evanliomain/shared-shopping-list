@@ -25,7 +25,7 @@ describe('SyncBadge', () => {
 
   it('dit « appareil seul » plutôt que « hors ligne » sans appairage', async () => {
     // Rien n'est en panne : il n'y a simplement personne à qui parler.
-    expect(await textFor('unpaired')).toBe('Hors ligne · appareil seul');
+    expect(await textFor('unpaired')).toBe('Appareil seul');
   });
 
   it('confirme la synchronisation quand tout est passé', async () => {
@@ -34,10 +34,8 @@ describe('SyncBadge', () => {
 
   it('annonce le nombre de modifications en attente', async () => {
     // Au fond d'un rayon, ce qui rassure c'est de savoir que rien n'est perdu.
-    expect(await textFor('offline', 3)).toBe(
-      'Hors ligne · 3 modifs en attente',
-    );
-    expect(await textFor('offline', 1)).toBe('Hors ligne · 1 modif en attente');
+    expect(await textFor('offline', 3)).toBe('Hors ligne · 3 modifs gardées');
+    expect(await textFor('offline', 1)).toBe('Hors ligne · 1 modif gardée');
   });
 
   it('signale un envoi en cours', async () => {
@@ -49,15 +47,9 @@ describe('SyncBadge', () => {
   });
 
   it('dit la même chose en anglais, avec le pluriel anglais', async () => {
-    expect(await textFor('unpaired', 0, 'en')).toBe(
-      'Offline · this device only',
-    );
-    expect(await textFor('offline', 1, 'en')).toBe(
-      'Offline · 1 change pending',
-    );
-    expect(await textFor('offline', 3, 'en')).toBe(
-      'Offline · 3 changes pending',
-    );
+    expect(await textFor('unpaired', 0, 'en')).toBe('This device only');
+    expect(await textFor('offline', 1, 'en')).toBe('Offline · 1 change kept');
+    expect(await textFor('offline', 3, 'en')).toBe('Offline · 3 changes kept');
   });
 
   it('expose le statut en attribut, pour le style et les tests', async () => {

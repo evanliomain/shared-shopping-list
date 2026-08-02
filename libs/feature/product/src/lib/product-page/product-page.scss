@@ -2,14 +2,17 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   block-size: 100dvh;
+  background: var(--sl-bg);
 }
 
+/* Titre centré, retour à gauche, contrepoids invisible à droite : c'est
+   l'en-tête de tous les écrans secondaires. Sans le contrepoids, le titre se
+   décale de la largeur du bouton. */
 header {
   display: flex;
   align-items: center;
-  gap: var(--sl-space-2);
-  padding: calc(var(--sl-safe-top) + var(--sl-space-2)) var(--sl-space-3)
-    var(--sl-space-2);
+  gap: var(--sl-space-1);
+  padding: calc(var(--sl-safe-top) + 0.375rem) var(--sl-space-4) 0.625rem;
   border-block-end: 1px solid var(--sl-border);
   background: var(--sl-surface);
 }
@@ -20,35 +23,48 @@ header {
   border: none;
   background: transparent;
   color: var(--sl-brand);
-}
-
-h1 {
-  margin: 0;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 
+.balance {
+  inline-size: 4.75rem;
+}
+
+h1 {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
 main {
+  min-block-size: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--sl-space-4);
-  padding: var(--sl-space-4);
+  gap: 1.25rem;
+  padding: 1.125rem var(--sl-space-4) 1.75rem;
 }
 
 main.missing {
-  place-content: center;
-  color: var(--sl-text-muted);
-  text-align: center;
+  padding: 0;
 }
 
 .preview {
   display: flex;
   align-items: center;
-  gap: var(--sl-space-3);
-  padding: var(--sl-space-3);
+  gap: 0.875rem;
+  padding: 0.875rem;
   border-radius: var(--sl-radius);
-  background: var(--sl-surface-sunken);
+  background: var(--sl-surface);
+  box-shadow: var(--sl-shadow);
+}
+
+.preview > div {
+  min-inline-size: 0;
 }
 
 .preview p {
@@ -56,52 +72,89 @@ main.missing {
 }
 
 .preview-label {
-  font-weight: 600;
+  font-size: var(--sl-font-lg);
+  font-weight: 650;
+  letter-spacing: -0.015em;
 }
 
-.preview-description {
+.preview .preview-description {
+  margin-block-start: 0.125rem;
   color: var(--sl-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--sl-font-md);
 }
 
 label {
   display: flex;
   flex-direction: column;
-  gap: var(--sl-space-1);
+  gap: 0.375rem;
 }
 
 label > span,
 legend {
   color: var(--sl-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--sl-font-sm);
+  font-weight: 650;
 }
 
 input,
 select {
-  min-block-size: var(--sl-tap-target);
-  padding: 0 var(--sl-space-3);
+  inline-size: 100%;
+  min-block-size: 3rem;
+  padding: 0 0.875rem;
   border: 1px solid var(--sl-border);
   border-radius: var(--sl-radius-sm);
-  background: var(--sl-bg);
+  background: var(--sl-surface);
+  font-size: var(--sl-font-base);
+}
+
+input:focus-visible,
+select:focus-visible {
+  padding-inline: calc(0.875rem - 1px);
+  border: 2px solid var(--sl-brand);
+  outline: none;
+}
+
+.select-wrap {
+  position: relative;
+  display: block;
+}
+
+.select-wrap select {
+  appearance: none;
+  padding-inline-end: 2.25rem;
+}
+
+.select-wrap::after {
+  content: '▾';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0.875rem;
+  display: grid;
+  place-items: center;
+  color: var(--sl-text-muted);
+  pointer-events: none;
 }
 
 small {
   color: var(--sl-text-muted);
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
+  line-height: 1.45;
+  text-wrap: pretty;
 }
 
 fieldset {
   margin: 0;
   padding: 0;
   border: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sl-space-2);
 }
 
 .emoji-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
-  gap: var(--sl-space-1);
-  margin-block: var(--sl-space-2);
+  gap: 0.375rem;
 }
 
 .emoji-choice {
@@ -111,7 +164,7 @@ fieldset {
   min-block-size: var(--sl-tap-target);
   border: 2px solid transparent;
   border-radius: var(--sl-radius-sm);
-  background: var(--sl-surface-sunken);
+  background: var(--sl-surface);
   font-size: 1.25rem;
 }
 
@@ -122,41 +175,41 @@ fieldset {
 
 footer {
   display: flex;
-  gap: var(--sl-space-2);
-  padding: var(--sl-space-3);
-  padding-block-end: calc(var(--sl-safe-bottom) + var(--sl-space-3));
+  gap: 0.625rem;
+  padding: var(--sl-space-3) var(--sl-space-4);
+  padding-block-end: calc(var(--sl-safe-bottom) + 1.625rem);
   border-block-start: 1px solid var(--sl-border);
   background: var(--sl-surface);
 }
 
 footer button {
-  flex: 1;
-  min-block-size: var(--sl-tap-target);
+  min-block-size: 3rem;
   border: none;
   border-radius: var(--sl-radius);
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+footer button:disabled {
+  opacity: 0.4;
 }
 
 .archive {
-  flex: 0 0 auto;
-  padding-inline: var(--sl-space-4);
+  flex: none;
+  padding-inline: 1.125rem;
   background: transparent;
   color: var(--sl-danger);
 }
 
 .save {
+  flex: 1;
   background: var(--sl-brand);
   color: var(--sl-text-on-brand);
 }
 
-.save:disabled {
-  opacity: 0.5;
-}
-
 .photo-actions {
   display: flex;
-  gap: var(--sl-space-2);
-  margin-block: var(--sl-space-2);
+  gap: 0.625rem;
 }
 
 .photo-button {
@@ -164,10 +217,16 @@ footer button {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-block-size: var(--sl-tap-target);
+  min-block-size: 3rem;
   border: 1px solid var(--sl-border);
   border-radius: var(--sl-radius);
-  font-weight: 600;
+  background: var(--sl-surface);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.photo-button.busy {
+  color: var(--sl-text-muted);
 }
 
 .photo-button input {
@@ -181,13 +240,17 @@ footer button {
 
 .photo-clear {
   flex: none;
-  padding-inline: var(--sl-space-3);
+  min-block-size: 3rem;
+  padding-inline: 0.875rem;
   border: none;
   background: transparent;
   color: var(--sl-danger);
-  font-size: 0.875rem;
+  font-size: var(--sl-font-md);
+  font-weight: 600;
 }
 
+/* Grisé mais lisible : on doit comprendre que le choix revient si on retire
+   la photo, pas croire qu'il a disparu. */
 fieldset.dimmed {
-  opacity: 0.5;
+  opacity: 0.45;
 }

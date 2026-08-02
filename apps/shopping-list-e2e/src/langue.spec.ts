@@ -19,7 +19,7 @@ test.describe('navigateur en anglais', () => {
     // Jusqu'aux libellés que seul le CSS ou l'assistance vocale lisent.
     await expect(page.getByLabel('History')).toBeVisible();
     await expect(page.locator('sl-sync-badge')).toContainText(
-      'this device only',
+      'This device only',
     );
   });
 
@@ -32,7 +32,7 @@ test.describe('navigateur en anglais', () => {
     await page.getByRole('button', { name: 'Create “Milk”' }).click();
 
     // « 1 item », pas « 1 items ».
-    await expect(page.getByText('1 item to pick up')).toBeVisible();
+    await expect(page.getByText('1 item left')).toBeVisible();
 
     // « Milk » doit être reconnu et rangé au rayon crèmerie, traduit :
     // le dictionnaire de mots-clés ne suit pas la langue de l'interface.

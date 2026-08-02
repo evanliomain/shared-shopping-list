@@ -4,15 +4,11 @@
   "projectType": "application",
   "prefix": "sl",
   "sourceRoot": "apps/shopping-list/src",
-  "tags": [
-    "type:app"
-  ],
+  "tags": ["type:app"],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
-      "outputs": [
-        "{options.outputPath}"
-      ],
+      "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/shopping-list",
         "browser": "apps/shopping-list/src/main.ts",
@@ -24,13 +20,9 @@
             "input": "apps/shopping-list/public"
           }
         ],
-        "styles": [
-          "apps/shopping-list/src/styles.scss"
-        ],
+        "styles": ["apps/shopping-list/src/styles.scss"],
         "serviceWorker": "apps/shopping-list/ngsw-config.json",
-        "allowedCommonJsDependencies": [
-          "qrcode"
-        ]
+        "allowedCommonJsDependencies": ["qrcode"]
       },
       "configurations": {
         "production": {

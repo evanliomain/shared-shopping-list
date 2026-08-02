@@ -252,12 +252,12 @@ describe('PairingPage', () => {
     scanner.supported = true;
 
     const fixture = await render();
-    const camera = fixture.nativeElement.querySelector('.camera');
-    expect(camera.classList.contains('active')).toBe(false);
+    const overlay = fixture.nativeElement.querySelector('sl-scan-overlay');
+    expect(overlay.getAttribute('data-active')).toBe('false');
 
     clickButton(fixture, 'Scanner le QR');
     await fixture.whenStable();
 
-    expect(camera.classList.contains('active')).toBe(true);
+    expect(overlay.getAttribute('data-active')).toBe('true');
   });
 });

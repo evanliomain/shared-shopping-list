@@ -84,9 +84,13 @@ import { ProductAvatar } from '@shopping-list/ui';
   styles: `
     :host {
       display: flex;
-      align-items: stretch;
-      gap: var(--sl-space-1);
-      border-radius: var(--sl-radius);
+      align-items: center;
+      min-block-size: var(--sl-row-height);
+      padding-inline-end: var(--sl-space-2);
+    }
+
+    :host([data-checked='true']) {
+      opacity: 0.85;
     }
 
     .toggle {
@@ -94,10 +98,10 @@ import { ProductAvatar } from '@shopping-list/ui';
       flex: 1;
       align-items: center;
       gap: var(--sl-space-3);
-      min-block-size: var(--sl-tap-target);
-      padding: var(--sl-space-2) var(--sl-space-2);
+      min-inline-size: 0;
+      min-block-size: var(--sl-row-height);
+      padding: 0.5625rem 0 0.5625rem var(--sl-space-3);
       border: none;
-      border-radius: var(--sl-radius);
       background: transparent;
       text-align: start;
     }
@@ -110,8 +114,8 @@ import { ProductAvatar } from '@shopping-list/ui';
       display: grid;
       place-items: center;
       flex: none;
-      inline-size: 1.5rem;
-      block-size: 1.5rem;
+      inline-size: 1.625rem;
+      block-size: 1.625rem;
       border: 2px solid var(--sl-border);
       border-radius: var(--sl-radius-full);
       transition:
@@ -126,7 +130,7 @@ import { ProductAvatar } from '@shopping-list/ui';
 
     .tick {
       color: var(--sl-text-on-brand);
-      font-size: 0.8rem;
+      font-size: var(--sl-font-sm);
       line-height: 1;
     }
 
@@ -145,23 +149,30 @@ import { ProductAvatar } from '@shopping-list/ui';
       white-space: nowrap;
     }
 
+    .label {
+      font-size: var(--sl-font-base);
+      font-weight: 550;
+      letter-spacing: -0.01em;
+    }
+
     .description {
       color: var(--sl-text-muted);
-      font-size: 0.8125rem;
+      font-size: var(--sl-font-sm);
     }
 
     .note {
       color: var(--sl-warning);
-      font-size: 0.8125rem;
+      font-size: var(--sl-font-sm);
     }
 
     .qty {
       flex: none;
-      padding: 0.125rem var(--sl-space-2);
+      padding: 0.1875rem 0.5625rem;
       border-radius: var(--sl-radius-full);
       background: var(--sl-surface-sunken);
       color: var(--sl-text-muted);
-      font-size: 0.8125rem;
+      font-size: var(--sl-font-xs);
+      font-weight: 550;
       font-variant-numeric: tabular-nums;
     }
 
@@ -181,47 +192,54 @@ import { ProductAvatar } from '@shopping-list/ui';
     }
 
     .menu-toggle {
-      inline-size: var(--sl-tap-target);
-      block-size: 100%;
+      inline-size: 2.5rem;
       min-block-size: var(--sl-tap-target);
       border: none;
-      border-radius: var(--sl-radius);
+      border-radius: var(--sl-radius-sm);
       background: transparent;
       color: var(--sl-text-muted);
-      font-size: 1.1rem;
+      font-size: 1.125rem;
       line-height: 1;
     }
 
-    .menu-toggle:active {
+    /* Le bouton ouvert se teinte : avec plusieurs lignes à l'écran, la seule
+       position du popover ne dit pas toujours de laquelle il est parti. */
+    .menu-toggle[aria-expanded='true'] {
       background: var(--sl-surface-sunken);
+      color: var(--sl-text);
     }
 
     .menu {
       position: absolute;
-      inset-block-start: calc(100% + var(--sl-space-1));
+      inset-block-start: calc(100% - 0.375rem);
       inset-inline-end: 0;
-      z-index: 10;
+      z-index: 20;
       display: flex;
       flex-direction: column;
-      min-inline-size: 12rem;
+      min-inline-size: 13.5rem;
       overflow: hidden;
       border: 1px solid var(--sl-border);
       border-radius: var(--sl-radius);
       background: var(--sl-surface);
-      box-shadow: var(--sl-shadow);
+      box-shadow: var(--sl-shadow-lg);
     }
 
     .menu > * {
-      min-block-size: var(--sl-tap-target);
+      min-block-size: 3rem;
       display: flex;
       align-items: center;
-      padding-inline: var(--sl-space-3);
+      padding-inline: var(--sl-space-4);
       border: none;
       background: transparent;
       color: inherit;
       font: inherit;
+      font-size: 0.9375rem;
       text-align: start;
       text-decoration: none;
+    }
+
+    .menu > * + * {
+      border-block-start: 1px solid var(--sl-border);
     }
 
     .menu > *:active {

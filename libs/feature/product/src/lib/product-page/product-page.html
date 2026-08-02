@@ -3,11 +3,16 @@
     ← {{ 'common.back' | transloco }}
   </button>
   <h1>{{ 'product.title' | transloco }}</h1>
+  <span class="balance" aria-hidden="true"></span>
 </header>
 
 @if (undefined === product()) {
 <main class="missing">
-  <p>{{ 'product.missing' | transloco }}</p>
+  <sl-empty-state
+    emoji="🫥"
+    [title]="'product.missing' | transloco"
+    [hint]="'product.missingHint' | transloco"
+  />
 </main>
 } @else {
 <main>
@@ -61,23 +66,28 @@
 
   <label>
     <span>{{ 'product.aisle' | transloco }}</span>
-    <select
-      name="category"
-      [ngModel]="category()"
-      (ngModelChange)="category.set($event)"
-    >
-      @for (aisle of aisles; track aisle.key) {
-      <option [value]="aisle.key">
-        {{ aisle.emoji }} {{ 'aisles.' + aisle.key | transloco }}
-      </option>
-      }
-    </select>
+    <!-- Le chevron est dessiné par la feuille de styles : le natif diffère
+         d'une plateforme à l'autre, et le champ ne ressemblerait plus aux
+         autres. -->
+    <span class="select-wrap">
+      <select
+        name="category"
+        [ngModel]="category()"
+        (ngModelChange)="category.set($event)"
+      >
+        @for (aisle of aisles; track aisle.key) {
+        <option [value]="aisle.key">
+          {{ aisle.emoji }} {{ 'aisles.' + aisle.key | transloco }}
+        </option>
+        }
+      </select>
+    </span>
   </label>
 
   <fieldset>
     <legend>{{ 'product.photo' | transloco }}</legend>
     <div class="photo-actions">
-      <label class="photo-button">
+      <label class="photo-button" [class.busy]="photoBusy()">
         {{ (photoBusy() ? 'product.photoBusy' : 'product.takePhoto') | transloco
         }}
         <input
@@ -117,13 +127,23 @@
     }
   </fieldset>
 </main>
+}
 
 <footer>
-  <button type="button" class="archive" (click)="archive()">
+  <button
+    type="button"
+    class="archive"
+    [disabled]="undefined === product()"
+    (click)="archive()"
+  >
     {{ 'product.archive' | transloco }}
   </button>
-  <button type="button" class="save" [disabled]="!canSave()" (click)="save()">
+  <button
+    type="button"
+    class="save"
+    [disabled]="undefined === product() || !canSave()"
+    (click)="save()"
+  >
     {{ 'product.save' | transloco }}
   </button>
 </footer>
-}

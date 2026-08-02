@@ -122,7 +122,7 @@ describe('CatalogPage', () => {
       createProduct(doc, { label: 'Lait' }, NOW);
     });
 
-    const search = fixture.nativeElement.querySelector('.search');
+    const search = fixture.nativeElement.querySelector('.search input');
     search.value = 'vanille';
     search.dispatchEvent(new Event('input'));
     await fixture.whenStable();

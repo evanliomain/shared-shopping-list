@@ -21,6 +21,10 @@ export type SyncBadgeStatus =
  * pour rien : ce qui rassure, c'est de savoir que **rien n'est perdu** et
  * combien de modifications attendent. C'est le bandeau qu'on regarde au fond
  * d'un rayon quand le réseau ne passe plus.
+ *
+ * D'où la puce teintée plutôt que du texte coloré : à bout de bras, un fond
+ * se repère avant une nuance de gris, et le contraste du libellé ne dépend
+ * plus de la couleur d'état.
  */
 @Component({
   selector: 'sl-sync-badge',
@@ -33,35 +37,51 @@ export type SyncBadgeStatus =
     :host {
       display: inline-flex;
       align-items: center;
-      gap: var(--sl-space-2);
-      min-block-size: var(--sl-tap-target);
-      padding-inline: var(--sl-space-2);
+      gap: 0.4375rem;
+      block-size: 1.75rem;
+      padding-inline: 0.6875rem;
       border: none;
       border-radius: var(--sl-radius-full);
-      background: transparent;
+      background: var(--sl-surface-sunken);
       color: var(--sl-text-muted);
-      font-size: 0.8125rem;
+      font-size: var(--sl-font-xs);
+      font-weight: 600;
       white-space: nowrap;
     }
 
     .dot {
-      inline-size: 0.5rem;
-      block-size: 0.5rem;
+      inline-size: 0.4375rem;
+      block-size: 0.4375rem;
       flex: none;
       border-radius: var(--sl-radius-full);
       background: currentColor;
     }
 
     :host([data-status='live']) {
-      color: var(--sl-brand);
+      background: var(--sl-brand-soft);
+      color: var(--sl-brand-ink);
+    }
+
+    :host([data-status='live']) .dot {
+      background: var(--sl-brand);
     }
 
     :host([data-status='offline']) {
-      color: var(--sl-warning);
+      background: var(--sl-warning-soft);
+      color: var(--sl-warning-ink);
+    }
+
+    :host([data-status='offline']) .dot {
+      background: var(--sl-warning);
     }
 
     :host([data-status='error']) {
-      color: var(--sl-danger);
+      background: var(--sl-danger-soft);
+      color: var(--sl-danger-ink);
+    }
+
+    :host([data-status='error']) .dot {
+      background: var(--sl-danger);
     }
 
     :host([data-status='connecting']) .dot {

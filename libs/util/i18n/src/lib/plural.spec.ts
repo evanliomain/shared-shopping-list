@@ -31,11 +31,9 @@ describe('Plural', () => {
     const fr = pluralFor('fr');
 
     expect(fr.translate('sync.offline', 0)).toBe('Hors ligne');
-    expect(fr.translate('sync.offline', 1)).toBe(
-      'Hors ligne · 1 modif en attente',
-    );
+    expect(fr.translate('sync.offline', 1)).toBe('Hors ligne · 1 modif gardée');
     expect(fr.translate('sync.offline', 3)).toBe(
-      'Hors ligne · 3 modifs en attente',
+      'Hors ligne · 3 modifs gardées',
     );
   });
 

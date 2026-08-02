@@ -19,7 +19,12 @@ import {
   parsePairingPayload,
 } from '@shopping-list/core/sync-github';
 import { SyncRegistry } from '@shopping-list/core/sync';
-import { ErrorText, TranslatableError } from '@shopping-list/util/i18n';
+import { ScanOverlay } from '@shopping-list/ui';
+import {
+  ErrorText,
+  PluralPipe,
+  TranslatableError,
+} from '@shopping-list/util/i18n';
 
 type Mode = 'idle' | 'scanning' | 'showing-qr';
 
@@ -38,7 +43,7 @@ type Mode = 'idle' | 'scanning' | 'showing-qr';
 @Component({
   selector: 'sl-pairing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, TranslocoPipe],
+  imports: [FormsModule, PluralPipe, RouterLink, ScanOverlay, TranslocoPipe],
   templateUrl: './pairing-page.html',
   styleUrl: './pairing-page.scss',
 })
@@ -68,6 +73,27 @@ export class PairingPage {
   protected readonly providerState = computed(() =>
     this.registry.states().find((s) => 'github' === s.id),
   );
+
+  protected readonly syncPending = computed(
+    () => this.providerState()?.pending ?? 0,
+  );
+
+  /**
+   * Un seul emplacement d'alerte, quelle que soit l'origine de l'erreur.
+   *
+   * Un appairage refusé et une synchro tombée en `401` racontent la même
+   * chose à l'utilisateur ; les afficher à deux endroits différents ferait
+   * chercher la deuxième moitié du message.
+   */
+  protected readonly alert = computed(() => {
+    const local = this.error();
+    if (null !== local) {
+      return local;
+    }
+
+    const state = this.providerState();
+    return 'error' === state?.status ? (state.lastError ?? null) : null;
+  });
 
   protected readonly canSubmit = computed(
     () =>

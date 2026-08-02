@@ -8,7 +8,8 @@
   "common": {
     "back": "Back",
     "close": "Close",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "undo": "Undo"
   },
   "update": {
     "available": "A new version is available.",
@@ -16,19 +17,19 @@
     "later": "Later"
   },
   "sync": {
-    "alone": "Offline · this device only",
+    "alone": "This device only",
     "connecting": "Connecting…",
     "synced": "Synced",
     "failed": "Sync is down",
     "sending": {
       "=0": "Sending…",
-      "one": "Sending… · {{count}} change pending",
-      "other": "Sending… · {{count}} changes pending"
+      "one": "Sending… · {{count}} change kept",
+      "other": "Sending… · {{count}} changes kept"
     },
     "offline": {
       "=0": "Offline",
-      "one": "Offline · {{count}} change pending",
-      "other": "Offline · {{count}} changes pending"
+      "one": "Offline · {{count}} change kept",
+      "other": "Offline · {{count}} changes kept"
     },
     "providers": {
       "github": "GitHub",
@@ -42,14 +43,17 @@
     "loading": "Loading…",
     "allInBasket": "Everything is in the basket",
     "remaining": {
-      "one": "{{count}} item to pick up",
-      "other": "{{count}} items to pick up"
+      "one": "{{count}} item left",
+      "other": "{{count}} items left"
     },
+    "remainingTotal": "of {{total}}",
+    "progress": "Shopping progress",
     "emptyTitle": "The list is empty",
     "emptyHint": "Add an item below. It will be remembered for your next shopping trip.",
     "basket": "In the basket ({{count}})",
     "clearBasket": "Clear",
-    "unknownItem": "Unknown item"
+    "unknownItem": "Unknown item",
+    "undoChecked": "{{label}} — in the basket"
   },
   "addBar": {
     "placeholder": "Add an item…",
@@ -63,8 +67,9 @@
     "remove": "Remove from list"
   },
   "product": {
-    "title": "Product details",
-    "missing": "This product doesn't exist any more.",
+    "title": "Product",
+    "missing": "This product doesn't exist any more",
+    "missingHint": "It may have been archived from the other phone.",
     "unnamed": "Unnamed",
     "label": "Name",
     "description": "Description",
@@ -101,15 +106,23 @@
     },
     "add": "Add {{label}} to the list",
     "archive": "Archive",
-    "unarchive": "Restore"
+    "unarchive": "Restore",
+    "inList": "in the list",
+    "archivedSection": "Archived"
   },
   "pairing": {
     "title": "Sync",
     "scanHint": "Point at the QR code shown on the other phone.",
+    "qrTitle": "Pair a device",
     "qrAlt": "Pairing QR code",
-    "qrWarning": "⚠️ This code carries the access token. Don't photograph it, and don't leave it lying around in a shared album.",
+    "qrWarning": "This code carries the access token. Don't photograph it, and don't leave it lying around in a shared album.",
     "synced": "Synced.",
     "offline": "Offline — changes will go out when the network is back.",
+    "failed": {
+      "=0": "Sync is down.",
+      "one": "Sync is down — {{count}} change kept on this device.",
+      "other": "Sync is down — {{count}} changes kept on this device."
+    },
     "connecting": "Connecting…",
     "pairAnother": "Pair another device",
     "unpair": "Unpair this device",
@@ -137,7 +150,13 @@
     "framePosition": "Screen {{position}} of {{total}} — let it run, it loops.",
     "shown": "It's scanned",
     "scanProgress": "{{received}} / {{total}} screens read",
+    "stepProgress": "Step {{step}} of {{total}}",
     "doneTitle": "Both lists are up to date.",
+    "doneReceived": {
+      "one": "{{count}} change received",
+      "other": "{{count}} changes received"
+    },
+    "donePutAway": "You can put the phones away.",
     "backToList": "Back to the list",
     "restart": "Start over",
     "giveUp": "Give up",
@@ -195,7 +214,7 @@
       "unknownMessage": "Unknown message type: {{kind}}.",
       "wrongStep": "This code doesn't match this step of the exchange.",
       "corrupted": "Corrupted read. Start the exchange over.",
-      "incomplete": "Incomplete read.",
+      "incomplete": "The exchange was interrupted: one screen wasn't read. Nothing was lost — both lists are unchanged.",
       "tooLarge": "Too much data for a QR exchange ({{frames}} screens). Do it again with a network."
     },
     "image": {

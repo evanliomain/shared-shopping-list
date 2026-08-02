@@ -3,6 +3,7 @@ export * from './lib/ids';
 export * from './lib/schema';
 export * from './lib/usage-counter';
 export * from './lib/snapshot';
+export * from './lib/count-changes';
 export * from './lib/operations';
 export * from './lib/purge';
 export * from './lib/y-doc.service';

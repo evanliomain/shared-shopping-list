@@ -19,7 +19,7 @@ import {
   ProductImages,
   selectCatalog,
 } from '@shopping-list/data-access/shopping';
-import { ProductAvatar } from '@shopping-list/ui';
+import { EmptyState, ProductAvatar } from '@shopping-list/ui';
 import { AISLE_EMOJI, AISLES } from '@shopping-list/util/categories';
 
 /** Quelques emoji courants, pour ne pas imposer le clavier système. */
@@ -84,7 +84,7 @@ const EMOJI_CHOICES = [
 @Component({
   selector: 'sl-product-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, ProductAvatar, TranslocoPipe],
+  imports: [EmptyState, FormsModule, ProductAvatar, TranslocoPipe],
   templateUrl: './product-page.html',
   styleUrl: './product-page.scss',
 })
