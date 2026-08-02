@@ -2,7 +2,7 @@
   <div class="title-row">
     <h1>{{ listName() }}</h1>
     <a class="sync" routerLink="/synchronisation" aria-label="Synchronisation">
-      <sl-sync-badge [status]="syncStatus()" />
+      <sl-sync-badge [status]="syncStatus()" [pending]="syncPending()" />
     </a>
   </div>
   <p class="count">

@@ -85,7 +85,7 @@ Angular reprenne la main.
 - [x] **Lot 0** — Workspace, PWA installable, CI vers Pages
 - [x] **Lot 1** — CRDT, store NgRx, UI liste, fiche produit, suggestions
 - [x] **Lot 2** — Synchro GitHub à deux appareils
-- [ ] **Lot 3** — File offline, sonde réseau, bannières
+- [x] **Lot 3** — File offline, rattrapage au retour du réseau, invite de mise à jour
 - [ ] **Lot 4** — Échange QR de proximité
 - [ ] **Lot 5** — Photos des produits
 - [ ] **Lot 6** — Rayons, gestion du catalogue, multi-listes

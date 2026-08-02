@@ -37,11 +37,16 @@ export class GithubSyncProvider implements SyncProvider {
 
   private readonly statusSignal = signal<SyncStatus>('idle');
   private readonly errorSignal = signal<string | null>(null);
-  private readonly pendingSignal = signal(false);
+  private readonly pendingSignal = signal(0);
 
   readonly status = this.statusSignal.asReadonly();
   readonly lastError = this.errorSignal.asReadonly();
-  /** Une publication est en attente ou en cours. */
+  /**
+   * Nombre de modifications locales pas encore publiées.
+   *
+   * Un compte, pas un booléen : au fond d'un rayon sans réseau, savoir que
+   * « 3 modifs attendent » rassure bien plus que « envoi en attente ».
+   */
   readonly pending = this.pendingSignal.asReadonly();
 
   private readonly configService = inject(GithubConfigService);
@@ -96,6 +101,7 @@ export class GithubSyncProvider implements SyncProvider {
       if (origin === this) {
         return;
       }
+      this.pendingSignal.update((count) => count + 1);
       this.schedulePush();
     };
     doc.on('update', this.onDocUpdate);
@@ -133,10 +139,21 @@ export class GithubSyncProvider implements SyncProvider {
     this.engine = null;
   }
 
-  /** Interroge tout de suite — au retour au premier plan ou du réseau. */
+  /**
+   * Rattrape tout de suite — au retour au premier plan ou du réseau.
+   *
+   * Republie aussi ce qui attend. Sans ça, les articles cochés hors ligne ne
+   * repartiraient qu'à la prochaine modification : on pourrait rentrer du
+   * magasin avec une liste jamais remontée.
+   */
   syncNow(): void {
-    if (this.active()) {
-      void this.poll();
+    if (!this.active()) {
+      return;
+    }
+
+    void this.poll();
+    if (0 < this.pendingSignal()) {
+      this.schedulePush();
     }
   }
 
@@ -178,8 +195,6 @@ export class GithubSyncProvider implements SyncProvider {
   }
 
   private schedulePush(): void {
-    this.pendingSignal.set(true);
-
     if (null !== this.pushTimer) {
       clearTimeout(this.pushTimer);
     }
@@ -204,9 +219,14 @@ export class GithubSyncProvider implements SyncProvider {
       return;
     }
 
+    // On note ce qu'on s'apprête à publier : les modifications survenues
+    // pendant l'envoi devront rester comptées.
+    const publishing = this.pendingSignal();
+
     this.pushing = true;
     try {
       await this.engine.push(this.commitMessage());
+      this.pendingSignal.update((count) => Math.max(0, count - publishing));
       this.statusSignal.set('live');
       this.errorSignal.set(null);
     } catch (error) {
@@ -217,8 +237,6 @@ export class GithubSyncProvider implements SyncProvider {
       if (this.dirty) {
         this.dirty = false;
         this.schedulePush();
-      } else {
-        this.pendingSignal.set(false);
       }
     }
   }

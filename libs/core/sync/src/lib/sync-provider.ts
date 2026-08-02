@@ -28,6 +28,13 @@ export interface SyncProvider {
   readonly status: Signal<SyncStatus>;
   /** Détail de la dernière erreur, à afficher tel quel. */
   readonly lastError: Signal<string | null>;
+  /**
+   * Modifications locales pas encore transmises.
+   *
+   * Facultatif : un canal purement local, comme IndexedDB, n'a rien à mettre en
+   * attente.
+   */
+  readonly pending?: Signal<number>;
 
   connect(doc: Y.Doc): void;
   disconnect(): void;

@@ -15,6 +15,7 @@ export interface ProviderState {
   readonly label: string;
   readonly status: SyncStatus;
   readonly lastError: string | null;
+  readonly pending: number;
 }
 
 /**
@@ -40,6 +41,8 @@ export class SyncRegistry {
             label: provider.label,
             status: provider.status(),
             lastError: provider.lastError(),
+            // Facultatif : un canal purement local n'a rien à mettre en attente.
+            pending: provider.pending?.() ?? 0,
           })),
         )
         .value() as ProviderState[],

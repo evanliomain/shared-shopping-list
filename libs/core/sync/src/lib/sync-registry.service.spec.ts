@@ -38,6 +38,19 @@ function registryWith(...providers: readonly SyncProvider[]): {
 }
 
 describe('SyncRegistry', () => {
+  it('remonte le compteur d’attente des canaux qui en tiennent un', () => {
+    const local = fakeProvider('indexeddb', 'live');
+    const remote = {
+      ...fakeProvider('github', 'offline'),
+      pending: signal(3).asReadonly(),
+    };
+
+    const { registry } = registryWith(local, remote);
+
+    // IndexedDB n'a rien à mettre en attente : le champ est facultatif.
+    expect(registry.states().map((s) => s.pending)).toEqual([0, 3]);
+  });
+
   it('branche chaque provider sur l’unique Y.Doc', () => {
     const indexeddb = fakeProvider('indexeddb', 'live');
     const github = fakeProvider('github', 'live');
@@ -57,12 +70,19 @@ describe('SyncRegistry', () => {
     );
 
     expect(registry.states()).toEqual([
-      { id: 'indexeddb', label: 'indexeddb', status: 'live', lastError: null },
+      {
+        id: 'indexeddb',
+        label: 'indexeddb',
+        status: 'live',
+        lastError: null,
+        pending: 0,
+      },
       {
         id: 'github',
         label: 'github',
         status: 'error',
         lastError: 'Jeton expiré',
+        pending: 0,
       },
     ]);
   });

@@ -61,6 +61,10 @@ export class ListPage {
       : (github.status as SyncBadgeStatus);
   });
 
+  protected readonly syncPending = computed(
+    () => this.registry.states().find((s) => 'github' === s.id)?.pending ?? 0,
+  );
+
   private readonly allSuggestions = this.store.selectSignal(selectSuggestions);
 
   /**
