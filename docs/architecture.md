@@ -481,21 +481,42 @@ sequenceDiagram
 Détails techniques :
 
 - Compression via `CompressionStream('deflate-raw')` — natif, aucune dépendance.
-- Découpage en trames de ~800 octets. On reste sous les QR version 40 : au-delà, les modules
-  deviennent trop fins pour être lus depuis l'écran d'un autre téléphone.
+- Découpage en trames de **300 octets**. Ce qui dimensionne cette valeur n'est pas la capacité du
+  QR mais la **finesse des modules** : un code lu sur l'écran d'un autre téléphone doit garder au
+  moins trois pixels par module dans l'image de la caméra. 300 octets font un code de 69 modules ;
+  700 en faisaient 101, illisibles en pratique.
 - Format de trame : `SL1|<sessionId>|<idx>|<total>|<payload base64url>` + hash du payload complet.
 - Les trames défilent **en boucle** à ~5 fps. Le récepteur affiche `2/3 trames` et rattrape ce qui
   lui manque au tour suivant — pas besoin de fountain coding pour 3 trames.
 
 > **Deltas uniquement, et c'est essentiel avec un catalogue.** 300 produits pèsent une dizaine de
-> Ko compressés, soit une quinzaine de trames — infaisable à scanner. C'est précisément pourquoi le
+> Ko compressés, soit des dizaines de trames — infaisable à scanner. C'est précisément pourquoi le
 > protocole échange d'abord les vecteurs d'état : en rayon, la différence se limite à quelques
-> cases cochées, donc **une trame**. Garde-fou : au-delà de **10 trames**, l'app refuse et affiche
+> cases cochées, donc **une trame**. Garde-fou : au-delà de **20 trames**, l'app refuse et affiche
 > « trop de données pour un QR, refaites-le avec du réseau ». Le premier appairage se fait de toute
 > façon à la maison, via GitHub.
 
-Lecture caméra : `getUserMedia({ video: { facingMode: 'environment' } })` + `BarcodeDetector`, avec
-repli sur `zxing-wasm` dans un Web Worker là où l'API native manque.
+Lecture caméra : `getUserMedia` + `BarcodeDetector`, avec repli sur `zxing-wasm` dans un Web Worker
+là où l'API native manque.
+
+> **Deux détails de caméra qui décident du succès ou de l'échec.**
+>
+> 1. **La définition doit être demandée.** Sans contrainte `width`/`height`, les navigateurs
+>    ouvrent en 640×480. Un code d'une centaine de modules y tombe sous deux pixels par module :
+>    la caméra tourne, ne détecte rien, et ne dit rien. On demande donc `{ ideal: 1920 × 1080 }` —
+>    `ideal` et non `exact`, pour qu'une caméra plus modeste rende ce qu'elle peut.
+> 2. **La caméra reste ouverte pour tout l'assemblage.** Une trame par ouverture coûtait près
+>    d'une seconde de `getUserMedia` entre deux lectures, pendant laquelle la boucle d'en face
+>    continuait de défiler : un message de plusieurs écrans n'était jamais complété.
+>    `QrScanner.scanMany()` lit jusqu'à ce que l'assembleur dise qu'il a tout.
+
+> **Le vecteur d'état grossit avec l'usage.** Yjs tire un `clientID` neuf à chaque chargement de
+> l'application : le vecteur gagne environ six octets par ouverture, indéfiniment, sur les deux
+> téléphones. Un document neuf annonce son état en 25 modules ; après une centaine d'ouvertures,
+> en une centaine. C'est ce qui faisait « marcher au début, plus du tout ensuite ». Le découpage en
+> trames de 300 octets absorbe cette croissance — au prix de quelques écrans de plus à faire
+> défiler. La borner vraiment demanderait un `clientID` stable par appareil, ce que Yjs déconseille
+> tant que deux onglets peuvent écrire en parallèle.
 
 ### Et le Bluetooth ?
 
@@ -726,7 +747,8 @@ lourde pour le bénéfice le plus faible.
 | **Reducer / selectors** | Groupement par rayon, compte des restants, filtrage des tombstones, ordre des suggestions, exclusion des archivés                                                  |
 | **Provider GitHub**     | `fetch` mocké : chemin 304, chemin 200, et surtout **le chemin 409** — deux écritures concurrentes doivent converger, pas se perdre                                |
 | **Store de blobs**      | Le même fichier encodé deux fois donne le même hash (un seul envoi) ; un `blob:` absent ne fait jamais planter le rendu                                            |
-| **Trames QR**           | Aller-retour découpage/réassemblage, trames désordonnées, trame manquante rattrapée, payload corrompu rejeté, **refus au-delà de 10 trames**                       |
+| **Trames QR**           | Aller-retour découpage/réassemblage, trames désordonnées, trame manquante rattrapée, payload corrompu rejeté, **refus au-delà de 20 trames**, et **densité** : sur un document vécu, aucun code ne dépasse 85 modules |
+| **Échange de proximité** | L'écran complet sur un vrai Y.Doc : ce que l'autre a modifié hors ligne arrive bien, un message de plusieurs trames s'assemble en **une seule ouverture de caméra**, et l'instruction n'annonce « ce dernier code » qu'une fois le différentiel appliqué |
 
 ### End-to-end (Playwright)
 

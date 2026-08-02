@@ -21,20 +21,36 @@ const SEPARATOR = '|';
 /**
  * Octets utiles par trame.
  *
- * Choisi bien en dessous de la capacité théorique d'un QR (2 953 octets en
- * version 40) : au-delà, les modules deviennent trop fins pour être lus depuis
- * l'écran d'un autre téléphone, surtout en lumière de supermarché.
+ * Ce qui dimensionne cette valeur n'est pas la capacité du QR (2 953 octets en
+ * version 40) mais la **finesse des modules** : un code lu sur l'écran d'un
+ * autre téléphone doit garder au moins trois pixels par module dans l'image de
+ * la caméra, sans quoi `BarcodeDetector` ne trouve rien — et ne dit rien.
+ *
+ * | octets | version | modules | à 30 % du cadre en 720p |
+ * | ------ | ------- | ------- | ----------------------- |
+ * | 300    | 13      | 69      | 5,3 px/module           |
+ * | 700    | 21      | 101     | 3,7 px/module           |
+ *
+ * 700 octets passaient sur un document neuf, dont le vecteur d'état tient en
+ * quelques octets. Ils ne passaient plus une fois l'application vécue : le
+ * vecteur grossit d'environ six octets par ouverture de l'application (Yjs
+ * tire un `clientID` neuf à chaque chargement), et le tout premier code de
+ * l'échange finissait à une centaine de modules, illisible en silence.
+ *
+ * 300 octets tiennent la densité sous contrôle quelle que soit la taille du
+ * document ; ce qui dépasse part simplement en plusieurs trames.
  */
-export const FRAME_PAYLOAD_BYTES = 700;
+export const FRAME_PAYLOAD_BYTES = 300;
 
 /**
  * Au-delà, on refuse.
  *
- * Dix trames à 5 images par seconde font déjà deux secondes par tour de boucle,
- * et il faut souvent plusieurs tours. Mieux vaut dire honnêtement « refaites-le
- * avec du réseau » que d'imposer une minute de scan à bout de bras.
+ * Vingt trames à 5 images par seconde font quatre secondes par tour de boucle,
+ * et il faut souvent deux ou trois tours. Mieux vaut dire honnêtement
+ * « refaites-le avec du réseau » que d'imposer une minute de scan à bout de
+ * bras.
  */
-export const MAX_FRAMES = 10;
+export const MAX_FRAMES = 20;
 
 export class PayloadTooLargeError extends TranslatableError {
   constructor(readonly frames: number) {
