@@ -52,6 +52,13 @@
     "emptyHint": "Ajoutez un article ci-dessous. Il sera mémorisé pour les prochaines courses.",
     "basket": "Dans le panier ({{count}})",
     "clearBasket": "Vider",
+    "menu": "Menu de la liste",
+    "clearList": "Vider la liste",
+    "clearListConfirm": {
+      "one": "Retirer {{count}} article de la liste ? L'historique est conservé.",
+      "other": "Retirer les {{count}} articles de la liste ? L'historique est conservé."
+    },
+    "clearListAction": "Vider",
     "unknownItem": "Article inconnu",
     "undoChecked": "{{label}} — dans le panier"
   },

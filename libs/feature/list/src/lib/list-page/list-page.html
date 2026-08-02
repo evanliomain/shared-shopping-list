@@ -7,6 +7,13 @@
       [attr.aria-label]="'list.historyLink' | transloco"
       >📖</a
     >
+
+    <!-- Vider la liste vit ici et non à côté du « Vider » du panier : l'un
+         porte sur tout, l'autre sur ce qui est déjà pris. Les séparer par
+         l'emplacement évite de les confondre au moment de taper. -->
+    @if (0 < total()) {
+    <sl-list-menu [total]="total()" (cleared)="clearList()" />
+    }
   </div>
 
   <div class="status-row">

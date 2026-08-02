@@ -18,6 +18,15 @@ export interface UndoableCheck {
 /** Durée du bandeau d'annulation. Assez pour se rendre compte, pas plus. */
 const UNDO_MS = 5000;
 
+/**
+ * Le menu de la liste, et son étape de confirmation.
+ *
+ * Un seul champ à trois valeurs plutôt que deux booléens : « fermé mais en
+ * cours de confirmation » n'existe pas, et un état impossible qu'on ne peut
+ * pas écrire est un état qu'on n'a pas à tester.
+ */
+export type ListMenuState = 'closed' | 'open' | 'confirmingClear';
+
 interface ListUiState {
   /** Saisie en cours dans la barre d'ajout. */
   readonly query: string;
@@ -29,6 +38,8 @@ interface ListUiState {
   readonly openMenuFor: ItemId | null;
   /** Dernier article coché, tant que le bandeau d'annulation est affiché. */
   readonly undoable: UndoableCheck | null;
+  /** Le menu de l'en-tête, celui qui porte « Vider la liste ». */
+  readonly listMenu: ListMenuState;
 }
 
 const initial: ListUiState = {
@@ -37,6 +48,7 @@ const initial: ListUiState = {
   showChecked: false,
   openMenuFor: null,
   undoable: null,
+  listMenu: 'closed',
 };
 
 /**
@@ -92,12 +104,31 @@ export const ListUiStore = signalStore(
         patchState(store, ({ showChecked }) => ({ showChecked: !showChecked }));
       },
       toggleMenu(itemId: ItemId): void {
-        patchState(store, ({ openMenuFor }) => ({
+        patchState(store, ({ openMenuFor }): Partial<ListUiState> => ({
           openMenuFor: openMenuFor === itemId ? null : itemId,
+          // Deux popovers ouverts en même temps, sur un écran de téléphone,
+          // c'est un de trop.
+          listMenu: 'closed',
         }));
       },
       closeMenu(): void {
         patchState(store, { openMenuFor: null });
+      },
+      toggleListMenu(): void {
+        patchState(store, ({ listMenu }): Partial<ListUiState> => ({
+          listMenu: 'closed' === listMenu ? 'open' : 'closed',
+          openMenuFor: null,
+        }));
+      },
+      /**
+       * Vider la liste ne s'annule pas : on demande confirmation dans le menu
+       * lui-même, là où le doigt est déjà, plutôt que par une boîte système.
+       */
+      askClearList(): void {
+        patchState(store, { listMenu: 'confirmingClear' });
+      },
+      closeListMenu(): void {
+        patchState(store, { listMenu: 'closed' });
       },
       /**
        * Ouvre le bandeau d'annulation sur l'article qu'on vient de cocher.

@@ -72,6 +72,33 @@ libs/util/                dictionnaire rayons/emoji, internationalisation
 docs/architecture.md      le document de référence
 ```
 
+## Gestes sur la liste
+
+Sur téléphone, la liste se mène au pouce, une main sur le caddie :
+
+| Geste                | Effet                          |
+| -------------------- | ------------------------------ |
+| Taper la ligne       | Cocher / décocher              |
+| **Glisser à droite** | Cocher (ou renvoyer du panier) |
+| **Glisser à gauche** | Retirer de la liste            |
+| Menu ⋯ de la ligne   | Modifier le produit, retirer   |
+| Menu ⋯ de l'en-tête  | Vider la liste                 |
+
+La voie découverte par le glissé se teinte doucement, puis se sature au
+franchissement du seuil : le point de bascule se voit au lieu de se deviner.
+Aucun geste n'est le seul chemin — tout reste atteignable au tap, au clavier et
+à l'assistance vocale.
+
+C'est pourquoi la case à cocher n'apparaît **qu'au-delà de 1040 px** : sur
+téléphone, la ligne entière coche et le glissé fait le même travail, tandis que
+la souris n'a ni l'un ni l'autre. Un article coché part dans le panier, barré :
+le barré et le rangement disent l'état mieux qu'un cercle de 26 px.
+
+« Vider la liste » ne touche pas au catalogue — c'est toute la différence avec
+l'historique, et ce qui permet de refaire les courses suivantes sans rien
+retaper. Le geste n'ayant pas de retour en arrière, il passe par une
+confirmation.
+
 ## Langues
 
 L'interface existe en **français** et en **anglais**. La langue est celle du

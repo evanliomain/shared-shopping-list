@@ -52,6 +52,13 @@
     "emptyHint": "Add an item below. It will be remembered for your next shopping trip.",
     "basket": "In the basket ({{count}})",
     "clearBasket": "Clear",
+    "menu": "List menu",
+    "clearList": "Clear the list",
+    "clearListConfirm": {
+      "one": "Remove {{count}} item from the list? The history is kept.",
+      "other": "Remove all {{count}} items from the list? The history is kept."
+    },
+    "clearListAction": "Clear",
     "unknownItem": "Unknown item",
     "undoChecked": "{{label}} — in the basket"
   },

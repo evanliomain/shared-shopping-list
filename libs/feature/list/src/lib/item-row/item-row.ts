@@ -2,13 +2,26 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
+  inject,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { translateSignal, TranslocoPipe } from '@jsverse/transloco';
 import { ItemView } from '@shopping-list/data-access/shopping';
 import { ProductAvatar } from '@shopping-list/ui';
+
+/** Amplitude à franchir pour qu'un glissé compte comme une intention. */
+const COMMIT_PX = 88;
+/** Au-delà, la ligne cesse de suivre le doigt : le geste est déjà décidé. */
+const MAX_PX = 132;
+/** En dessous, on ne sait pas encore si le geste est un glissé ou un tap. */
+const SLOP_PX = 12;
+
+/** Ce que le glissé en cours déclenchera s'il est relâché maintenant. */
+type Swipe = 'none' | 'check' | 'remove';
 
 /**
  * Une ligne de la liste.
@@ -16,81 +29,179 @@ import { ProductAvatar } from '@shopping-list/ui';
  * Composant muet : il ne connaît ni le store ni le CRDT, il émet des
  * intentions. Toute la ligne est cliquable pour cocher — dans un rayon, viser
  * une case à cocher de 20 px avec un caddie dans l'autre main ne marche pas.
+ *
+ * Sur téléphone, les deux gestes du pouce remplacent la case et le menu :
+ * **glisser à droite** coche, **glisser à gauche** retire de la liste. Aucun
+ * des deux n'est le seul chemin — le tap et le menu ⋯ font toujours le même
+ * travail, pour le clavier, la souris et l'assistance vocale.
  */
 @Component({
   selector: 'sl-item-row',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ProductAvatar, RouterLink, TranslocoPipe],
   template: `
-    <button
-      type="button"
-      class="toggle"
-      role="checkbox"
-      [attr.aria-checked]="item().checked"
-      (click)="toggled.emit(!item().checked)"
-    >
-      <span class="box" aria-hidden="true">
-        @if (item().checked) {
-          <span class="tick">✓</span>
-        }
-      </span>
+    <!-- Sous la ligne : ce que le glissé va faire. Décoratif, le geste double
+         des commandes qui restent atteignables autrement. -->
+    <div class="lane" aria-hidden="true">
+      <span class="lane-glyph">{{ laneGlyph() }}</span>
+    </div>
 
-      <sl-product-avatar [emoji]="item().emoji" [imageUrl]="imageUrl()" />
-
-      <span class="text">
-        <span class="label">{{ displayLabel() }}</span>
-        @if ('' !== item().description) {
-          <span class="description">{{ item().description }}</span>
-        }
-        @if (null !== item().note) {
-          <span class="note">{{ item().note }}</span>
-        }
-      </span>
-
-      @if ('' !== item().qty) {
-        <span class="qty">{{ item().qty }}</span>
-      }
-    </button>
-
-    <div class="actions">
+    <div class="content" [style.transform]="slide()">
       <button
         type="button"
-        class="menu-toggle"
-        [attr.aria-label]="
-          'itemRow.actions' | transloco: { label: displayLabel() }
-        "
-        [attr.aria-expanded]="menuOpen()"
-        (click)="menuToggled.emit()"
+        class="toggle"
+        role="checkbox"
+        [attr.aria-checked]="item().checked"
+        (click)="onTap()"
       >
-        ⋯
+        <span class="box" aria-hidden="true">
+          @if (item().checked) {
+            <span class="tick">✓</span>
+          }
+        </span>
+
+        <sl-product-avatar [emoji]="item().emoji" [imageUrl]="imageUrl()" />
+
+        <span class="text">
+          <span class="label">{{ displayLabel() }}</span>
+          @if ('' !== item().description) {
+            <span class="description">{{ item().description }}</span>
+          }
+          @if (null !== item().note) {
+            <span class="note">{{ item().note }}</span>
+          }
+        </span>
+
+        @if ('' !== item().qty) {
+          <span class="qty">{{ item().qty }}</span>
+        }
       </button>
 
-      @if (menuOpen()) {
-        <div class="menu" role="menu">
-          <a
-            role="menuitem"
-            [routerLink]="['/produit', item().productId]"
-            (click)="menuToggled.emit()"
-          >
-            {{ 'itemRow.edit' | transloco }}
-          </a>
-          <button type="button" role="menuitem" (click)="removed.emit()">
-            {{ 'itemRow.remove' | transloco }}
-          </button>
-        </div>
-      }
+      <div class="actions">
+        <button
+          type="button"
+          class="menu-toggle"
+          [attr.aria-label]="
+            'itemRow.actions' | transloco: { label: displayLabel() }
+          "
+          [attr.aria-expanded]="menuOpen()"
+          (click)="onMenuTap()"
+        >
+          ⋯
+        </button>
+
+        @if (menuOpen()) {
+          <div class="menu" role="menu">
+            <a
+              role="menuitem"
+              [routerLink]="['/produit', item().productId]"
+              (click)="menuToggled.emit()"
+            >
+              {{ 'itemRow.edit' | transloco }}
+            </a>
+            <button type="button" role="menuitem" (click)="removed.emit()">
+              {{ 'itemRow.remove' | transloco }}
+            </button>
+          </div>
+        }
+      </div>
     </div>
   `,
   styles: `
     :host {
+      /* Ancrage de la voie révélée par le glissé. */
+      position: relative;
       display: flex;
       align-items: center;
       min-block-size: var(--sl-row-height);
-      padding-inline-end: var(--sl-space-2);
+      /* Le geste horizontal nous revient ; le défilement vertical et le zoom
+         restent au navigateur, sinon la liste ne défilerait plus. */
+      touch-action: pan-y pinch-zoom;
     }
 
     :host([data-checked='true']) {
       opacity: 0.85;
+    }
+
+    /* Filet du dessus, aligné sur le texte comme une liste iOS. En
+       pseudo-élément plutôt qu'en bordure : une marge décalerait la ligne. La
+       carte parente n'en donne la couleur qu'aux lignes qui en portent un.
+       Au-dessus du contenu, devenu opaque pour masquer sa voie de glissé. */
+    :host::before {
+      content: '';
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline: 1.5rem 0;
+      z-index: 1;
+      block-size: 1px;
+      background: var(--sl-row-rule, transparent);
+    }
+
+    /* Pendant le glissé, le filet ne barre pas la voie colorée. */
+    :host(:not([data-swipe='none']))::before {
+      background: transparent;
+    }
+
+    /* Le contenu glisse d'un bloc et masque la voie au repos : opaque, donc,
+       sinon la couleur se verrait en permanence. */
+    .content {
+      position: relative;
+      display: flex;
+      flex: 1;
+      align-items: center;
+      min-inline-size: 0;
+      padding-inline-end: var(--sl-space-2);
+      background: var(--sl-surface);
+    }
+
+    /* Pendant le geste, la ligne suit le doigt sans amortissement. Au
+       relâcher — le seul moment où le décalage revient à zéro — elle se
+       remet en place. */
+    :host([data-swipe='none']) .content {
+      transition: transform 180ms ease;
+    }
+
+    .lane {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      padding-inline: 1.25rem;
+      font-size: 1.125rem;
+      line-height: 1;
+    }
+
+    /* Teinte douce tant que le geste peut encore être abandonné, saturée une
+       fois le seuil franchi : le point de bascule se voit au lieu de se
+       deviner. */
+    :host([data-swipe='check']) .lane {
+      justify-content: flex-start;
+      background: var(--sl-brand-soft);
+      color: var(--sl-brand-ink);
+    }
+
+    :host([data-swipe='remove']) .lane {
+      justify-content: flex-end;
+      background: var(--sl-danger-soft);
+      color: var(--sl-danger-ink);
+    }
+
+    :host([data-armed='true'][data-swipe='check']) .lane {
+      background: var(--sl-brand);
+      color: var(--sl-text-on-brand);
+    }
+
+    :host([data-armed='true'][data-swipe='remove']) .lane {
+      background: var(--sl-danger);
+      color: var(--sl-text-on-danger);
+    }
+
+    .lane-glyph {
+      transition: transform 120ms ease;
+    }
+
+    :host([data-armed='true']) .lane-glyph {
+      transform: scale(1.3);
     }
 
     .toggle {
@@ -106,12 +217,18 @@ import { ProductAvatar } from '@shopping-list/ui';
       text-align: start;
     }
 
-    .toggle:active {
+    /* L'enfoncé du tap n'a rien à dire pendant un glissé : il donnerait à la
+       ligne une seconde teinte, en travers de la voie qu'elle découvre. */
+    :host([data-swipe='none']) .toggle:active {
       background: var(--sl-surface-sunken);
     }
 
+    /* Sur téléphone, la case ne dit rien que la ligne ne dise déjà : toute la
+       ligne coche, le glissé aussi, et un article coché part dans le panier en
+       barré. Elle revient au-delà de 1040 px, là où la souris n'a ni l'un ni
+       l'autre. */
     .box {
-      display: grid;
+      display: none;
       place-items: center;
       flex: none;
       inline-size: 1.625rem;
@@ -121,6 +238,17 @@ import { ProductAvatar } from '@shopping-list/ui';
       transition:
         background 120ms ease,
         border-color 120ms ease;
+    }
+
+    @media (min-width: 65rem) {
+      .box {
+        display: grid;
+      }
+
+      /* La case décale la vignette de 2,375 rem : le filet la suit. */
+      :host::before {
+        inset-inline: 3.875rem 0;
+      }
     }
 
     :host([data-checked='true']) .box {
@@ -252,6 +380,16 @@ import { ProductAvatar } from '@shopping-list/ui';
   `,
   host: {
     '[attr.data-checked]': 'item().checked',
+    '[attr.data-swipe]': 'swipe()',
+    '[attr.data-armed]': 'armed()',
+    '(pointerdown)': 'onPointerDown($event)',
+    '(pointermove)': 'onPointerMove($event)',
+    '(pointerup)': 'onPointerEnd($event)',
+    '(pointercancel)': 'onPointerEnd($event)',
+    // Les photos de produits sont des `<img>`, donc glissables par défaut : à
+    // la souris, le glissé natif volerait le geste dès qu'on part de la
+    // vignette.
+    '(dragstart)': '$event.preventDefault()',
   },
 })
 export class ItemRow {
@@ -264,6 +402,8 @@ export class ItemRow {
   readonly removed = output<void>();
   readonly menuToggled = output<void>();
 
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
   private readonly unknownLabel = translateSignal('list.unknownItem');
 
   /**
@@ -274,4 +414,132 @@ export class ItemRow {
   protected readonly displayLabel = computed(() =>
     this.item().unknownProduct ? this.unknownLabel() : this.item().label,
   );
+
+  /** Décalage horizontal courant, en pixels signés. Zéro : ligne au repos. */
+  private readonly offset = signal(0);
+
+  protected readonly swipe = computed<Swipe>(() => {
+    const offset = this.offset();
+    return 0 === offset ? 'none' : 0 < offset ? 'check' : 'remove';
+  });
+
+  /** Le seuil est franchi : relâcher maintenant déclenchera l'action. */
+  protected readonly armed = computed(
+    () => COMMIT_PX <= Math.abs(this.offset()),
+  );
+
+  protected readonly slide = computed(() => `translateX(${this.offset()}px)`);
+
+  /**
+   * Glisser à droite sur un article déjà coché le renvoie dans la liste : le
+   * geste reste réversible du même côté, sans avoir à viser la case.
+   */
+  protected readonly laneGlyph = computed(() => {
+    switch (this.swipe()) {
+      case 'check':
+        return this.item().checked ? '↩' : '✓';
+      case 'remove':
+        return '✕';
+      default:
+        return '';
+    }
+  });
+
+  /** Pointeur suivi, et endroit où il a touché la ligne. */
+  private pointerId: number | null = null;
+  private startX = 0;
+  private startY = 0;
+  private horizontal = false;
+
+  /**
+   * Un glissé se termine par un `click` sur la ligne — au doigt comme à la
+   * souris — qui cocherait par-dessus le geste. On l'avale une fois.
+   */
+  private swipeFallout = false;
+
+  protected onPointerDown(event: PointerEvent): void {
+    // Un second doigt est un pincement, pas un glissé.
+    if (null !== this.pointerId) {
+      return;
+    }
+
+    this.pointerId = event.pointerId;
+    this.startX = event.clientX;
+    this.startY = event.clientY;
+    this.horizontal = false;
+    this.swipeFallout = false;
+  }
+
+  protected onPointerMove(event: PointerEvent): void {
+    if (event.pointerId !== this.pointerId) {
+      return;
+    }
+
+    const dx = event.clientX - this.startX;
+    const dy = event.clientY - this.startY;
+
+    if (!this.horizontal) {
+      if (SLOP_PX > Math.max(Math.abs(dx), Math.abs(dy))) {
+        return;
+      }
+
+      // Le premier mouvement franc décide de l'axe. S'il est vertical, la main
+      // est en train de défiler : la ligne ne doit pas bouger d'un pixel.
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        this.pointerId = null;
+        return;
+      }
+
+      this.horizontal = true;
+      // Le doigt sort vite de la ligne. Sans capture, la fin du geste
+      // arriverait sur un autre élément et la ligne resterait de travers.
+      this.host.nativeElement.setPointerCapture(event.pointerId);
+    }
+
+    this.offset.set(Math.max(-MAX_PX, Math.min(MAX_PX, dx)));
+  }
+
+  protected onPointerEnd(event: PointerEvent): void {
+    if (event.pointerId !== this.pointerId) {
+      return;
+    }
+
+    // `pointercancel` : le navigateur a repris la main (défilement, zoom).
+    // Rien n'a été demandé, la ligne se remet simplement en place.
+    const committed = 'pointerup' === event.type ? this.offset() : 0;
+
+    this.pointerId = null;
+    this.swipeFallout = this.horizontal && 'pointerup' === event.type;
+    this.horizontal = false;
+    this.offset.set(0);
+
+    if (COMMIT_PX <= committed) {
+      this.toggled.emit(!this.item().checked);
+    } else if (-COMMIT_PX >= committed) {
+      this.removed.emit();
+    }
+  }
+
+  /** Toute la ligne coche — sauf quand le clic n'est qu'une fin de glissé. */
+  protected onTap(): void {
+    if (this.consumeSwipeFallout()) {
+      return;
+    }
+
+    this.toggled.emit(!this.item().checked);
+  }
+
+  protected onMenuTap(): void {
+    if (this.consumeSwipeFallout()) {
+      return;
+    }
+
+    this.menuToggled.emit();
+  }
+
+  private consumeSwipeFallout(): boolean {
+    const fallout = this.swipeFallout;
+    this.swipeFallout = false;
+    return fallout;
+  }
 }
