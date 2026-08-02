@@ -22,6 +22,9 @@ function stubDetector(results: () => Detected[]): () => void {
   };
 }
 
+/** Contraintes demandées à chaque ouverture, dans l'ordre. */
+const requested: MediaStreamConstraints[] = [];
+
 function stubCamera(behaviour: 'ok' | 'denied' | 'missing'): () => void {
   const previous = navigator.mediaDevices;
 
@@ -31,7 +34,8 @@ function stubCamera(behaviour: 'ok' | 'denied' | 'missing'): () => void {
   Object.defineProperty(navigator, 'mediaDevices', {
     configurable: true,
     value: {
-      getUserMedia: async () => {
+      getUserMedia: async (constraints: MediaStreamConstraints) => {
+        requested.push(constraints);
         if ('denied' === behaviour) {
           throw Object.assign(new Error('refusé'), {
             name: 'NotAllowedError',
@@ -74,6 +78,7 @@ describe('QrScanner', () => {
       undo();
     }
     restore = [];
+    requested.length = 0;
   });
 
   describe('isSupported', () => {
@@ -133,6 +138,23 @@ describe('QrScanner', () => {
       ).rejects.toMatchObject({ reason: 'permission-denied' });
     });
 
+    it('demande une caméra assez définie pour lire un code dense', async () => {
+      // Sans contrainte, les navigateurs ouvrent en 640×480 : un QR d'une
+      // centaine de modules lu sur l'écran d'un autre téléphone y tombe sous
+      // deux pixels par module, et n'est jamais détecté — sans erreur.
+      restore.push(stubDetector(() => [{ rawValue: 'trouvé' }]));
+      restore.push(stubCamera('ok'));
+
+      await scanner().scanOnce(fakeVideo(), new AbortController().signal);
+
+      expect(requested).toHaveLength(1);
+      expect(requested[0].video).toMatchObject({
+        facingMode: 'environment',
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      });
+    });
+
     it('éteint la caméra quand on annule', async () => {
       // Sans ça, la pastille d'enregistrement resterait allumée après avoir
       // quitté l'écran.
@@ -161,6 +183,74 @@ describe('QrScanner', () => {
 
       await expect(scanning).rejects.toBeInstanceOf(ScanError);
       expect(stopped).toEqual([true]);
+    });
+  });
+
+  describe('scanMany', () => {
+    it('lit plusieurs codes sans refermer la caméra', async () => {
+      // Un échange de proximité découpé en trames a besoin de les lire toutes.
+      // Rouvrir la caméra entre deux coûte près d'une seconde, pendant
+      // laquelle la boucle d'en face continue de défiler : l'assemblage
+      // n'aboutissait jamais.
+      const codes = ['trame-0', 'trame-1', 'trame-2'];
+      let index = 0;
+      restore.push(
+        stubDetector(() => {
+          const code = codes[Math.min(index, codes.length - 1)];
+          return undefined === code ? [] : [{ rawValue: code }];
+        }),
+      );
+      restore.push(stubCamera('ok'));
+
+      const seen: string[] = [];
+      await scanner().scanMany(
+        fakeVideo(),
+        new AbortController().signal,
+        (raw) => {
+          seen.push(raw);
+          index++;
+          return seen.length === codes.length;
+        },
+      );
+
+      expect(seen).toEqual(codes);
+      expect(requested).toHaveLength(1);
+    });
+
+    it('ne repasse pas deux fois le même code', async () => {
+      // Une trame reste dans le cadre pendant des dizaines d'images.
+      restore.push(stubDetector(() => [{ rawValue: 'même trame' }]));
+      restore.push(stubCamera('ok'));
+
+      let calls = 0;
+      const controller = new AbortController();
+      const scanning = scanner().scanMany(
+        fakeVideo(),
+        controller.signal,
+        () => {
+          calls++;
+          return false;
+        },
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      controller.abort();
+      await expect(scanning).rejects.toBeInstanceOf(ScanError);
+
+      expect(calls).toBe(1);
+    });
+
+    it('remonte une lecture corrompue plutôt que de tourner sans fin', async () => {
+      // `accept` assemble les trames et vérifie l'empreinte : s'il rejette,
+      // la caméra doit s'éteindre et l'écran le dire.
+      restore.push(stubDetector(() => [{ rawValue: 'trame' }]));
+      restore.push(stubCamera('ok'));
+
+      await expect(
+        scanner().scanMany(fakeVideo(), new AbortController().signal, () => {
+          throw new Error('assemblage corrompu');
+        }),
+      ).rejects.toThrow('assemblage corrompu');
     });
   });
 });

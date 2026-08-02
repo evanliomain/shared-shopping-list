@@ -1,3 +1,4 @@
+import QRCode from 'qrcode';
 import * as Y from 'yjs';
 
 import {
@@ -157,6 +158,60 @@ describe('trames QR', () => {
       total: frames.length,
     });
     expect(collector.complete).toBe(false);
+  });
+});
+
+/**
+ * Au-delà, les modules deviennent trop fins pour être lus sur l'écran d'un
+ * autre téléphone : à 30 % de la largeur d'une image 720p, cent modules ne
+ * font plus que 3,7 pixels chacun, et la détection lâche sans rien dire.
+ */
+const MAX_SCANNABLE_MODULES = 85;
+
+function modulesOf(frame: string): number {
+  return QRCode.create(frame, { errorCorrectionLevel: 'M' }).modules.size;
+}
+
+/** Une ouverture de l'application : Yjs y tire un `clientID` neuf. */
+function inNewSession(doc: Y.Doc, write: (session: Y.Doc) => void): void {
+  const session = new Y.Doc();
+  Y.applyUpdate(session, Y.encodeStateAsUpdate(doc));
+  write(session);
+  Y.applyUpdate(doc, Y.encodeStateAsUpdate(session, Y.encodeStateVector(doc)));
+}
+
+describe('densité des trames', () => {
+  it('garde des codes lisibles sur un document vécu', async () => {
+    // La régression : le vecteur d'état grossit d'environ six octets par
+    // ouverture de l'application, indéfiniment. À 700 octets par trame, le
+    // tout premier code de l'échange finissait à une centaine de modules —
+    // affiché correctement, mais jamais détecté par la caméra d'en face.
+    const doc = new Y.Doc();
+    for (let i = 0; i < 200; i++) {
+      inNewSession(doc, (session) =>
+        courses(session).set(`p${i}`, `Article ${i}`),
+      );
+    }
+
+    const { frames } = await encodeFrames(
+      encodeMessage(announce(doc)),
+      'session',
+    );
+
+    expect(frames.length).toBeGreaterThan(1);
+    for (const frame of frames) {
+      expect(modulesOf(frame)).toBeLessThanOrEqual(MAX_SCANNABLE_MODULES);
+    }
+  });
+
+  it('garde des codes lisibles pour une trame pleine', async () => {
+    // Incompressible : la trame porte exactement sa charge maximale.
+    const payload = crypto.getRandomValues(new Uint8Array(4000));
+    const { frames } = await encodeFrames(payload, 'session');
+
+    for (const frame of frames) {
+      expect(modulesOf(frame)).toBeLessThanOrEqual(MAX_SCANNABLE_MODULES);
+    }
   });
 });
 

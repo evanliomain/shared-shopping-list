@@ -77,6 +77,33 @@ export class QrScanner {
     video: HTMLVideoElement,
     signal: AbortSignal,
   ): Promise<string> {
+    let first = '';
+
+    await this.scanMany(video, signal, (raw) => {
+      first = raw;
+      return true;
+    });
+
+    return first;
+  }
+
+  /**
+   * Lit des codes **en gardant la caméra ouverte** jusqu'à ce que `accept`
+   * déclare la lecture terminée.
+   *
+   * C'est ce dont a besoin un échange découpé en plusieurs écrans : refermer
+   * et rouvrir la caméra entre deux trames coûte près d'une seconde, pendant
+   * laquelle les trames continuent de défiler en face. On manquait alors
+   * l'essentiel de la boucle, et le scan n'aboutissait jamais.
+   *
+   * @param accept reçoit chaque code lu et rend `true` quand il a tout ce
+   *               qu'il lui faut.
+   */
+  async scanMany(
+    video: HTMLVideoElement,
+    signal: AbortSignal,
+    accept: (raw: string) => boolean,
+  ): Promise<void> {
     const Detector = detectorConstructor();
     if (null === Detector) {
       throw new ScanError('unsupported', 'errors.scan.unsupportedBrowser');
@@ -90,7 +117,7 @@ export class QrScanner {
       video.setAttribute('playsinline', 'true');
       await video.play();
 
-      return await this.loop(video, detector, signal);
+      await this.loop(video, detector, signal, accept);
     } finally {
       // Toujours éteindre la caméra, y compris sur erreur ou annulation.
       for (const track of stream.getTracks()) {
@@ -103,7 +130,20 @@ export class QrScanner {
   private async openCamera(): Promise<MediaStream> {
     try {
       return await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: {
+          facingMode: 'environment',
+          /*
+           * Sans contrainte de définition, les navigateurs ouvrent la caméra
+           * en 640×480. Un QR d'une centaine de modules lu sur l'écran d'un
+           * autre téléphone n'y fait plus que deux pixels par module : sous le
+           * seuil de détection, la caméra tourne sans jamais rien trouver.
+           *
+           * `ideal` et non `exact` : une caméra qui ne sait pas monter si haut
+           * rend ce qu'elle peut, au lieu de refuser de s'ouvrir.
+           */
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: false,
       });
     } catch (error) {
@@ -120,9 +160,16 @@ export class QrScanner {
     video: HTMLVideoElement,
     detector: BarcodeDetectorLike,
     signal: AbortSignal,
-  ): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
+    accept: (raw: string) => boolean,
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       let settled = false;
+
+      const finish = (settle: () => void): void => {
+        settled = true;
+        signal.removeEventListener('abort', abort);
+        settle();
+      };
 
       const abort = (): void => {
         if (settled) {
@@ -153,30 +200,51 @@ export class QrScanner {
        */
       let consecutiveFailures = 0;
 
+      /**
+       * Dernier code transmis à l'appelant.
+       *
+       * Une trame reste dans le cadre pendant des dizaines d'images : sans
+       * cette garde, `accept` serait rappelé à chaque image pour le même code.
+       */
+      let last: string | null = null;
+
       const tick = async (): Promise<void> => {
         if (settled) {
           return;
         }
 
+        let raw: string | undefined;
+
         try {
           const [found] = await detector.detect(video);
           consecutiveFailures = 0;
-
-          if (undefined !== found) {
-            settled = true;
-            signal.removeEventListener('abort', abort);
-            resolve(found.rawValue);
-            return;
-          }
+          raw = found?.rawValue;
         } catch {
           consecutiveFailures++;
 
           if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-            settled = true;
-            signal.removeEventListener('abort', abort);
-            reject(
-              new ScanError('unsupported', 'errors.scan.unsupportedDevice'),
+            finish(() =>
+              reject(
+                new ScanError('unsupported', 'errors.scan.unsupportedDevice'),
+              ),
             );
+            return;
+          }
+        }
+
+        if (undefined !== raw && raw !== last) {
+          last = raw;
+
+          try {
+            if (accept(raw)) {
+              finish(resolve);
+              return;
+            }
+          } catch (error) {
+            // `accept` assemble les trames et peut rejeter une lecture
+            // corrompue : sans cette reprise, la promesse ne se résoudrait
+            // jamais et la caméra resterait allumée.
+            finish(() => reject(error));
             return;
           }
         }

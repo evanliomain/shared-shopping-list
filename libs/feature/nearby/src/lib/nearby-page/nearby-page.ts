@@ -142,13 +142,23 @@ export class NearbyPage {
     return segment < this.stepIndex() ? 'on' : 'off';
   }
 
-  /** Instruction affichée, dépendante du rôle et de l'étape. */
+  /** Vrai une fois qu'un premier différentiel a été appliqué. */
+  private readonly exchanged = signal(false);
+
+  /**
+   * Instruction affichée, dépendante du rôle et de l'étape.
+   *
+   * Elle suit `exchanged`, et surtout pas l'index de trame : un message qui
+   * ne tient pas en un seul écran en fait défiler plusieurs, et annoncer « ce
+   * dernier code » à la deuxième trame du premier message ferait ranger les
+   * téléphones au milieu de l'échange.
+   */
   private readonly instructionKey = computed(() => {
     if ('initiator' === this.role()) {
       return 'showing' === this.step()
-        ? this.frames().length > 0 && 0 === this.frameIndex() && !this.exchanged
-          ? 'nearby.showFirst'
-          : 'nearby.showLast'
+        ? this.exchanged()
+          ? 'nearby.showLast'
+          : 'nearby.showFirst'
         : 'nearby.scan';
     }
 
@@ -156,9 +166,6 @@ export class NearbyPage {
   });
 
   protected readonly instruction = translateSignal(this.instructionKey);
-
-  /** Vrai une fois qu'un premier différentiel a été appliqué. */
-  private exchanged = false;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.cleanup());
@@ -177,7 +184,7 @@ export class NearbyPage {
 
   /** L'utilisateur signale que l'autre a fini de scanner. */
   protected async afterShown(): Promise<void> {
-    if ('initiator' === this.role() && !this.exchanged) {
+    if ('initiator' === this.role() && !this.exchanged()) {
       await this.scan();
       return;
     }
@@ -237,18 +244,14 @@ export class NearbyPage {
     this.abort = new AbortController();
 
     try {
-      // Une seule trame par lecture : on rouvre tant que l'assemblage n'est
-      // pas complet. Les trames défilent en boucle en face, donc ce qui a été
-      // manqué revient.
-      for (;;) {
-        const raw = await this.scanner.scanOnce(video, this.abort.signal);
+      // La caméra reste ouverte jusqu'à l'assemblage complet : les trames
+      // défilent en boucle en face, donc ce qui a été manqué revient au tour
+      // suivant — à condition de ne pas passer ce tour-là à rouvrir la caméra.
+      await this.scanner.scanMany(video, this.abort.signal, (raw) => {
         this.collector.accept(raw);
         this.scanProgress.set(this.collector.progress);
-
-        if (this.collector.complete) {
-          break;
-        }
-      }
+        return this.collector.complete;
+      });
 
       const payload = await this.collector.payload();
       if (null === payload) {
@@ -270,9 +273,9 @@ export class NearbyPage {
 
     try {
       if ('responder' === this.role()) {
-        if (!this.exchanged) {
+        if (!this.exchanged()) {
           // Étape 2 : on répond avec ce qui manque en face.
-          this.exchanged = true;
+          this.exchanged.set(true);
           await this.show(encodeMessage(respond(this.yDoc.doc, message)));
           return;
         }
@@ -286,7 +289,7 @@ export class NearbyPage {
       }
 
       // Initiateur, étape 3 : on applique, puis on renvoie ce qui manque.
-      this.exchanged = true;
+      this.exchanged.set(true);
       const reply = this.applyCounting(() =>
         completeAsInitiator(this.yDoc.doc, message, NEARBY_ORIGIN),
       );
@@ -328,7 +331,7 @@ export class NearbyPage {
 
   protected restart(): void {
     this.cleanup();
-    this.exchanged = false;
+    this.exchanged.set(false);
     this.error.set(null);
     this.role.set(null);
     this.frames.set([]);
