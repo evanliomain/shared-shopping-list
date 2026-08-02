@@ -4,10 +4,7 @@
   "sourceRoot": "libs/core/sync/src",
   "prefix": "sl",
   "projectType": "library",
-  "tags": [
-    "type:core",
-    "scope:shared"
-  ],
+  "tags": ["type:core", "scope:shared"],
   "targets": {
     "test": {
       "executor": "@nx/vitest:test",

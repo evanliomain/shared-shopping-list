@@ -34,7 +34,12 @@ import {
  */
 
 /** Crée la liste si elle n'existe pas encore. Idempotent. */
-export function ensureList(doc: Y.Doc, id: ListId, name: string, now: number): void {
+export function ensureList(
+  doc: Y.Doc,
+  id: ListId,
+  name: string,
+  now: number,
+): void {
   if (undefined !== listNode(doc, id)) {
     return;
   }
@@ -216,7 +221,11 @@ export function restoreItem(doc: Y.Doc, listId: ListId, itemId: ItemId): void {
 }
 
 /** « Vider les articles cochés » à la fin des courses. */
-export function clearCheckedItems(doc: Y.Doc, listId: ListId, now: number): void {
+export function clearCheckedItems(
+  doc: Y.Doc,
+  listId: ListId,
+  now: number,
+): void {
   const items = itemsMap(doc, listId);
   if (undefined === items) {
     return;

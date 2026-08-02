@@ -4,6 +4,6 @@ import { Component } from '@angular/core';
   selector: 'sl-feature-list',
   imports: [],
   templateUrl: './feature-list.html',
-  styleUrl: './feature-list.scss'
+  styleUrl: './feature-list.scss',
 })
 export class FeatureList {}

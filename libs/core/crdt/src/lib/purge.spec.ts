@@ -1,11 +1,6 @@
 import * as Y from 'yjs';
 
-import {
-  addItem,
-  createProduct,
-  ensureList,
-  removeItem,
-} from './operations';
+import { addItem, createProduct, ensureList, removeItem } from './operations';
 import { DEFAULT_PURGE_AFTER_MS, purgeRemovedItems } from './purge';
 import { readSnapshot } from './snapshot';
 

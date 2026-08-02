@@ -40,17 +40,14 @@
       "@shopping-list/core/sync-indexeddb": [
         "./libs/core/sync-indexeddb/src/index.ts"
       ],
-      "@shopping-list/data-access/list": [
-        "./libs/data-access/list/src/index.ts"
-      ],
-      "@shopping-list/data-access/catalog": [
-        "./libs/data-access/catalog/src/index.ts"
-      ],
       "@shopping-list/feature/list": [
         "./libs/feature/list/src/index.ts"
       ],
       "@shopping-list/feature/product": [
         "./libs/feature/product/src/index.ts"
+      ],
+      "@shopping-list/data-access/shopping": [
+        "./libs/data-access/shopping/src/index.ts"
       ]
     }
   },

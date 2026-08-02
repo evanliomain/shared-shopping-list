@@ -89,7 +89,10 @@ export function buildProductNode(values: {
   return node;
 }
 
-export function buildListNode(values: { name: string; createdAt: number }): YNode {
+export function buildListNode(values: {
+  name: string;
+  createdAt: number;
+}): YNode {
   const node: YNode = new Y.Map();
   node.set('name', values.name);
   node.set('createdAt', values.createdAt);

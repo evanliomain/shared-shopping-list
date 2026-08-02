@@ -31,19 +31,25 @@ export function readSnapshot(doc: Y.Doc): CrdtSnapshot {
 
 function readCatalog(doc: Y.Doc): Record<ProductId, Product> {
   return chain([...catalogMap(doc).entries()])
+    .chain(map(([id, node]: [ProductId, YNode]) => readProduct(id, node)))
     .chain(
-      map(([id, node]: [ProductId, YNode]) => readProduct(id, node)),
+      toObject<Product, Product>(
+        (p) => p.id,
+        (p) => p,
+      ),
     )
-    .chain(toObject<Product, Product>((p) => p.id, (p) => p))
     .value();
 }
 
 function readLists(doc: Y.Doc): Record<ListId, ShoppingList> {
   return chain([...listsMap(doc).entries()])
+    .chain(map(([id, node]: [ListId, YNode]) => readList(doc, id, node)))
     .chain(
-      map(([id, node]: [ListId, YNode]) => readList(doc, id, node)),
+      toObject<ShoppingList, ShoppingList>(
+        (l) => l.id,
+        (l) => l,
+      ),
     )
-    .chain(toObject<ShoppingList, ShoppingList>((l) => l.id, (l) => l))
     .value();
 }
 
@@ -89,7 +95,12 @@ function readList(doc: Y.Doc, id: ListId, node: YNode): ShoppingList {
                 readItem(itemId, itemNode),
               ),
             )
-            .chain(toObject<ListItem, ListItem>((i) => i.id, (i) => i))
+            .chain(
+              toObject<ListItem, ListItem>(
+                (i) => i.id,
+                (i) => i,
+              ),
+            )
             .value(),
   };
 }

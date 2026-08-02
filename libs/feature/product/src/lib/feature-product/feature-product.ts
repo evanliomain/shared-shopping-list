@@ -4,6 +4,6 @@ import { Component } from '@angular/core';
   selector: 'sl-feature-product',
   imports: [],
   templateUrl: './feature-product.html',
-  styleUrl: './feature-product.scss'
+  styleUrl: './feature-product.scss',
 })
 export class FeatureProduct {}

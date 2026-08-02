@@ -30,8 +30,6 @@ export function incrementUsage(
 }
 
 /** Somme des compteurs de tous les appareils. */
-export function usageTotal(
-  usage: Readonly<Record<DeviceId, number>>,
-): number {
+export function usageTotal(usage: Readonly<Record<DeviceId, number>>): number {
   return chain(usage).chain(values()).chain(sum()).value();
 }
