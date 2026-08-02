@@ -1,6 +1,8 @@
 <header>
-  <button type="button" class="back" (click)="close()">← Retour</button>
-  <h1>Échange à proximité</h1>
+  <button type="button" class="back" (click)="close()">
+    ← {{ 'common.back' | transloco }}
+  </button>
+  <h1>{{ 'nearby.title' | transloco }}</h1>
 </header>
 
 <main>
@@ -16,25 +18,19 @@
 
   @switch (step()) { @case ('choose-role') {
   <section>
-    <p class="lead">
-      Sans aucun réseau, les deux téléphones s'échangent leurs modifications par
-      QR code. Trois codes, deux scans.
-    </p>
-    <p class="lead">Décidez qui commence : l'un montre, l'autre scanne.</p>
+    <p class="lead">{{ 'nearby.lead' | transloco }}</p>
+    <p class="lead">{{ 'nearby.decide' | transloco }}</p>
 
     <button type="button" class="primary" (click)="startAsInitiator()">
-      Je commence — montrer un code
+      {{ 'nearby.iStart' | transloco }}
     </button>
 
     @if (canScan) {
     <button type="button" (click)="startAsResponder()">
-      L'autre commence — scanner son code
+      {{ 'nearby.otherStarts' | transloco }}
     </button>
     } @else {
-    <p class="hint">
-      Ce navigateur ne sait pas lire les QR codes : c'est à l'autre téléphone de
-      scanner.
-    </p>
+    <p class="hint">{{ 'nearby.noCamera' | transloco }}</p>
     }
   </section>
   } @case ('showing') {
@@ -42,16 +38,16 @@
     <p class="instruction">{{ instruction() }}</p>
 
     @if (null !== frameImage()) {
-    <img [src]="frameImage()" alt="Code à scanner" />
+    <img [src]="frameImage()" [alt]="'nearby.frameAlt' | transloco" />
     } @if (1 < frameCount()) {
     <p class="hint">
-      Écran {{ framePosition() }} sur {{ frameCount() }} — laissez défiler, ça
-      tourne en boucle.
+      {{ 'nearby.framePosition' | transloco: { position: framePosition(), total:
+      frameCount() } }}
     </p>
     }
 
     <button type="button" class="primary" (click)="afterShown()">
-      C'est scanné
+      {{ 'nearby.shown' | transloco }}
     </button>
   </section>
   } @case ('scanning') {
@@ -60,27 +56,32 @@
 
     @if (0 < scanProgress().total) {
     <p class="hint">
-      {{ scanProgress().received }} / {{ scanProgress().total }} écrans lus
+      {{ 'nearby.scanProgress' | transloco : { received:
+      scanProgress().received, total: scanProgress().total, } }}
     </p>
     }
 
-    <button type="button" (click)="restart()">Annuler</button>
+    <button type="button" (click)="restart()">
+      {{ 'common.cancel' | transloco }}
+    </button>
   </section>
   } @case ('done') {
   <section class="done">
     <p class="glyph" aria-hidden="true">✅</p>
-    <p class="instruction">Les deux listes sont à jour.</p>
+    <p class="instruction">{{ 'nearby.doneTitle' | transloco }}</p>
     <button type="button" class="primary" (click)="close()">
-      Revenir à la liste
+      {{ 'nearby.backToList' | transloco }}
     </button>
   </section>
   } @case ('failed') {
   <section>
     <p class="error" role="alert">{{ error() }}</p>
     <button type="button" class="primary" (click)="restart()">
-      Recommencer
+      {{ 'nearby.restart' | transloco }}
     </button>
-    <button type="button" (click)="close()">Abandonner</button>
+    <button type="button" (click)="close()">
+      {{ 'nearby.giveUp' | transloco }}
+    </button>
   </section>
   } }
 </main>

@@ -11,6 +11,7 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { provideGithubSync } from '@shopping-list/core/sync-github';
 import { provideLocalSync } from '@shopping-list/core/sync-indexeddb';
 import { provideShopping } from '@shopping-list/data-access/shopping';
+import { provideI18n } from '@shopping-list/util/i18n';
 
 import { appRoutes } from './app.routes';
 
@@ -18,6 +19,13 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(appRoutes, withComponentInputBinding()),
+
+    /**
+     * En premier : la langue vient du navigateur, les traductions sont
+     * embarquées, et `provideShopping` a besoin du nom de liste traduit dès
+     * son initialiseur.
+     */
+    provideI18n(),
 
     provideStore(),
     provideEffects(),

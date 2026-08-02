@@ -84,7 +84,9 @@ describe('trames QR', () => {
     await expect(encodeFrames(payload, 's1')).rejects.toThrow(
       PayloadTooLargeError,
     );
-    await expect(encodeFrames(payload, 's1')).rejects.toThrow(/réseau/);
+    await expect(encodeFrames(payload, 's1')).rejects.toThrow(
+      'errors.nearby.tooLarge',
+    );
   });
 
   it('reste sous la limite pour une charge tout juste acceptable', async () => {
@@ -136,7 +138,9 @@ describe('trames QR', () => {
     collector.accept(parts.join('|'));
 
     expect(collector.complete).toBe(true);
-    await expect(collector.payload()).rejects.toThrow(/corrompue/);
+    await expect(collector.payload()).rejects.toThrow(
+      'errors.nearby.corrupted',
+    );
   });
 
   it('rend la progression pour l’afficher', async () => {
@@ -220,19 +224,21 @@ describe('protocole de proximité', () => {
     // Scanner le code de l'étape 1 alors qu'on attend celui de l'étape 2 doit
     // le dire, pas produire une fusion silencieusement fausse.
     expect(() => completeAsInitiator(doc, announce(doc), ORIGIN)).toThrow(
-      /étape/,
+      'errors.nearby.wrongStep',
     );
     expect(() => respond(doc, { kind: 3, diff: new Uint8Array() })).toThrow(
-      /étape/,
+      'errors.nearby.wrongStep',
     );
   });
 
   it('rejette une enveloppe tronquée', () => {
     const complete = encodeMessage(announce(new Y.Doc()));
 
-    expect(() => decodeMessage(complete.subarray(0, 3))).toThrow(/tronqué/);
+    expect(() => decodeMessage(complete.subarray(0, 3))).toThrow(
+      'errors.nearby.truncatedMessage',
+    );
     expect(() => decodeMessage(new Uint8Array([99, 0, 0, 0, 0]))).toThrow(
-      /inconnu/,
+      'errors.nearby.unknownMessage',
     );
   });
 

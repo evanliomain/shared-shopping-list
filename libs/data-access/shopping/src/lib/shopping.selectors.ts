@@ -2,7 +2,7 @@ import { createSelector } from '@ngrx/store';
 import { ListItem, Product } from '@shopping-list/core/crdt';
 import {
   AISLES,
-  labelForAisle,
+  aisleOf,
   emojiForAisle,
   normalize,
 } from '@shopping-list/util/categories';
@@ -25,7 +25,7 @@ import {
  * recalculés uniquement quand la tranche change.
  */
 
-/** Rang d'un rayon dans le parcours du magasin. Inconnu → à la fin. */
+/** Rang d'un rayon dans le parcours du magasin. */
 const AISLE_RANK: Readonly<Record<string, number>> = Object.fromEntries(
   AISLES.map((aisle, index) => [aisle, index]),
 );
@@ -60,20 +60,18 @@ function toItemView(item: ListItem, product: Product | undefined): ItemView {
   // Le produit peut manquer transitoirement : un delta qui ajoute la ligne peut
   // arriver avant celui qui crée le produit. On affiche quelque chose de
   // correct plutôt que de planter au milieu des courses.
-  const label = product?.label ?? 'Article inconnu';
-  const aisle = product?.category ?? '';
-
   return {
     id: item.id,
     productId: item.productId,
-    label,
+    label: product?.label ?? '',
+    unknownProduct: undefined === product,
     description: product?.description ?? '',
     qty: item.qty ?? product?.defaultQty ?? '',
     note: item.note,
     checked: item.checked,
     imageRef: product?.imageRef ?? null,
     emoji: undefined === product ? emojiForAisle('') : displayEmoji(product),
-    aisle,
+    aisle: aisleOf(product?.category ?? ''),
     addedBy: item.addedBy,
     createdAt: item.createdAt,
   };
@@ -106,7 +104,6 @@ export const selectPendingByAisle = createSelector(
       .chain(
         map((group: readonly ItemView[]) => ({
           aisle: group[0].aisle,
-          label: labelForAisle(group[0].aisle),
           emoji: emojiForAisle(group[0].aisle),
           items: group,
         })),
@@ -160,7 +157,7 @@ export const selectSuggestions = createSelector(
             defaultQty: product.defaultQty,
             imageRef: product.imageRef,
             emoji: displayEmoji(product),
-            aisle: product.category,
+            aisle: aisleOf(product.category),
             usage: productUsage(product),
             lastUsedAt: product.lastUsedAt,
             alreadyInList: inList.has(product.id),
@@ -232,7 +229,7 @@ export const selectCatalogEntries = createSelector(
             defaultQty: product.defaultQty,
             imageRef: product.imageRef,
             emoji: displayEmoji(product),
-            aisle: product.category,
+            aisle: aisleOf(product.category),
             usage: productUsage(product),
             lastUsedAt: product.lastUsedAt,
             alreadyInList: inList.has(product.id),

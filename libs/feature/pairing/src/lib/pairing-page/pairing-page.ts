@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { QrScanner, renderQrDataUrl, ScanError } from '@shopping-list/core/qr';
 import {
   GithubConfigService,
@@ -18,6 +19,7 @@ import {
   parsePairingPayload,
 } from '@shopping-list/core/sync-github';
 import { SyncRegistry } from '@shopping-list/core/sync';
+import { ErrorText, TranslatableError } from '@shopping-list/util/i18n';
 
 type Mode = 'idle' | 'scanning' | 'showing-qr';
 
@@ -36,7 +38,7 @@ type Mode = 'idle' | 'scanning' | 'showing-qr';
 @Component({
   selector: 'sl-pairing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TranslocoPipe],
   templateUrl: './pairing-page.html',
   styleUrl: './pairing-page.scss',
 })
@@ -46,6 +48,7 @@ export class PairingPage {
   private readonly scanner = inject(QrScanner);
   private readonly registry = inject(SyncRegistry);
   private readonly location = inject(Location);
+  private readonly errorText = inject(ErrorText);
 
   private readonly videoRef = viewChild<ElementRef<HTMLVideoElement>>('video');
   private abort: AbortController | null = null;
@@ -95,7 +98,9 @@ export class PairingPage {
       // Ne jamais échouer en silence : sans message, le bouton donne
       // l'impression d'être mort.
       this.error.set(
-        "L'aperçu caméra n'a pas pu être initialisé. Saisissez les informations à la main.",
+        this.errorText.describe(
+          new TranslatableError('errors.camera.previewFailed'),
+        ),
       );
       this.mode.set('idle');
       return;
@@ -110,7 +115,7 @@ export class PairingPage {
       if (error instanceof ScanError && 'aborted' === error.reason) {
         return;
       }
-      this.error.set(describe(error));
+      this.error.set(this.errorText.describe(error));
       this.mode.set('idle');
     }
   }
@@ -160,13 +165,9 @@ export class PairingPage {
       this.mode.set('idle');
       this.token.set('');
     } catch (error) {
-      this.error.set(describe(error));
+      this.error.set(this.errorText.describe(error));
     } finally {
       this.busy.set(false);
     }
   }
-}
-
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

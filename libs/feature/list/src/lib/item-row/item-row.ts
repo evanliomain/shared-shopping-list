@@ -1,10 +1,12 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { translateSignal, TranslocoPipe } from '@jsverse/transloco';
 import { ItemView } from '@shopping-list/data-access/shopping';
 import { ProductAvatar } from '@shopping-list/ui';
 
@@ -18,7 +20,7 @@ import { ProductAvatar } from '@shopping-list/ui';
 @Component({
   selector: 'sl-item-row',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProductAvatar, RouterLink],
+  imports: [ProductAvatar, RouterLink, TranslocoPipe],
   template: `
     <button
       type="button"
@@ -36,7 +38,7 @@ import { ProductAvatar } from '@shopping-list/ui';
       <sl-product-avatar [emoji]="item().emoji" [imageUrl]="imageUrl()" />
 
       <span class="text">
-        <span class="label">{{ item().label }}</span>
+        <span class="label">{{ displayLabel() }}</span>
         @if ('' !== item().description) {
           <span class="description">{{ item().description }}</span>
         }
@@ -54,7 +56,9 @@ import { ProductAvatar } from '@shopping-list/ui';
       <button
         type="button"
         class="menu-toggle"
-        [attr.aria-label]="'Actions pour ' + item().label"
+        [attr.aria-label]="
+          'itemRow.actions' | transloco: { label: displayLabel() }
+        "
         [attr.aria-expanded]="menuOpen()"
         (click)="menuToggled.emit()"
       >
@@ -68,10 +72,10 @@ import { ProductAvatar } from '@shopping-list/ui';
             [routerLink]="['/produit', item().productId]"
             (click)="menuToggled.emit()"
           >
-            Modifier le produit
+            {{ 'itemRow.edit' | transloco }}
           </a>
           <button type="button" role="menuitem" (click)="removed.emit()">
-            Retirer de la liste
+            {{ 'itemRow.remove' | transloco }}
           </button>
         </div>
       }
@@ -241,4 +245,15 @@ export class ItemRow {
   readonly toggled = output<boolean>();
   readonly removed = output<void>();
   readonly menuToggled = output<void>();
+
+  private readonly unknownLabel = translateSignal('list.unknownItem');
+
+  /**
+   * Le produit peut manquer : un delta qui ajoute la ligne peut arriver avant
+   * celui qui le crée. La vue signale le cas par un drapeau, à charge pour
+   * l'écran de trouver les mots — un selector, lui, ne connaît pas la langue.
+   */
+  protected readonly displayLabel = computed(() =>
+    this.item().unknownProduct ? this.unknownLabel() : this.item().label,
+  );
 }

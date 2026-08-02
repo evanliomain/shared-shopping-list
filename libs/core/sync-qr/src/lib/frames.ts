@@ -1,3 +1,5 @@
+import { TranslatableError } from '@shopping-list/util/i18n';
+
 import { compress, decompress } from './compression';
 
 /**
@@ -34,11 +36,9 @@ export const FRAME_PAYLOAD_BYTES = 700;
  */
 export const MAX_FRAMES = 10;
 
-export class PayloadTooLargeError extends Error {
+export class PayloadTooLargeError extends TranslatableError {
   constructor(readonly frames: number) {
-    super(
-      `Trop de données pour un échange par QR (${frames} écrans). Refaites-le avec du réseau.`,
-    );
+    super('errors.nearby.tooLarge', { frames });
     this.name = 'PayloadTooLargeError';
   }
 }
@@ -234,7 +234,7 @@ export class FrameCollector {
       // Trames de deux sessions mélangées, ou lecture corrompue. On repart
       // plutôt que de livrer des octets faux au CRDT.
       this.reset();
-      throw new Error('Lecture corrompue. Recommencez l’échange.');
+      throw new TranslatableError('errors.nearby.corrupted');
     }
 
     return decompress(compressed);

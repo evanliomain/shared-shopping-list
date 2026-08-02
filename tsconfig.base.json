@@ -24,9 +24,16 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "paths": {
       "@shopping-list/util/categories": [
         "./libs/util/categories/src/index.ts"
+      ],
+      "@shopping-list/util/i18n": [
+        "./libs/util/i18n/src/index.ts"
+      ],
+      "@shopping-list/util/i18n/testing": [
+        "./libs/util/i18n/src/testing.ts"
       ],
       "@shopping-list/ui": [
         "./libs/ui/src/index.ts"

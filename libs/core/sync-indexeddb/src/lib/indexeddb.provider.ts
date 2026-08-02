@@ -20,7 +20,7 @@ export const INDEXEDDB_DB_NAME = 'shopping-list';
 @Injectable({ providedIn: 'root' })
 export class IndexeddbSyncProvider implements SyncProvider {
   readonly id = 'indexeddb';
-  readonly label = 'Stockage local';
+  readonly labelKey = 'sync.providers.indexeddb';
 
   private readonly statusSignal = signal<SyncStatus>('idle');
   private readonly errorSignal = signal<string | null>(null);

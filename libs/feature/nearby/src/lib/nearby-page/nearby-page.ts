@@ -9,6 +9,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { translateSignal, TranslocoPipe } from '@jsverse/transloco';
 import { newId, YDocService } from '@shopping-list/core/crdt';
 import { QrScanner, renderQrDataUrl, ScanError } from '@shopping-list/core/qr';
 import {
@@ -21,6 +22,7 @@ import {
   FrameCollector,
   respond,
 } from '@shopping-list/core/sync-qr';
+import { ErrorText, TranslatableError } from '@shopping-list/util/i18n';
 
 /** Marque les mises à jour venues d'un échange de proximité. */
 const NEARBY_ORIGIN = Symbol('sl.nearby');
@@ -53,6 +55,7 @@ type Step =
 @Component({
   selector: 'sl-nearby-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslocoPipe],
   templateUrl: './nearby-page.html',
   styleUrl: './nearby-page.scss',
 })
@@ -60,6 +63,7 @@ export class NearbyPage {
   private readonly yDoc = inject(YDocService);
   private readonly scanner = inject(QrScanner);
   private readonly location = inject(Location);
+  private readonly errorText = inject(ErrorText);
 
   private readonly videoRef = viewChild<ElementRef<HTMLVideoElement>>('video');
 
@@ -84,19 +88,19 @@ export class NearbyPage {
   protected readonly canScan = this.scanner.isSupported();
 
   /** Instruction affichée, dépendante du rôle et de l'étape. */
-  protected readonly instruction = computed(() => {
+  private readonly instructionKey = computed(() => {
     if ('initiator' === this.role()) {
       return 'showing' === this.step()
         ? this.frames().length > 0 && 0 === this.frameIndex() && !this.exchanged
-          ? "Faites scanner ce code par l'autre téléphone."
-          : "Faites scanner ce dernier code. L'échange sera terminé."
-        : "Scannez le code affiché sur l'autre téléphone.";
+          ? 'nearby.showFirst'
+          : 'nearby.showLast'
+        : 'nearby.scan';
     }
 
-    return 'scanning' === this.step()
-      ? "Scannez le code affiché sur l'autre téléphone."
-      : "Faites scanner ce code par l'autre téléphone, puis attendez le sien.";
+    return 'scanning' === this.step() ? 'nearby.scan' : 'nearby.showThenWait';
   });
+
+  protected readonly instruction = translateSignal(this.instructionKey);
 
   /** Vrai une fois qu'un premier différentiel a été appliqué. */
   private exchanged = false;
@@ -171,7 +175,7 @@ export class NearbyPage {
 
     const video = this.videoRef()?.nativeElement;
     if (undefined === video) {
-      this.fail(new Error('Caméra indisponible.'));
+      this.fail(new TranslatableError('errors.camera.unavailable'));
       return;
     }
 
@@ -193,7 +197,7 @@ export class NearbyPage {
 
       const payload = await this.collector.payload();
       if (null === payload) {
-        this.fail(new Error('Lecture incomplète.'));
+        this.fail(new TranslatableError('errors.nearby.incomplete'));
         return;
       }
 
@@ -243,7 +247,7 @@ export class NearbyPage {
 
   private fail(error: unknown): void {
     this.cleanup();
-    this.error.set(error instanceof Error ? error.message : String(error));
+    this.error.set(this.errorText.describe(error));
     this.step.set('failed');
   }
 

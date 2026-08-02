@@ -25,7 +25,7 @@ describe('parsePairingPayload', () => {
     // La caméra lit toutes sortes de codes-barres : celui d'un paquet de pâtes
     // ne doit pas être pris pour un appairage.
     expect(() => parsePairingPayload('3760020507350')).toThrow(
-      /pas un appairage valide/,
+      'errors.pairing.invalidCode',
     );
   });
 
@@ -36,7 +36,7 @@ describe('parsePairingPayload', () => {
     ['jeton manquant', { v: 1, owner: 'a', repo: 'b' }],
   ])('rejette un appairage incomplet : %s', (_, payload) => {
     expect(() => parsePairingPayload(JSON.stringify(payload))).toThrow(
-      /pas un appairage valide/,
+      'errors.pairing.invalidCode',
     );
   });
 });

@@ -5,6 +5,8 @@ import {
   effect,
   inject,
 } from '@angular/core';
+import { TranslocoPipe, translateSignal } from '@jsverse/transloco';
+import { PluralPipe } from '@shopping-list/util/i18n';
 import { Store } from '@ngrx/store';
 import {
   filterSuggestions,
@@ -34,7 +36,15 @@ import { ListUiStore } from '../list-ui.store';
 @Component({
   selector: 'sl-list-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AddBar, EmptyState, ItemRow, RouterLink, SyncBadge],
+  imports: [
+    AddBar,
+    EmptyState,
+    ItemRow,
+    PluralPipe,
+    RouterLink,
+    SyncBadge,
+    TranslocoPipe,
+  ],
   providers: [ListUiStore],
   templateUrl: './list-page.html',
   styleUrl: './list-page.scss',
@@ -43,7 +53,17 @@ export class ListPage {
   private readonly store = inject(Store);
   protected readonly ui = inject(ListUiStore);
 
-  protected readonly listName = this.store.selectSignal(selectListName);
+  private readonly storedName = this.store.selectSignal(selectListName);
+  private readonly fallbackName = translateSignal('app.defaultListName');
+
+  /**
+   * Le nom vient du CRDT, donc il manque avant le premier snapshot. Un titre
+   * vide le temps qu'IndexedDB réponde serait pire qu'un nom par défaut.
+   */
+  protected readonly listName = computed(
+    () => this.storedName() || this.fallbackName(),
+  );
+
   protected readonly loaded = this.store.selectSignal(selectLoaded);
   protected readonly groups = this.store.selectSignal(selectPendingByAisle);
   protected readonly checkedItems = this.store.selectSignal(selectCheckedItems);

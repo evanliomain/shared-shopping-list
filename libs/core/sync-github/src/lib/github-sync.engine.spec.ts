@@ -145,7 +145,7 @@ describe('GithubSyncEngine', () => {
       const doc = new Y.Doc();
       courses(doc).set('a', 'Lait');
 
-      await engineOn(doc, repo).push('premier envoi');
+      await engineOn(doc, repo).push();
 
       expect(repo.content).not.toBeNull();
       expect(repo.writes).toEqual([null]);
@@ -157,11 +157,11 @@ describe('GithubSyncEngine', () => {
       const engine = engineOn(doc, repo);
 
       courses(doc).set('a', 'Lait');
-      await engine.push('un');
+      await engine.push();
       const afterFirst = repo.reads.length;
 
       courses(doc).set('b', 'Pain');
-      await engine.push('deux');
+      await engine.push();
 
       // Le second envoi ne relit pas : il réutilise le sha rendu par le premier.
       expect(repo.reads.length).toBe(afterFirst);
@@ -177,7 +177,7 @@ describe('GithubSyncEngine', () => {
 
       const mine = new Y.Doc();
       courses(mine).set('a', 'Lait');
-      await engineOn(mine, repo).push('mon envoi');
+      await engineOn(mine, repo).push();
 
       const check = new Y.Doc();
       Y.applyUpdate(check, repo.content as Uint8Array);
@@ -207,7 +207,7 @@ describe('GithubSyncEngine', () => {
 
       const mine = new Y.Doc();
       courses(mine).set('a', 'Lait');
-      await engineOn(mine, repo).push('mon envoi');
+      await engineOn(mine, repo).push();
 
       const check = new Y.Doc();
       Y.applyUpdate(check, repo.content as Uint8Array);
@@ -224,8 +224,8 @@ describe('GithubSyncEngine', () => {
       const doc = new Y.Doc();
       courses(doc).set('a', 'Lait');
 
-      await expect(engineOn(doc, repo, 3).push('essai')).rejects.toThrow(
-        /3 tentatives/,
+      await expect(engineOn(doc, repo, 3).push()).rejects.toThrow(
+        'errors.github.publishFailed',
       );
     });
 
@@ -237,7 +237,7 @@ describe('GithubSyncEngine', () => {
       const engine = engineOn(doc, repo);
 
       courses(doc).set('a', 'Lait');
-      await engine.push('envoi');
+      await engine.push();
 
       repo.reads.length = 0;
       await engine.pull();
@@ -256,11 +256,11 @@ describe('GithubSyncEngine', () => {
       const engineB = engineOn(phoneB, repo);
 
       courses(phoneA).set('a', 'Lait');
-      await engineA.push('A');
+      await engineA.push();
 
       await engineB.pull();
       courses(phoneB).set('b', 'Pain');
-      await engineB.push('B');
+      await engineB.push();
 
       await engineA.pull();
 
@@ -280,8 +280,8 @@ describe('GithubSyncEngine', () => {
       courses(phoneA).set('a', 'Lait');
       courses(phoneB).set('b', 'Pain');
 
-      await engineA.push('A');
-      await engineB.push('B');
+      await engineA.push();
+      await engineB.push();
       await engineA.pull();
 
       expect([...courses(phoneA).values()].sort()).toEqual(['Lait', 'Pain']);
@@ -295,7 +295,7 @@ describe('GithubSyncEngine', () => {
     const engine = engineOn(doc, repo);
 
     courses(doc).set('a', 'Lait');
-    await engine.push('envoi');
+    await engine.push();
     await engine.pull();
 
     engine.reset();

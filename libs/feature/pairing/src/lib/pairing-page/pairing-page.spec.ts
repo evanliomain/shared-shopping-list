@@ -8,6 +8,7 @@ import {
   GithubConfigService,
   GithubSyncProvider,
 } from '@shopping-list/core/sync-github';
+import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { PairingPage } from './pairing-page';
 
@@ -82,6 +83,7 @@ function setup() {
     providers: [
       provideRouter([]),
       provideLocationMocks(),
+      provideTestI18n(),
       { provide: GithubConfigService, useValue: configService },
       { provide: GithubSyncProvider, useValue: provider },
       { provide: QrScanner, useValue: scanner },

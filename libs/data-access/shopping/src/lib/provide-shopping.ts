@@ -4,17 +4,14 @@ import {
   makeEnvironmentProviders,
   provideAppInitializer,
 } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 import { provideEffects } from '@ngrx/effects';
 import { provideState } from '@ngrx/store';
 import { ensureList, YDocService } from '@shopping-list/core/crdt';
 import { SyncRegistry } from '@shopping-list/core/sync';
 
 import { shoppingEffects } from './shopping.effects';
-import {
-  DEFAULT_LIST_ID,
-  DEFAULT_LIST_NAME,
-  shoppingFeature,
-} from './shopping.feature';
+import { DEFAULT_LIST_ID, shoppingFeature } from './shopping.feature';
 
 /**
  * Câble la tranche « courses » : état, effects, et amorçage du document.
@@ -30,8 +27,14 @@ export function provideShopping(): EnvironmentProviders {
     provideState(shoppingFeature),
     provideEffects(shoppingEffects),
     provideAppInitializer(() => {
+      // Le nom n'est traduit qu'ici, à la création : il devient ensuite de la
+      // donnée CRDT. Un appareil réglé en anglais qui rejoint une liste créée
+      // en français gardera « Nos courses » — c'est le nom que le foyer a
+      // choisi, pas un libellé d'interface.
+      const name = inject(TranslocoService).translate('app.defaultListName');
+
       inject(YDocService).transact((doc) =>
-        ensureList(doc, DEFAULT_LIST_ID, DEFAULT_LIST_NAME, Date.now()),
+        ensureList(doc, DEFAULT_LIST_ID, name, Date.now()),
       );
 
       // Instancier le registre déclenche la connexion de tous les providers.

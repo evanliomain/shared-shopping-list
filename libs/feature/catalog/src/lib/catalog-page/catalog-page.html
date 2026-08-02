@@ -1,13 +1,15 @@
 <header>
   <div class="title-row">
-    <button type="button" class="back" (click)="close()">← Retour</button>
-    <h1>Historique</h1>
+    <button type="button" class="back" (click)="close()">
+      ← {{ 'common.back' | transloco }}
+    </button>
+    <h1>{{ 'catalog.title' | transloco }}</h1>
   </div>
 
   <input
     type="search"
     class="search"
-    placeholder="Rechercher un produit…"
+    [placeholder]="'catalog.search' | transloco"
     autocomplete="off"
     [value]="query()"
     (input)="onQuery($event)"
@@ -19,7 +21,7 @@
       [checked]="showArchived()"
       (change)="showArchived.set(!showArchived())"
     />
-    Afficher les {{ archivedCount() }} produits archivés
+    {{ 'catalog.showArchived' | plural: archivedCount() }}
   </label>
 </header>
 
@@ -27,14 +29,14 @@
   @if (0 === total()) {
   <sl-empty-state
     emoji="📖"
-    title="L'historique est vide"
-    hint="Chaque article ajouté à la liste y entre automatiquement. Il servira à composer les prochaines courses."
+    [title]="'catalog.emptyTitle' | transloco"
+    [hint]="'catalog.emptyHint' | transloco"
   />
   } @else if (0 === visible().length) {
   <sl-empty-state
     emoji="🔍"
-    title="Aucun produit ne correspond"
-    hint="Essayez un autre mot, ou affichez les produits archivés."
+    [title]="'catalog.noMatchTitle' | transloco"
+    [hint]="'catalog.noMatchHint' | transloco"
   />
   } @else {
   <ul>
@@ -51,8 +53,8 @@
         <span class="description">{{ entry.description }}</span>
         }
         <span class="meta">
-          {{ aisleOf(entry) }} · {{ entry.usage }} {{ 1 === entry.usage ?
-          'achat' : 'achats' }}
+          {{ 'aisles.' + entry.aisle | transloco }} · {{ 'catalog.usage' |
+          plural: entry.usage }}
         </span>
       </span>
 
@@ -61,14 +63,17 @@
         <button
           type="button"
           class="add"
-          [attr.aria-label]="'Ajouter ' + entry.label + ' à la liste'"
+          [attr.aria-label]="
+            'catalog.add' | transloco: { label: entry.label }
+          "
           (click)="addToList(entry)"
         >
           ＋
         </button>
         }
         <button type="button" class="archive" (click)="toggleArchive(entry)">
-          {{ isArchived(entry) ? 'Réactiver' : 'Archiver' }}
+          {{ (isArchived(entry) ? 'catalog.unarchive' : 'catalog.archive') |
+          transloco }}
         </button>
       </div>
     </li>

@@ -13,7 +13,6 @@ import * as Y from 'yjs';
 import { crdtActions } from './shopping.actions';
 import {
   DEFAULT_LIST_ID,
-  DEFAULT_LIST_NAME,
   shoppingReducer,
   ShoppingState,
 } from './shopping.feature';
@@ -30,6 +29,7 @@ import {
 import { ItemView } from './shopping.views';
 
 const NOW = 1_764_000_000_000;
+const LIST_NAME = 'Nos courses';
 
 /**
  * Les selectors composés se testent par leur `projector` : on vérifie de la
@@ -54,7 +54,7 @@ class Scenario {
   private readonly products = new Map<string, ProductId>();
 
   constructor() {
-    ensureList(this.doc, DEFAULT_LIST_ID, DEFAULT_LIST_NAME, NOW);
+    ensureList(this.doc, DEFAULT_LIST_ID, LIST_NAME, NOW);
   }
 
   product(
@@ -168,7 +168,8 @@ describe('selectors de la liste', () => {
       'cremerie',
       'entretien',
     ]);
-    expect(groups[0].label).toBe('Fruits & légumes');
+    // Pas de libellé dans le groupe : la clé de rayon suffit, c'est le
+    // template qui la traduit.
   });
 
   it('trie alphabétiquement à l’intérieur d’un rayon', () => {

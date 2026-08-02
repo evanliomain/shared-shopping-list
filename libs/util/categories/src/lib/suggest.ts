@@ -1,6 +1,6 @@
 import { chain, find, map, sortBy } from 'taninsam';
 
-import { Aisle, AISLE_INFO, DEFAULT_AISLE } from './aisles';
+import { Aisle, AISLE_EMOJI, aisleOf, DEFAULT_AISLE } from './aisles';
 import { KEYWORDS } from './keywords';
 
 export interface CategorySuggestion {
@@ -95,15 +95,11 @@ export function suggestCategory(label: string): CategorySuggestion {
     .value();
 
   return undefined === matched
-    ? { aisle: DEFAULT_AISLE, emoji: AISLE_INFO[DEFAULT_AISLE].emoji }
+    ? { aisle: DEFAULT_AISLE, emoji: AISLE_EMOJI[DEFAULT_AISLE] }
     : { aisle: matched.aisle, emoji: matched.emoji };
 }
 
 /** Emoji par défaut d'un rayon, quand un produit n'a pas d'image à lui. */
 export function emojiForAisle(aisle: string): string {
-  return AISLE_INFO[aisle as Aisle]?.emoji ?? AISLE_INFO[DEFAULT_AISLE].emoji;
-}
-
-export function labelForAisle(aisle: string): string {
-  return AISLE_INFO[aisle as Aisle]?.label ?? AISLE_INFO[DEFAULT_AISLE].label;
+  return AISLE_EMOJI[aisleOf(aisle)];
 }

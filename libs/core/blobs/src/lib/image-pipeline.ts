@@ -1,3 +1,5 @@
+import { TranslatableError } from '@shopping-list/util/i18n';
+
 /**
  * Réduction d'une photo à ce qui est réellement affiché.
  *
@@ -37,7 +39,7 @@ export async function processImage(source: Blob): Promise<ProcessedImage> {
     const canvas = new OffscreenCanvas(IMAGE_SIZE, IMAGE_SIZE);
     const context = canvas.getContext('2d');
     if (null === context) {
-      throw new Error("Impossible de préparer l'image.");
+      throw new TranslatableError('errors.image.processingFailed');
     }
 
     context.drawImage(

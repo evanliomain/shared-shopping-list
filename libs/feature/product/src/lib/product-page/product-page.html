@@ -1,18 +1,22 @@
 <header>
-  <button type="button" class="back" (click)="close()">← Retour</button>
-  <h1>Fiche produit</h1>
+  <button type="button" class="back" (click)="close()">
+    ← {{ 'common.back' | transloco }}
+  </button>
+  <h1>{{ 'product.title' | transloco }}</h1>
 </header>
 
 @if (undefined === product()) {
 <main class="missing">
-  <p>Ce produit n'existe pas ou plus.</p>
+  <p>{{ 'product.missing' | transloco }}</p>
 </main>
 } @else {
 <main>
   <div class="preview">
     <sl-product-avatar [emoji]="emoji()" [imageUrl]="photoUrl()" size="lg" />
     <div>
-      <p class="preview-label">{{ label() || 'Sans nom' }}</p>
+      <p class="preview-label">
+        {{ label() || ('product.unnamed' | transloco) }}
+      </p>
       @if ('' !== description()) {
       <p class="preview-description">{{ description() }}</p>
       }
@@ -20,7 +24,7 @@
   </div>
 
   <label>
-    <span>Libellé</span>
+    <span>{{ 'product.label' | transloco }}</span>
     <input
       type="text"
       name="label"
@@ -31,48 +35,51 @@
   </label>
 
   <label>
-    <span>Description</span>
+    <span>{{ 'product.description' | transloco }}</span>
     <input
       type="text"
       name="description"
       autocomplete="off"
-      placeholder="à la vanille, pour le petit…"
+      [placeholder]="'product.descriptionPlaceholder' | transloco"
       [ngModel]="description()"
       (ngModelChange)="description.set($event)"
     />
-    <small>Ce qui distingue ce produit d'un autre au même nom.</small>
+    <small>{{ 'product.descriptionHint' | transloco }}</small>
   </label>
 
   <label>
-    <span>Quantité habituelle</span>
+    <span>{{ 'product.defaultQty' | transloco }}</span>
     <input
       type="text"
       name="defaultQty"
       autocomplete="off"
-      placeholder="un pack de 4, 500 g…"
+      [placeholder]="'product.defaultQtyPlaceholder' | transloco"
       [ngModel]="defaultQty()"
       (ngModelChange)="defaultQty.set($event)"
     />
   </label>
 
   <label>
-    <span>Rayon</span>
+    <span>{{ 'product.aisle' | transloco }}</span>
     <select
       name="category"
       [ngModel]="category()"
       (ngModelChange)="category.set($event)"
     >
       @for (aisle of aisles; track aisle.key) {
-      <option [value]="aisle.key">{{ aisle.emoji }} {{ aisle.label }}</option>
+      <option [value]="aisle.key">
+        {{ aisle.emoji }} {{ 'aisles.' + aisle.key | transloco }}
+      </option>
       }
     </select>
   </label>
 
   <fieldset>
-    <legend>Photo</legend>
+    <legend>{{ 'product.photo' | transloco }}</legend>
     <div class="photo-actions">
       <label class="photo-button">
-        {{ photoBusy() ? 'Traitement…' : 'Prendre une photo' }}
+        {{ (photoBusy() ? 'product.photoBusy' : 'product.takePhoto') | transloco
+        }}
         <input
           type="file"
           accept="image/*"
@@ -82,18 +89,15 @@
       </label>
       @if (null !== photoRef()) {
       <button type="button" class="photo-clear" (click)="clearPhoto()">
-        Revenir à un emoji
+        {{ 'product.clearPhoto' | transloco }}
       </button>
       }
     </div>
-    <small>
-      Réduite à 160 px et encodée en WebP : quelques kilo-octets, synchronisés à
-      part de la liste.
-    </small>
+    <small>{{ 'product.photoHint' | transloco }}</small>
   </fieldset>
 
   <fieldset [class.dimmed]="null !== photoRef()">
-    <legend>Emoji</legend>
+    <legend>{{ 'product.emoji' | transloco }}</legend>
     <div class="emoji-grid">
       @for (choice of emojiChoices; track choice) {
       <button
@@ -101,7 +105,7 @@
         class="emoji-choice"
         [class.selected]="choice === emoji()"
         [attr.aria-pressed]="choice === emoji()"
-        [attr.aria-label]="'Choisir ' + choice"
+        [attr.aria-label]="'product.chooseEmoji' | transloco: { emoji: choice }"
         (click)="emoji.set(choice)"
       >
         {{ choice }}
@@ -109,15 +113,17 @@
       }
     </div>
     @if (null !== photoRef()) {
-    <small>La photo est utilisée à la place de l'emoji.</small>
+    <small>{{ 'product.photoWins' | transloco }}</small>
     }
   </fieldset>
 </main>
 
 <footer>
-  <button type="button" class="archive" (click)="archive()">Archiver</button>
+  <button type="button" class="archive" (click)="archive()">
+    {{ 'product.archive' | transloco }}
+  </button>
   <button type="button" class="save" [disabled]="!canSave()" (click)="save()">
-    Enregistrer
+    {{ 'product.save' | transloco }}
   </button>
 </footer>
 }

@@ -1,10 +1,5 @@
-import { AISLE_INFO, DEFAULT_AISLE } from './aisles';
-import {
-  emojiForAisle,
-  labelForAisle,
-  normalize,
-  suggestCategory,
-} from './suggest';
+import { AISLE_EMOJI, aisleOf, DEFAULT_AISLE } from './aisles';
+import { emojiForAisle, normalize, suggestCategory } from './suggest';
 
 describe('normalize', () => {
   it('retire accents, casse et ponctuation', () => {
@@ -28,16 +23,39 @@ describe('suggestCategory', () => {
     expect(suggestCategory(label).aisle).toBe(aisle);
   });
 
+  it.each([
+    ['Semi-skimmed milk', 'cremerie'],
+    ['Sourdough bread', 'boulangerie'],
+    ['Minced beef', 'boucherie'],
+    ['Smoked salmon', 'poissonnerie'],
+    ['Toilet paper', 'hygiene'],
+    ['Laundry detergent', 'entretien'],
+    ['Nappies size 4', 'bebe'],
+    ['Cat food', 'animaux'],
+  ])('range « %s » au rayon %s', (label, aisle) => {
+    // Le dictionnaire n'est pas traduit, il est fusionné : ce qu'on tape ne
+    // suit pas la langue de l'interface.
+    expect(suggestCategory(label).aisle).toBe(aisle);
+  });
+
   it('préfère l’expression la plus spécifique', () => {
     // Sans le tri par spécificité, « pomme » capterait « pommes de terre » et
     // proposerait une image de pomme.
     expect(suggestCategory('Pommes de terre').emoji).toBe('🥔');
     expect(suggestCategory('Pommes').emoji).toBe('🍎');
+
+    // Même arbitrage en anglais : « pepper » l'épice contre « bell pepper »
+    // le légume.
+    expect(suggestCategory('Bell peppers').aisle).toBe('fruits-legumes');
+    expect(suggestCategory('Black pepper').aisle).toBe('epicerie-salee');
   });
 
   it('reconnaît les pluriels', () => {
     expect(suggestCategory('Carottes').aisle).toBe('fruits-legumes');
     expect(suggestCategory('Oeufs').aisle).toBe('cremerie');
+    expect(suggestCategory('Carrots').aisle).toBe('fruits-legumes');
+    // Pluriel irrégulier : il lui faut son entrée à lui.
+    expect(suggestCategory('Tomatoes').aisle).toBe('fruits-legumes');
   });
 
   it('ne confond pas un mot avec une sous-chaîne', () => {
@@ -50,18 +68,21 @@ describe('suggestCategory', () => {
     const suggestion = suggestCategory('Cadeau anniversaire mamie');
 
     expect(suggestion.aisle).toBe(DEFAULT_AISLE);
-    expect(suggestion.emoji).toBe(AISLE_INFO[DEFAULT_AISLE].emoji);
+    expect(suggestion.emoji).toBe(AISLE_EMOJI[DEFAULT_AISLE]);
   });
 });
 
 describe('helpers de rayon', () => {
-  it('donne emoji et libellé, avec repli sur « divers »', () => {
+  it('donne l’emoji du rayon, avec repli sur « divers »', () => {
     expect(emojiForAisle('cremerie')).toBe('🧀');
-    expect(labelForAisle('cremerie')).toBe('Crèmerie');
+    expect(emojiForAisle('rayon-inconnu')).toBe(AISLE_EMOJI[DEFAULT_AISLE]);
+    expect(emojiForAisle('')).toBe(AISLE_EMOJI[DEFAULT_AISLE]);
+  });
 
-    expect(emojiForAisle('rayon-inconnu')).toBe(
-      AISLE_INFO[DEFAULT_AISLE].emoji,
-    );
-    expect(labelForAisle('')).toBe(AISLE_INFO[DEFAULT_AISLE].label);
+  it('ramène toute catégorie inconnue sur un rayon connu', () => {
+    // Un produit venu d'un appareil plus récent doit rester affichable.
+    expect(aisleOf('cremerie')).toBe('cremerie');
+    expect(aisleOf('rayon-du-futur')).toBe(DEFAULT_AISLE);
+    expect(aisleOf('')).toBe(DEFAULT_AISLE);
   });
 });

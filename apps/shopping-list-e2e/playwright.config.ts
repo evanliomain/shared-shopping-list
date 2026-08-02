@@ -21,6 +21,10 @@ export default defineConfig({
     baseURL,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    // L'application suit la langue du navigateur. On la fixe ici pour que les
+    // parcours s'écrivent dans une langue connue, plutôt que dans celle de la
+    // machine qui lance les tests. `langue.spec.ts` couvre la bascule.
+    locale: 'fr-FR',
   },
   /* Run your local dev server before starting the tests */
   webServer: {

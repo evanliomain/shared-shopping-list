@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { ErrorParams, TranslatableError } from '@shopping-list/util/i18n';
 
 /**
  * `BarcodeDetector` n'est pas dans les types du DOM : on déclare le minimum
@@ -37,12 +38,13 @@ export type ScanFailure =
   | 'no-camera'
   | 'aborted';
 
-export class ScanError extends Error {
+export class ScanError extends TranslatableError {
   constructor(
     readonly reason: ScanFailure,
-    message: string,
+    key: string,
+    params?: ErrorParams,
   ) {
-    super(message);
+    super(key, params);
     this.name = 'ScanError';
   }
 }
@@ -77,10 +79,7 @@ export class QrScanner {
   ): Promise<string> {
     const Detector = detectorConstructor();
     if (null === Detector) {
-      throw new ScanError(
-        'unsupported',
-        'Ce navigateur ne sait pas lire les QR codes. Saisissez les informations à la main.',
-      );
+      throw new ScanError('unsupported', 'errors.scan.unsupportedBrowser');
     }
 
     const stream = await this.openCamera();
@@ -111,12 +110,9 @@ export class QrScanner {
       const name = error instanceof Error ? error.name : '';
 
       if ('NotAllowedError' === name || 'SecurityError' === name) {
-        throw new ScanError(
-          'permission-denied',
-          "L'accès à la caméra a été refusé.",
-        );
+        throw new ScanError('permission-denied', 'errors.camera.denied');
       }
-      throw new ScanError('no-camera', "Aucune caméra n'est disponible.");
+      throw new ScanError('no-camera', 'errors.camera.none');
     }
   }
 
@@ -133,7 +129,7 @@ export class QrScanner {
           return;
         }
         settled = true;
-        reject(new ScanError('aborted', 'Lecture interrompue.'));
+        reject(new ScanError('aborted', 'errors.scan.aborted'));
       };
 
       // Le signal peut déjà être annulé : l'appelant a pu quitter l'écran
@@ -179,10 +175,7 @@ export class QrScanner {
             settled = true;
             signal.removeEventListener('abort', abort);
             reject(
-              new ScanError(
-                'unsupported',
-                "La lecture de QR codes n'est pas disponible sur cet appareil. Saisissez les informations à la main.",
-              ),
+              new ScanError('unsupported', 'errors.scan.unsupportedDevice'),
             );
             return;
           }

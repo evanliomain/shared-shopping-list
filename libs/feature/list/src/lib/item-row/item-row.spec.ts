@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ItemView } from '@shopping-list/data-access/shopping';
+import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { ItemRow } from './item-row';
 
@@ -8,6 +9,7 @@ const BASE: ItemView = {
   id: 'item-1',
   productId: 'product-1',
   label: 'Yaourt',
+  unknownProduct: false,
   description: 'à la vanille',
   qty: 'x4',
   note: null,
@@ -21,7 +23,9 @@ const BASE: ItemView = {
 
 describe('ItemRow', () => {
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), provideTestI18n()],
+    });
   });
 
   // Plusieurs rendus par test : la configuration du module ne peut être faite

@@ -1,3 +1,5 @@
+import { TranslatableError } from '@shopping-list/util/i18n';
+
 import { fromBase64, toBase64 } from './base64';
 import { GithubAuthError, GithubConfig } from './github-api';
 
@@ -49,7 +51,9 @@ export async function fetchImage(
     throw new GithubAuthError(401);
   }
   if (!response.ok) {
-    throw new Error(`Image inaccessible (HTTP ${response.status}).`);
+    throw new TranslatableError('errors.github.imageUnreachable', {
+      status: response.status,
+    });
   }
 
   const body = (await response.json()) as { content: string };
@@ -103,7 +107,9 @@ export async function pushImage(
     throw new GithubAuthError(401);
   }
   if (!response.ok) {
-    throw new Error(`Envoi de l'image impossible (HTTP ${response.status}).`);
+    throw new TranslatableError('errors.github.imageUploadFailed', {
+      status: response.status,
+    });
   }
 
   return true;

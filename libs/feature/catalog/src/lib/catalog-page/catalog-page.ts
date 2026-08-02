@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { Store } from '@ngrx/store';
 import {
   catalogActions,
@@ -18,7 +19,7 @@ import {
   SuggestionView,
 } from '@shopping-list/data-access/shopping';
 import { EmptyState, ProductAvatar } from '@shopping-list/ui';
-import { labelForAisle } from '@shopping-list/util/categories';
+import { PluralPipe } from '@shopping-list/util/i18n';
 
 /**
  * Gestion de l'historique.
@@ -35,7 +36,7 @@ import { labelForAisle } from '@shopping-list/util/categories';
 @Component({
   selector: 'sl-catalog-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EmptyState, ProductAvatar],
+  imports: [EmptyState, PluralPipe, ProductAvatar, TranslocoPipe],
   templateUrl: './catalog-page.html',
   styleUrl: './catalog-page.scss',
 })
@@ -64,10 +65,6 @@ export class CatalogPage {
     effect(() =>
       this.images.ensure(this.visible().map((entry) => entry.imageRef)),
     );
-  }
-
-  protected aisleOf(entry: SuggestionView): string {
-    return labelForAisle(entry.aisle);
   }
 
   protected isArchived(entry: SuggestionView): boolean {
