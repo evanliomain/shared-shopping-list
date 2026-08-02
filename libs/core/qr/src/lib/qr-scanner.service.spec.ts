@@ -164,3 +164,59 @@ describe('QrScanner', () => {
     });
   });
 });
+
+describe('QrScanner — détecteur défaillant', () => {
+  let restore: Array<() => void> = [];
+
+  afterEach(() => {
+    for (const undo of restore.reverse()) {
+      undo();
+    }
+    restore = [];
+  });
+
+  it('abandonne avec un message quand la détection échoue en boucle', async () => {
+    // Cas Android réel : `BarcodeDetector` existe, mais le module Play
+    // Services sur lequel il s'appuie n'est pas installé, donc chaque image
+    // lève. Sans garde-fou, la caméra resterait ouverte sans rien dire.
+    const holder = globalThis as unknown as Record<string, unknown>;
+    const previousDetector = holder['BarcodeDetector'];
+    holder['BarcodeDetector'] = class {
+      async detect(): Promise<never> {
+        throw new Error('module indisponible');
+      }
+    };
+    restore.push(() => {
+      holder['BarcodeDetector'] = previousDetector;
+    });
+
+    const stopped: boolean[] = [];
+    const previousMedia = navigator.mediaDevices;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: async () =>
+          ({
+            getTracks: () => [{ stop: () => stopped.push(true) }],
+          }) as unknown as MediaStream,
+      },
+    });
+    restore.push(() =>
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: previousMedia,
+      }),
+    );
+
+    TestBed.configureTestingModule({});
+    const video = document.createElement('video');
+    video.play = async () => undefined;
+
+    await expect(
+      TestBed.inject(QrScanner).scanOnce(video, new AbortController().signal),
+    ).rejects.toMatchObject({ reason: 'unsupported' });
+
+    // Et la caméra est bien éteinte.
+    expect(stopped).toEqual([true]);
+  });
+});

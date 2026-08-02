@@ -23,6 +23,14 @@ function detectorConstructor(): BarcodeDetectorConstructor | null {
   return candidate ?? null;
 }
 
+/**
+ * Nombre d'échecs d'affilée avant d'abandonner.
+ *
+ * ~1,5 s à 60 images/s : assez pour absorber une série d'images illisibles,
+ * assez court pour ne pas laisser l'utilisateur devant une caméra morte.
+ */
+const MAX_CONSECUTIVE_FAILURES = 90;
+
 export type ScanFailure =
   | 'unsupported'
   | 'permission-denied'
@@ -138,6 +146,17 @@ export class QrScanner {
       }
       signal.addEventListener('abort', abort, { once: true });
 
+      /**
+       * Échecs consécutifs de `detect()`.
+       *
+       * Une image floue ou surexposée lève parfois : ce n'est pas une erreur,
+       * on retente à la suivante. Mais sur Android, `BarcodeDetector` s'appuie
+       * sur un module Play Services téléchargé à la demande ; s'il manque,
+       * **toutes** les images lèvent. Sans ce compteur, la caméra resterait
+       * ouverte indéfiniment sans rien détecter ni rien dire.
+       */
+      let consecutiveFailures = 0;
+
       const tick = async (): Promise<void> => {
         if (settled) {
           return;
@@ -145,6 +164,8 @@ export class QrScanner {
 
         try {
           const [found] = await detector.detect(video);
+          consecutiveFailures = 0;
+
           if (undefined !== found) {
             settled = true;
             signal.removeEventListener('abort', abort);
@@ -152,7 +173,19 @@ export class QrScanner {
             return;
           }
         } catch {
-          // Une image illisible n'est pas une erreur : on retente à la suivante.
+          consecutiveFailures++;
+
+          if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            settled = true;
+            signal.removeEventListener('abort', abort);
+            reject(
+              new ScanError(
+                'unsupported',
+                "La lecture de QR codes n'est pas disponible sur cet appareil. Saisissez les informations à la main.",
+              ),
+            );
+            return;
+          }
         }
 
         if (!settled) {
