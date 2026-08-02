@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { QrScanner, renderQrDataUrl, ScanError } from '@shopping-list/core/qr';
 import {
   GithubConfigService,
@@ -35,7 +36,7 @@ type Mode = 'idle' | 'scanning' | 'showing-qr';
 @Component({
   selector: 'sl-pairing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './pairing-page.html',
   styleUrl: './pairing-page.scss',
 })

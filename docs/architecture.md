@@ -522,7 +522,8 @@ libs/
   core/sync-indexeddb/        y-indexeddb + BroadcastChannel
   core/sync-github/           client API, polling ETag, push avec retry 409, envoi des images
   core/qr/                    rendu SVG et lecture caméra de QR codes
-  core/sync-qr/               découpage/réassemblage de trames, scanner, machine à états
+  core/sync-qr/               compression, découpage/réassemblage de trames,
+                              protocole d'échange en trois messages
   data-access/shopping/       NgRx : actions, reducer, selectors, effects
                               (liste ET catalogue : deux tranches d'une seule
                               projection du même document, alimentées par la
@@ -533,7 +534,7 @@ libs/
   feature/product/            fiche produit : libellé, description, quantité, image
   feature/catalog/            parcours de l'historique, archivage, correction en masse
   feature/pairing/            appairage GitHub, réglages
-  feature/nearby/             assistant d'échange QR
+  feature/nearby/             assistant d'échange QR (rôle, trames animées, scan)
   ui/                         composants muets, tokens de design, <sl-product-image>
   util/categories/            dictionnaire produit → rayon + emoji par défaut (français)
 ```

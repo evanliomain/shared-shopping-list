@@ -63,7 +63,7 @@ apps/shopping-list/       l'application
 apps/shopping-list-e2e/   Playwright
 libs/core/                CRDT, QR, providers de synchro (IndexedDB, GitHub)
 libs/data-access/         NgRx (actions, reducers, selectors, effects)
-libs/feature/             pages et parcours
+libs/feature/             pages et parcours (liste, produit, appairage, proximité)
 libs/ui/                  composants muets
 libs/util/                dictionnaire rayons/emoji
 docs/architecture.md      le document de référence
@@ -86,6 +86,6 @@ Angular reprenne la main.
 - [x] **Lot 1** — CRDT, store NgRx, UI liste, fiche produit, suggestions
 - [x] **Lot 2** — Synchro GitHub à deux appareils
 - [x] **Lot 3** — File offline, rattrapage au retour du réseau, invite de mise à jour
-- [ ] **Lot 4** — Échange QR de proximité
+- [x] **Lot 4** — Échange QR de proximité
 - [ ] **Lot 5** — Photos des produits
 - [ ] **Lot 6** — Rayons, gestion du catalogue, multi-listes

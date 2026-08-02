@@ -211,3 +211,21 @@ test('refuse un appairage vers un dépôt inaccessible', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('Dépôt introuvable');
   await expect(page.getByLabel('Compte GitHub')).toBeVisible();
 });
+
+test('l’échange de proximité est accessible sans réseau', async ({ page }) => {
+  await page.getByLabel('Synchronisation').click();
+  await page.getByRole('link', { name: 'Échanger à proximité' }).click();
+
+  await expect(page).toHaveURL(/\/proximite$/);
+  await expect(page.getByText('Trois codes, deux scans')).toBeVisible();
+
+  // Celui qui commence n'a pas besoin de caméra : il affiche.
+  await page
+    .getByRole('button', { name: 'Je commence — montrer un code' })
+    .click();
+
+  await expect(page.locator('img[alt="Code à scanner"]')).toBeVisible();
+  await expect(
+    page.getByText("Faites scanner ce code par l'autre téléphone."),
+  ).toBeVisible();
+});

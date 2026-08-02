@@ -57,6 +57,12 @@
       ],
       "@shopping-list/feature/pairing": [
         "./libs/feature/pairing/src/index.ts"
+      ],
+      "@shopping-list/core/sync-qr": [
+        "./libs/core/sync-qr/src/index.ts"
+      ],
+      "@shopping-list/feature/nearby": [
+        "./libs/feature/nearby/src/index.ts"
       ]
     }
   },

@@ -1,0 +1,86 @@
+<header>
+  <button type="button" class="back" (click)="close()">← Retour</button>
+  <h1>Échange à proximité</h1>
+</header>
+
+<main>
+  <!-- Toujours dans le DOM, seulement visible pendant la lecture : `viewChild`
+       le résout donc dès le départ, sans dépendre du moment du rendu. -->
+  <video
+    #video
+    class="camera"
+    [class.active]="'scanning' === step()"
+    muted
+    playsinline
+  ></video>
+
+  @switch (step()) { @case ('choose-role') {
+  <section>
+    <p class="lead">
+      Sans aucun réseau, les deux téléphones s'échangent leurs modifications par
+      QR code. Trois codes, deux scans.
+    </p>
+    <p class="lead">Décidez qui commence : l'un montre, l'autre scanne.</p>
+
+    <button type="button" class="primary" (click)="startAsInitiator()">
+      Je commence — montrer un code
+    </button>
+
+    @if (canScan) {
+    <button type="button" (click)="startAsResponder()">
+      L'autre commence — scanner son code
+    </button>
+    } @else {
+    <p class="hint">
+      Ce navigateur ne sait pas lire les QR codes : c'est à l'autre téléphone de
+      scanner.
+    </p>
+    }
+  </section>
+  } @case ('showing') {
+  <section class="showing">
+    <p class="instruction">{{ instruction() }}</p>
+
+    @if (null !== frameImage()) {
+    <img [src]="frameImage()" alt="Code à scanner" />
+    } @if (1 < frameCount()) {
+    <p class="hint">
+      Écran {{ framePosition() }} sur {{ frameCount() }} — laissez défiler, ça
+      tourne en boucle.
+    </p>
+    }
+
+    <button type="button" class="primary" (click)="afterShown()">
+      C'est scanné
+    </button>
+  </section>
+  } @case ('scanning') {
+  <section class="scanning">
+    <p class="instruction">{{ instruction() }}</p>
+
+    @if (0 < scanProgress().total) {
+    <p class="hint">
+      {{ scanProgress().received }} / {{ scanProgress().total }} écrans lus
+    </p>
+    }
+
+    <button type="button" (click)="restart()">Annuler</button>
+  </section>
+  } @case ('done') {
+  <section class="done">
+    <p class="glyph" aria-hidden="true">✅</p>
+    <p class="instruction">Les deux listes sont à jour.</p>
+    <button type="button" class="primary" (click)="close()">
+      Revenir à la liste
+    </button>
+  </section>
+  } @case ('failed') {
+  <section>
+    <p class="error" role="alert">{{ error() }}</p>
+    <button type="button" class="primary" (click)="restart()">
+      Recommencer
+    </button>
+    <button type="button" (click)="close()">Abandonner</button>
+  </section>
+  } }
+</main>

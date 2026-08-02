@@ -177,3 +177,30 @@ button.danger {
 .detail.error-text {
   color: var(--sl-danger);
 }
+
+.nearby {
+  margin-block-start: var(--sl-space-6);
+  padding-block-start: var(--sl-space-4);
+  border-block-start: 1px solid var(--sl-border);
+}
+
+.nearby h2 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sl-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.link-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--sl-tap-target);
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius);
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}

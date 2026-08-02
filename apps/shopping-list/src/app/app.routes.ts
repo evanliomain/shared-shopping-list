@@ -17,6 +17,11 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('@shopping-list/feature/pairing').then((m) => m.PairingPage),
   },
+  {
+    path: 'proximite',
+    loadComponent: () =>
+      import('@shopping-list/feature/nearby').then((m) => m.NearbyPage),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'liste' },
   { path: '**', redirectTo: 'liste' },
 ];

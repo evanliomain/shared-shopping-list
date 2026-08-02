@@ -1,0 +1,22 @@
+{
+  "name": "feature-nearby",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/feature/nearby/src",
+  "prefix": "sl",
+  "projectType": "library",
+  "tags": [
+    "type:feature",
+    "scope:shared"
+  ],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "reportsDirectory": "coverage/libs/feature/nearby"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}
