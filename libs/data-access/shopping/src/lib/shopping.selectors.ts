@@ -209,3 +209,53 @@ export function filterSuggestions(
     )
     .value();
 }
+
+/**
+ * Tout le catalogue, **archivés compris**, du plus utilisé au moins utilisé.
+ *
+ * Distinct de `selectSuggestions`, qui masque les archivés : ici on vient
+ * justement pour retrouver et désarchiver.
+ */
+export const selectCatalogEntries = createSelector(
+  selectCatalog,
+  selectActiveItems,
+  (catalog, items) => {
+    const inList = new Set(items.map((item) => item.productId));
+
+    return chain(Object.values(catalog))
+      .chain(
+        map(
+          (product: Product): SuggestionView => ({
+            productId: product.id,
+            label: product.label,
+            description: product.description,
+            defaultQty: product.defaultQty,
+            imageRef: product.imageRef,
+            emoji: displayEmoji(product),
+            aisle: product.category,
+            usage: productUsage(product),
+            lastUsedAt: product.lastUsedAt,
+            alreadyInList: inList.has(product.id),
+          }),
+        ),
+      )
+      .chain(
+        sortBy<SuggestionView>(
+          (s) => -s.usage,
+          (s) => normalize(s.label),
+        ),
+      )
+      .value() as SuggestionView[];
+  },
+);
+
+/** Empreintes des produits archivés, pour les distinguer à l'affichage. */
+export const selectArchivedIds = createSelector(
+  selectCatalog,
+  (catalog) =>
+    new Set(
+      Object.values(catalog)
+        .filter((product) => null !== product.archivedAt)
+        .map((product) => product.id),
+    ),
+);

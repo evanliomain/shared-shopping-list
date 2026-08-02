@@ -19,9 +19,19 @@ header {
   gap: var(--sl-space-2);
 }
 
-.sync {
+.sync,
+.history {
   flex: none;
   text-decoration: none;
+}
+
+.history {
+  display: grid;
+  place-items: center;
+  inline-size: var(--sl-tap-target);
+  min-block-size: var(--sl-tap-target);
+  border-radius: var(--sl-radius);
+  font-size: 1.1rem;
 }
 
 h1 {

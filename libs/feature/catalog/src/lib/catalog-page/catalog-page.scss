@@ -1,0 +1,125 @@
+:host {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  block-size: 100dvh;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sl-space-2);
+  padding: calc(var(--sl-safe-top) + var(--sl-space-2)) var(--sl-space-3)
+    var(--sl-space-3);
+  border-block-end: 1px solid var(--sl-border);
+  background: var(--sl-surface);
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-space-2);
+}
+
+.back {
+  min-block-size: var(--sl-tap-target);
+  padding-inline: var(--sl-space-2);
+  border: none;
+  background: transparent;
+  color: var(--sl-brand);
+}
+
+h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.search {
+  min-block-size: var(--sl-tap-target);
+  padding: 0 var(--sl-space-3);
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius-full);
+  background: var(--sl-bg);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-space-2);
+  color: var(--sl-text-muted);
+  font-size: 0.8125rem;
+}
+
+main {
+  overflow-y: auto;
+  padding-block-end: calc(var(--sl-safe-bottom) + var(--sl-space-4));
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-space-3);
+  padding: var(--sl-space-2) var(--sl-space-3);
+  border-block-end: 1px solid var(--sl-border);
+}
+
+li.archived {
+  opacity: 0.55;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.label,
+.description,
+.meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  color: var(--sl-text-muted);
+  font-size: 0.8125rem;
+}
+
+.meta {
+  color: var(--sl-text-muted);
+  font-size: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-space-1);
+  flex: none;
+}
+
+.add {
+  inline-size: var(--sl-tap-target);
+  min-block-size: var(--sl-tap-target);
+  border: none;
+  border-radius: var(--sl-radius);
+  background: transparent;
+  color: var(--sl-brand);
+  font-size: 1.1rem;
+}
+
+.archive {
+  min-block-size: var(--sl-tap-target);
+  padding-inline: var(--sl-space-2);
+  border: none;
+  background: transparent;
+  color: var(--sl-text-muted);
+  font-size: 0.8125rem;
+}

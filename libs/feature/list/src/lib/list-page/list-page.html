@@ -1,6 +1,7 @@
 <header>
   <div class="title-row">
     <h1>{{ listName() }}</h1>
+    <a class="history" routerLink="/historique" aria-label="Historique">📖</a>
     <a class="sync" routerLink="/synchronisation" aria-label="Synchronisation">
       <sl-sync-badge [status]="syncStatus()" [pending]="syncPending()" />
     </a>

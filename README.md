@@ -88,4 +88,13 @@ Angular reprenne la main.
 - [x] **Lot 3** — File offline, rattrapage au retour du réseau, invite de mise à jour
 - [x] **Lot 4** — Échange QR de proximité
 - [x] **Lot 5** — Photos des produits
-- [ ] **Lot 6** — Rayons, gestion du catalogue, multi-listes
+- [x] **Lot 6** — Rayons, gestion du catalogue _(multi-listes non fait — voir plus bas)_
+
+## Reste à faire
+
+**Multi-listes.** Le CRDT le supporte déjà — les articles vivent dans une
+racine `items:<listId>` et les métadonnées sont indexées par liste — mais
+l'interface ne connaît qu'une seule liste, via la constante `DEFAULT_LIST_ID`.
+Ajouter le multi-listes demande un sélecteur de liste et de rendre cette
+constante dynamique dans la tranche NgRx. Rien de bloquant, mais ce n'était pas
+dans le besoin exprimé.

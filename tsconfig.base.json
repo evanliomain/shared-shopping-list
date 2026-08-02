@@ -66,6 +66,9 @@
       ],
       "@shopping-list/core/blobs": [
         "./libs/core/blobs/src/index.ts"
+      ],
+      "@shopping-list/feature/catalog": [
+        "./libs/feature/catalog/src/index.ts"
       ]
     }
   },

@@ -22,6 +22,11 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('@shopping-list/feature/nearby').then((m) => m.NearbyPage),
   },
+  {
+    path: 'historique',
+    loadComponent: () =>
+      import('@shopping-list/feature/catalog').then((m) => m.CatalogPage),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'liste' },
   { path: '**', redirectTo: 'liste' },
 ];

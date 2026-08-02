@@ -229,3 +229,22 @@ test('l’échange de proximité est accessible sans réseau', async ({ page }) 
     page.getByText("Faites scanner ce code par l'autre téléphone."),
   ).toBeVisible();
 });
+
+test('l’historique permet de retrouver et d’archiver', async ({ page }) => {
+  await createArticle(page, 'Bougie');
+  await page.getByRole('button', { name: 'Fermer' }).click();
+
+  await page.getByLabel('Historique').click();
+  await expect(page).toHaveURL(/\/historique$/);
+  await expect(page.locator('li').filter({ hasText: 'Bougie' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Archiver' }).click();
+
+  // Archivé : masqué par défaut, mais toujours là.
+  await expect(page.locator('li')).toHaveCount(0);
+  await page.getByText('Afficher les 1 produits archivés').click();
+  await expect(page.locator('li').filter({ hasText: 'Bougie' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Réactiver' }).click();
+  await expect(page.locator('li').filter({ hasText: 'Bougie' })).toBeVisible();
+});

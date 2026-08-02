@@ -1,0 +1,78 @@
+<header>
+  <div class="title-row">
+    <button type="button" class="back" (click)="close()">← Retour</button>
+    <h1>Historique</h1>
+  </div>
+
+  <input
+    type="search"
+    class="search"
+    placeholder="Rechercher un produit…"
+    autocomplete="off"
+    [value]="query()"
+    (input)="onQuery($event)"
+  />
+
+  <label class="toggle">
+    <input
+      type="checkbox"
+      [checked]="showArchived()"
+      (change)="showArchived.set(!showArchived())"
+    />
+    Afficher les {{ archivedCount() }} produits archivés
+  </label>
+</header>
+
+<main>
+  @if (0 === total()) {
+  <sl-empty-state
+    emoji="📖"
+    title="L'historique est vide"
+    hint="Chaque article ajouté à la liste y entre automatiquement. Il servira à composer les prochaines courses."
+  />
+  } @else if (0 === visible().length) {
+  <sl-empty-state
+    emoji="🔍"
+    title="Aucun produit ne correspond"
+    hint="Essayez un autre mot, ou affichez les produits archivés."
+  />
+  } @else {
+  <ul>
+    @for (entry of visible(); track entry.productId) {
+    <li [class.archived]="isArchived(entry)">
+      <sl-product-avatar
+        [emoji]="entry.emoji"
+        [imageUrl]="images.urlFor(entry.imageRef)"
+      />
+
+      <span class="text">
+        <span class="label">{{ entry.label }}</span>
+        @if ('' !== entry.description) {
+        <span class="description">{{ entry.description }}</span>
+        }
+        <span class="meta">
+          {{ aisleOf(entry) }} · {{ entry.usage }} {{ 1 === entry.usage ?
+          'achat' : 'achats' }}
+        </span>
+      </span>
+
+      <div class="actions">
+        @if (!isArchived(entry) && !entry.alreadyInList) {
+        <button
+          type="button"
+          class="add"
+          [attr.aria-label]="'Ajouter ' + entry.label + ' à la liste'"
+          (click)="addToList(entry)"
+        >
+          ＋
+        </button>
+        }
+        <button type="button" class="archive" (click)="toggleArchive(entry)">
+          {{ isArchived(entry) ? 'Réactiver' : 'Archiver' }}
+        </button>
+      </div>
+    </li>
+    }
+  </ul>
+  }
+</main>
