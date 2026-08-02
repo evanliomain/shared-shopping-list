@@ -6,6 +6,8 @@ mois**.
 Remplace la note Google Keep partagée : chacun ajoute et coche depuis son téléphone, tout se
 synchronise, et ça continue de marcher quand le réseau du centre commercial ne passe pas.
 
+🌐 **En ligne : https://evanliomain.github.io/shared-shopping-list/**
+
 > 📐 **[Architecture détaillée →](docs/architecture.md)** — modèle CRDT, synchro, choix techniques,
 > diagrammes.
 
@@ -78,7 +80,19 @@ Le workflow copie `index.html` en `404.html` — GitHub Pages ne connaît pas le
 comme `/shared-shopping-list/liste` et renvoie `404.html`, qu'on fait pointer sur l'app pour que le routeur
 Angular reprenne la main.
 
-**À faire une fois côté GitHub :** _Settings → Pages → Source → GitHub Actions_.
+Pages est configuré en mode _GitHub Actions_ et le site est servi depuis
+`/shared-shopping-list/`.
+
+### Première configuration de la synchro
+
+1. Ouvrir l'app, taper la pastille de synchro dans l'en-tête.
+2. Renseigner le compte, le dépôt privé `shopping-list-data`, et un jeton
+   fine-grained limité à ce dépôt avec `Contents: Read and write`.
+3. Sur le second appareil : « Appairer un autre appareil » affiche un QR à
+   scanner — rien à ressaisir.
+
+Le jeton vit dans l'IndexedDB de chaque appareil. Il n'est jamais committé, et
+ne part que vers l'API GitHub.
 
 ## État d'avancement
 
