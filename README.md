@@ -83,7 +83,7 @@ Angular reprenne la main.
 ## État d'avancement
 
 - [x] **Lot 0** — Workspace, PWA installable, CI vers Pages
-- [ ] **Lot 1** — CRDT, store NgRx, UI liste, fiche produit, suggestions
+- [x] **Lot 1** — CRDT, store NgRx, UI liste, fiche produit, suggestions
 - [ ] **Lot 2** — Synchro GitHub à deux appareils
 - [ ] **Lot 3** — File offline, sonde réseau, bannières
 - [ ] **Lot 4** — Échange QR de proximité

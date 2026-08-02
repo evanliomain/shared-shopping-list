@@ -4,14 +4,14 @@ import * as Y from 'yjs';
 import { newId } from './ids';
 import {
   buildItemNode,
-  buildListNode,
   buildProductNode,
   catalogMap,
   itemNode,
   itemsMap,
-  listNode,
-  listsMap,
+  listExists,
   productNode,
+  writeListCreatedAt,
+  writeListName,
   YNode,
 } from './schema';
 import { incrementUsage } from './usage-counter';
@@ -33,17 +33,28 @@ import {
  * un seul delta à synchroniser et un seul recalcul de snapshot.
  */
 
-/** Crée la liste si elle n'existe pas encore. Idempotent. */
+/**
+ * Déclare la liste si elle n'est pas déjà connue. Idempotent.
+ *
+ * N'écrit que des scalaires : contrairement à la création d'un nœud imbriqué,
+ * deux appareils qui déclarent la même liste chacun de leur côté ne peuvent pas
+ * se faire perdre d'articles. Au pire, l'un des deux noms l'emporte.
+ */
 export function ensureList(
   doc: Y.Doc,
   id: ListId,
   name: string,
   now: number,
 ): void {
-  if (undefined !== listNode(doc, id)) {
+  if (listExists(doc, id)) {
     return;
   }
-  listsMap(doc).set(id, buildListNode({ name, createdAt: now }));
+  writeListName(doc, id, name);
+  writeListCreatedAt(doc, id, now);
+}
+
+export function renameList(doc: Y.Doc, id: ListId, name: string): void {
+  writeListName(doc, id, name);
 }
 
 export function createProduct(
@@ -131,11 +142,13 @@ export function addItem(doc: Y.Doc, params: AddItemParams): ItemId {
     product.set('lastUsedAt', now);
   }
 
-  const items = itemsMap(doc, listId);
-  if (undefined === items) {
+  if (!listExists(doc, listId)) {
+    // La racine des articles existerait quand même ; ce garde-fou évite qu'une
+    // faute de frappe sur un identifiant crée silencieusement une liste.
     throw new Error(`Liste inconnue : ${listId}`);
   }
 
+  const items = itemsMap(doc, listId);
   const existing = findActiveItemForProduct(items, productId);
   if (undefined !== existing) {
     const [existingId, node] = existing;
@@ -226,12 +239,7 @@ export function clearCheckedItems(
   listId: ListId,
   now: number,
 ): void {
-  const items = itemsMap(doc, listId);
-  if (undefined === items) {
-    return;
-  }
-
-  for (const node of items.values()) {
+  for (const node of itemsMap(doc, listId).values()) {
     if (true === node.get('checked') && null === node.get('removedAt')) {
       node.set('removedAt', now);
     }

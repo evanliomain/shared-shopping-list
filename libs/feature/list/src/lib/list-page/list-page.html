@@ -1,0 +1,85 @@
+<header>
+  <h1>{{ listName() }}</h1>
+  <p class="count">
+    @if (!loaded()) { Chargement… } @else if (0 === remaining()) { Tout est dans
+    le panier } @else { {{ remaining() }} {{ 1 === remaining() ? 'article' :
+    'articles' }} à prendre }
+  </p>
+</header>
+
+<main>
+  @if (isEmpty()) {
+  <sl-empty-state
+    title="La liste est vide"
+    hint="Ajoutez un article ci-dessous. Il sera mémorisé pour les prochaines courses."
+  />
+  } @for (group of groups(); track group.aisle) {
+  <section class="aisle" [attr.data-aisle]="group.aisle">
+    <h2>
+      <span aria-hidden="true">{{ group.emoji }}</span>
+      {{ group.label }}
+    </h2>
+    <ul>
+      @for (item of group.items; track item.id) {
+      <li>
+        <sl-item-row
+          [item]="item"
+          [menuOpen]="ui.openMenuFor() === item.id"
+          (toggled)="toggle(item, $event)"
+          (removed)="remove(item)"
+          (menuToggled)="ui.toggleMenu(item.id)"
+        />
+      </li>
+      }
+    </ul>
+  </section>
+  } @if (0 < checkedCount()) {
+  <section class="basket">
+    <div class="basket-head">
+      <button
+        type="button"
+        class="disclosure"
+        [attr.aria-expanded]="ui.showChecked()"
+        (click)="ui.toggleChecked()"
+      >
+        <span class="chevron" aria-hidden="true">
+          {{ ui.showChecked() ? '▾' : '▸' }}
+        </span>
+        Dans le panier ({{ checkedCount() }})
+      </button>
+
+      <button type="button" class="clear" (click)="clearChecked()">
+        Vider
+      </button>
+    </div>
+
+    @if (ui.showChecked()) {
+    <ul>
+      @for (item of checkedItems(); track item.id) {
+      <li>
+        <sl-item-row
+          [item]="item"
+          [menuOpen]="ui.openMenuFor() === item.id"
+          (toggled)="toggle(item, $event)"
+          (removed)="remove(item)"
+          (menuToggled)="ui.toggleMenu(item.id)"
+        />
+      </li>
+      }
+    </ul>
+    }
+  </section>
+  }
+</main>
+
+<sl-add-bar
+  [query]="ui.query()"
+  [picking]="ui.picking()"
+  [suggestions]="suggestions()"
+  [canCreate]="canCreate()"
+  (queryChanged)="ui.setQuery($event)"
+  (focused)="ui.startPicking()"
+  (dismissed)="ui.stopPicking()"
+  (picked)="addExisting($event)"
+  (created)="createAndAdd($event)"
+/>

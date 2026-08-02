@@ -1,12 +1,21 @@
 import * as Y from 'yjs';
 
 import { createProduct } from './operations';
-import { productNode } from './schema';
+import { productNode, YNode } from './schema';
 import { readSnapshot } from './snapshot';
 import { forkReplica, syncPair } from './testing/replicas';
 import { incrementUsage, usageTotal } from './usage-counter';
 
 const NOW = 1_764_000_000_000;
+
+/** Le produit vient d'être créé : son absence serait un bug du test lui-même. */
+function nodeOf(doc: Y.Doc, productId: string): YNode {
+  const node = productNode(doc, productId);
+  if (undefined === node) {
+    throw new Error(`Produit absent du catalogue : ${productId}`);
+  }
+  return node;
+}
 
 describe('G-Counter d’usage', () => {
   it('somme les compteurs de tous les appareils', () => {
@@ -24,8 +33,8 @@ describe('G-Counter d’usage', () => {
     const phoneB = forkReplica(origin);
 
     // Chacun ajoute le produit à sa liste, hors ligne, sans voir l'autre.
-    incrementUsage(productNode(phoneA, productId)!, 'device-A');
-    incrementUsage(productNode(phoneB, productId)!, 'device-B');
+    incrementUsage(nodeOf(phoneA, productId), 'device-A');
+    incrementUsage(nodeOf(phoneB, productId), 'device-B');
 
     syncPair(phoneA, phoneB);
 
@@ -41,9 +50,9 @@ describe('G-Counter d’usage', () => {
     const doc = new Y.Doc({ gc: true });
     const productId = createProduct(doc, { label: 'Pain' }, NOW);
 
-    incrementUsage(productNode(doc, productId)!, 'device-A');
-    incrementUsage(productNode(doc, productId)!, 'device-A');
-    incrementUsage(productNode(doc, productId)!, 'device-B');
+    incrementUsage(nodeOf(doc, productId), 'device-A');
+    incrementUsage(nodeOf(doc, productId), 'device-A');
+    incrementUsage(nodeOf(doc, productId), 'device-B');
 
     expect(usageTotal(readSnapshot(doc).catalog[productId].usage)).toBe(3);
   });

@@ -4,7 +4,7 @@ test('la racine redirige vers la liste', async ({ page }) => {
   await page.goto('/');
 
   await expect(page).toHaveURL(/\/liste$/);
-  await expect(page.locator('h1')).toHaveText('Liste de courses');
+  await expect(page.locator('h1')).toHaveText('Nos courses');
 });
 
 test('le manifeste PWA est servi et bien formé', async ({ page, request }) => {

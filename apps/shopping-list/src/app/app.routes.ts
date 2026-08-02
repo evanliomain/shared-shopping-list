@@ -4,7 +4,13 @@ export const appRoutes: Route[] = [
   {
     path: 'liste',
     loadComponent: () =>
-      import('./shell/placeholder-page').then((m) => m.PlaceholderPage),
+      import('@shopping-list/feature/list').then((m) => m.ListPage),
+  },
+  {
+    // `withComponentInputBinding()` injecte `productId` dans l'input du même nom.
+    path: 'produit/:productId',
+    loadComponent: () =>
+      import('@shopping-list/feature/product').then((m) => m.ProductPage),
   },
   { path: '', pathMatch: 'full', redirectTo: 'liste' },
   { path: '**', redirectTo: 'liste' },

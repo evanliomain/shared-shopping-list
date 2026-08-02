@@ -117,12 +117,51 @@ Arborescence Yjs correspondante :
 
 ```
 Y.Doc
-├── catalog : Y.Map<productId, Y.Map>
-│   └── …, usage : Y.Map<deviceId, number>
-└── lists   : Y.Map<listId, Y.Map>
-    ├── meta  : Y.Map
-    └── items : Y.Map<itemId, Y.Map>
+├── catalog          : Y.Map<productId, Y.Map>   racine
+├── listMeta         : Y.Map<string, string|number>
+│                      clés plates « name:<listId> », « createdAt:<listId> »
+└── items:<listId>   : Y.Map<itemId, Y.Map>      une racine par liste
 ```
+
+#### Pourquoi les articles sont à la racine, et pas dans `lists.get(listId)`
+
+`doc.getMap(nom)` est **déterministe** : deux appareils qui appellent
+`getMap('items:maison')` désignent le même type partagé, même s'ils ne se sont
+jamais parlé, et leurs contenus fusionnent.
+
+`lists.set('maison', new Y.Map())` ne l'est pas : chaque appareil crée un nœud
+_distinct_, et la fusion n'en garde qu'un. Tout ce que contenait le perdant
+devient inatteignable.
+
+Ce n'était pas théorique. La première implémentation stockait bien les articles
+dans un nœud imbriqué, et le test de bout en bout « la liste survit à un
+rechargement » échouait **une fois sur trois** :
+
+```mermaid
+sequenceDiagram
+    participant Boot as Démarrage
+    participant Doc as Y.Doc
+    participant IDB as IndexedDB
+
+    Boot->>Doc: ensureList('maison') sur un document vide
+    Note over Doc: lists.set('maison', Y.Map α) — vide
+    IDB-->>Doc: restauration du document persisté
+    Note over Doc: lists.set('maison', Y.Map β) — 12 articles
+    Note over Doc: ⚠️ deux nœuds concurrents sur la même clé
+    Doc->>Doc: fusion → un seul survit
+    Note over Doc: si α gagne, les 12 articles<br/>deviennent inatteignables
+```
+
+Attendre IndexedDB avant d'amorcer n'aurait été qu'un pansement : le même
+scénario se rejoue au premier appairage avec GitHub, quand le document distant
+arrive après l'amorçage local.
+
+Les métadonnées de liste sont donc des **clés plates scalaires** : une écriture
+concurrente y est un simple dernier-écrivain-gagne sur une chaîne, sans perte de
+contenu. Au pire, l'un des deux noms l'emporte.
+
+Le catalogue, lui, était déjà sûr : c'est une racine, et les produits ont des
+identifiants aléatoires qui ne peuvent pas entrer en collision.
 
 ### Ce que la séparation catalogue / liste apporte
 
@@ -483,8 +522,11 @@ libs/
   core/sync-indexeddb/        y-indexeddb + BroadcastChannel
   core/sync-github/           client API, polling ETag, push avec retry 409, envoi des images
   core/sync-qr/               découpage/réassemblage de trames, scanner, machine à états
-  data-access/list/           NgRx : actions, reducer, selectors, effects
-  data-access/catalog/        NgRx : catalogue, scoring et recherche des suggestions
+  data-access/shopping/       NgRx : actions, reducer, selectors, effects
+                              (liste ET catalogue : deux tranches d'une seule
+                              projection du même document, alimentées par la
+                              même action — les séparer imposait une dépendance
+                              data-access → data-access)
   data-access/sync/           NgRx : statut de synchro, file offline, état des blobs
   feature/list/               page liste, ligne article, barre d'ajout avec suggestions
   feature/product/            fiche produit : libellé, description, quantité, image
@@ -554,15 +596,15 @@ flowchart TD
 
 ## 12. Découpage en lots
 
-| Lot   | Contenu                                                                             | Ce qui marche à la fin                                                          |
-| ----- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **0** | Workspace Nx, app Angular, PWA, CI vers Pages                                       | Coquille installable sur les deux téléphones                                    |
-| **1** | Schéma CRDT, G-Counter, IndexedDB, Store NgRx, UI liste, fiche produit, suggestions | App complète **mono-appareil**, 100 % hors ligne, avec réutilisation d'articles |
-| **2** | Provider GitHub, appairage par QR, indicateur de statut                             | **Synchro à deux appareils** — le cœur du besoin                                |
-| **3** | File offline, sonde réseau, bannière, invite `SwUpdate`                             | Robuste en réseau dégradé                                                       |
-| **4** | Échange QR de proximité                                                             | Synchro sans aucun réseau                                                       |
-| **5** | Photos : capture, WebP, store adressé par contenu, sync GitHub                      | Vraies images sur les produits                                                  |
-| **6** | Rayons, gestion du catalogue, multi-listes, « modifié il y a 2 min par … »          | Confort au quotidien                                                            |
+| Lot      | Contenu                                                                             | Ce qui marche à la fin                                                          |
+| -------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **0** ✅ | Workspace Nx, app Angular, PWA, CI vers Pages                                       | Coquille installable sur les deux téléphones                                    |
+| **1** ✅ | Schéma CRDT, G-Counter, IndexedDB, Store NgRx, UI liste, fiche produit, suggestions | App complète **mono-appareil**, 100 % hors ligne, avec réutilisation d'articles |
+| **2**    | Provider GitHub, appairage par QR, indicateur de statut                             | **Synchro à deux appareils** — le cœur du besoin                                |
+| **3**    | File offline, sonde réseau, bannière, invite `SwUpdate`                             | Robuste en réseau dégradé                                                       |
+| **4**    | Échange QR de proximité                                                             | Synchro sans aucun réseau                                                       |
+| **5**    | Photos : capture, WebP, store adressé par contenu, sync GitHub                      | Vraies images sur les produits                                                  |
+| **6**    | Rayons, gestion du catalogue, multi-listes, « modifié il y a 2 min par … »          | Confort au quotidien                                                            |
 
 Les lots 0→2 constituent déjà un remplaçant fonctionnel de Google Keep, et plus complet que lui du
 fait de l'historique.

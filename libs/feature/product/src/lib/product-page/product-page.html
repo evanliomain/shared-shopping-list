@@ -1,0 +1,97 @@
+<header>
+  <button type="button" class="back" (click)="close()">← Retour</button>
+  <h1>Fiche produit</h1>
+</header>
+
+@if (undefined === product()) {
+<main class="missing">
+  <p>Ce produit n'existe pas ou plus.</p>
+</main>
+} @else {
+<main>
+  <div class="preview">
+    <sl-product-avatar [emoji]="emoji()" size="lg" />
+    <div>
+      <p class="preview-label">{{ label() || 'Sans nom' }}</p>
+      @if ('' !== description()) {
+      <p class="preview-description">{{ description() }}</p>
+      }
+    </div>
+  </div>
+
+  <label>
+    <span>Libellé</span>
+    <input
+      type="text"
+      name="label"
+      autocomplete="off"
+      [ngModel]="label()"
+      (ngModelChange)="label.set($event)"
+    />
+  </label>
+
+  <label>
+    <span>Description</span>
+    <input
+      type="text"
+      name="description"
+      autocomplete="off"
+      placeholder="à la vanille, pour le petit…"
+      [ngModel]="description()"
+      (ngModelChange)="description.set($event)"
+    />
+    <small>Ce qui distingue ce produit d'un autre au même nom.</small>
+  </label>
+
+  <label>
+    <span>Quantité habituelle</span>
+    <input
+      type="text"
+      name="defaultQty"
+      autocomplete="off"
+      placeholder="un pack de 4, 500 g…"
+      [ngModel]="defaultQty()"
+      (ngModelChange)="defaultQty.set($event)"
+    />
+  </label>
+
+  <label>
+    <span>Rayon</span>
+    <select
+      name="category"
+      [ngModel]="category()"
+      (ngModelChange)="category.set($event)"
+    >
+      @for (aisle of aisles; track aisle.key) {
+      <option [value]="aisle.key">{{ aisle.emoji }} {{ aisle.label }}</option>
+      }
+    </select>
+  </label>
+
+  <fieldset>
+    <legend>Image</legend>
+    <div class="emoji-grid">
+      @for (choice of emojiChoices; track choice) {
+      <button
+        type="button"
+        class="emoji-choice"
+        [class.selected]="choice === emoji()"
+        [attr.aria-pressed]="choice === emoji()"
+        [attr.aria-label]="'Choisir ' + choice"
+        (click)="emoji.set(choice)"
+      >
+        {{ choice }}
+      </button>
+      }
+    </div>
+    <small>Les photos arrivent au lot 5.</small>
+  </fieldset>
+</main>
+
+<footer>
+  <button type="button" class="archive" (click)="archive()">Archiver</button>
+  <button type="button" class="save" [disabled]="!canSave()" (click)="save()">
+    Enregistrer
+  </button>
+</footer>
+}

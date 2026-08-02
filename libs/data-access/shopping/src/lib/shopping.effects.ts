@@ -6,7 +6,6 @@ import {
   archiveProduct,
   clearCheckedItems,
   createProduct,
-  ensureList,
   removeItem,
   restoreItem,
   setItemChecked,
@@ -21,7 +20,7 @@ import { suggestCategory } from '@shopping-list/util/categories';
 import { map, tap } from 'rxjs/operators';
 
 import { catalogActions, crdtActions, listActions } from './shopping.actions';
-import { DEFAULT_LIST_ID, DEFAULT_LIST_NAME } from './shopping.feature';
+import { DEFAULT_LIST_ID } from './shopping.feature';
 
 /**
  * Projette le Y.Doc dans le store.

@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 
-import { itemsMap, listsMap } from './schema';
+import { itemsMap, listIds } from './schema';
 
 /** Trente jours. Au-delà, un article retiré n'intéresse plus personne. */
 export const DEFAULT_PURGE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
@@ -26,11 +26,8 @@ export function purgeRemovedItems(
   const deadline = now - olderThanMs;
   let purged = 0;
 
-  for (const listId of listsMap(doc).keys()) {
+  for (const listId of listIds(doc)) {
     const items = itemsMap(doc, listId);
-    if (undefined === items) {
-      continue;
-    }
 
     // On collecte avant de supprimer : muter une Y.Map pendant qu'on itère
     // dessus n'est pas sûr.

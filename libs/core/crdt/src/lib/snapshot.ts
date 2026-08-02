@@ -1,7 +1,14 @@
 import { chain, map, toObject } from 'taninsam';
 import * as Y from 'yjs';
 
-import { catalogMap, itemsMap, listsMap, YNode } from './schema';
+import {
+  catalogMap,
+  itemsMap,
+  listIds,
+  readListCreatedAt,
+  readListName,
+  YNode,
+} from './schema';
 import {
   CrdtSnapshot,
   ImageRef,
@@ -42,8 +49,8 @@ function readCatalog(doc: Y.Doc): Record<ProductId, Product> {
 }
 
 function readLists(doc: Y.Doc): Record<ListId, ShoppingList> {
-  return chain([...listsMap(doc).entries()])
-    .chain(map(([id, node]: [ListId, YNode]) => readList(doc, id, node)))
+  return chain(listIds(doc))
+    .chain(map((id: ListId) => readList(doc, id)))
     .chain(
       toObject<ShoppingList, ShoppingList>(
         (l) => l.id,
@@ -79,29 +86,20 @@ function readUsage(node: YNode): Record<string, number> {
   return Object.fromEntries(usage.entries()) as Record<string, number>;
 }
 
-function readList(doc: Y.Doc, id: ListId, node: YNode): ShoppingList {
-  const items = itemsMap(doc, id);
-
+function readList(doc: Y.Doc, id: ListId): ShoppingList {
   return {
     id,
-    name: str(node, 'name'),
-    createdAt: num(node, 'createdAt'),
-    items:
-      undefined === items
-        ? {}
-        : chain([...items.entries()])
-            .chain(
-              map(([itemId, itemNode]: [ItemId, YNode]) =>
-                readItem(itemId, itemNode),
-              ),
-            )
-            .chain(
-              toObject<ListItem, ListItem>(
-                (i) => i.id,
-                (i) => i,
-              ),
-            )
-            .value(),
+    name: readListName(doc, id),
+    createdAt: readListCreatedAt(doc, id),
+    items: chain([...itemsMap(doc, id).entries()])
+      .chain(map(([itemId, node]: [ItemId, YNode]) => readItem(itemId, node)))
+      .chain(
+        toObject<ListItem, ListItem>(
+          (i) => i.id,
+          (i) => i,
+        ),
+      )
+      .value(),
   };
 }
 
