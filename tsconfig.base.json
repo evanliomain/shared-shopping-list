@@ -48,6 +48,9 @@
       ],
       "@shopping-list/data-access/shopping": [
         "./libs/data-access/shopping/src/index.ts"
+      ],
+      "@shopping-list/core/sync-github": [
+        "./libs/core/sync-github/src/index.ts"
       ]
     }
   },
