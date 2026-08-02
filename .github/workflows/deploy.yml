@@ -45,8 +45,8 @@ jobs:
 
       - name: Préparer l'artefact Pages
         run: |
-          # GitHub Pages sert le site depuis /shopping-list/. Les routes profondes
-          # (/shopping-list/liste) n'existent pas côté serveur : Pages renvoie
+          # GitHub Pages sert le site depuis /shared-shopping-list/. Les routes
+          # profondes (…/liste) n'existent pas côté serveur : Pages renvoie
           # 404.html, qu'on fait pointer sur l'app pour que le routeur reprenne
           # la main. .nojekyll empêche Jekyll d'ignorer les fichiers en _.
           cp dist/apps/shopping-list/browser/index.html dist/apps/shopping-list/browser/404.html

@@ -49,7 +49,7 @@
           "outputHashing": "all"
         },
         "github-pages": {
-          "baseHref": "/shopping-list/",
+          "baseHref": "/shared-shopping-list/",
           "budgets": [
             {
               "type": "initial",

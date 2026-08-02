@@ -72,10 +72,10 @@ docs/architecture.md      le document de référence
 ## Déploiement
 
 Un push sur `main` déclenche [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) : lint,
-tests unitaires, e2e, build avec `baseHref=/shopping-list/`, puis publication sur GitHub Pages.
+tests unitaires, e2e, build avec `baseHref=/shared-shopping-list/`, puis publication sur GitHub Pages.
 
 Le workflow copie `index.html` en `404.html` — GitHub Pages ne connaît pas les routes profondes
-comme `/shopping-list/liste` et renvoie `404.html`, qu'on fait pointer sur l'app pour que le routeur
+comme `/shared-shopping-list/liste` et renvoie `404.html`, qu'on fait pointer sur l'app pour que le routeur
 Angular reprenne la main.
 
 **À faire une fois côté GitHub :** _Settings → Pages → Source → GitHub Actions_.
