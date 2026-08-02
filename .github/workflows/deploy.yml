@@ -1,19 +1,21 @@
-name: Déploiement GitHub Pages
+name: Intégration continue et déploiement
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
-# Un seul déploiement à la fois ; on laisse finir celui en cours.
+# Sur `main`, un seul déploiement à la fois et on laisse finir celui en cours.
+# Sur une pull request, seule la dernière version de la branche nous intéresse :
+# chaque nouveau push annule la vérification encore en vol.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -44,6 +46,7 @@ jobs:
         run: npx nx build shopping-list --configuration=github-pages
 
       - name: Préparer l'artefact Pages
+        if: github.event_name != 'pull_request'
         run: |
           # GitHub Pages sert le site depuis /shared-shopping-list/. Les routes
           # profondes (…/liste) n'existent pas côté serveur : Pages renvoie
@@ -53,12 +56,20 @@ jobs:
           touch dist/apps/shopping-list/browser/.nojekyll
 
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: dist/apps/shopping-list/browser
 
+  # Une pull request s'arrête après `build` : elle valide la branche sans
+  # écraser le site en ligne.
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
