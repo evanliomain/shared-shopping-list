@@ -101,10 +101,14 @@ Les pluriels s'écrivent en formes nommées et sont accordés par
 `Intl.PluralRules` — « 0 produit archivé » est correct en français,
 « 0 archived products » en anglais.
 
-## Déploiement
+## Intégration continue et déploiement
 
-Un push sur `main` déclenche [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) : lint,
-tests unitaires, e2e, build avec `baseHref=/shared-shopping-list/`, puis publication sur GitHub Pages.
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) enchaîne lint, tests unitaires, e2e et
+build avec `baseHref=/shared-shopping-list/`.
+
+Une pull request vers `main` fait tourner ces mêmes vérifications sur la branche, et s'arrête là : la
+branche est validée avant la fusion, sans écraser le site en ligne. Un push sur `main` va au bout et
+publie sur GitHub Pages.
 
 Le workflow copie `index.html` en `404.html` — GitHub Pages ne connaît pas les routes profondes
 comme `/shared-shopping-list/liste` et renvoie `404.html`, qu'on fait pointer sur l'app pour que le routeur
