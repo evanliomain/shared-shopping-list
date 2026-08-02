@@ -1,0 +1,22 @@
+{
+  "name": "core-blobs",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/core/blobs/src",
+  "prefix": "sl",
+  "projectType": "library",
+  "tags": [
+    "type:core",
+    "scope:shared"
+  ],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "options": {
+        "reportsDirectory": "coverage/libs/core/blobs"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

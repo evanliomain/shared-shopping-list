@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
 } from '@angular/core';
 import { Store } from '@ngrx/store';
@@ -15,7 +16,9 @@ import {
   selectListName,
   selectLoaded,
   selectPendingByAisle,
+  selectItemViews,
   selectRemainingCount,
+  ProductImages,
   selectSuggestions,
   SuggestionView,
 } from '@shopping-list/data-access/shopping';
@@ -49,6 +52,7 @@ export class ListPage {
   protected readonly isEmpty = this.store.selectSignal(selectIsEmpty);
 
   private readonly registry = inject(SyncRegistry);
+  protected readonly images = inject(ProductImages);
 
   /**
    * Sans appairage, on dit « appareil seul » plutôt que « hors ligne » : rien
@@ -66,6 +70,12 @@ export class ListPage {
   );
 
   private readonly allSuggestions = this.store.selectSignal(selectSuggestions);
+
+  private readonly itemImageRefs = computed(() =>
+    this.store
+      .selectSignal(selectItemViews)()
+      .map((view) => view.imageRef),
+  );
 
   /**
    * Le filtrage vit ici et non dans un selector : la requête change à chaque
@@ -88,6 +98,12 @@ export class ListPage {
 
     return !this.allSuggestions().some((s) => normalize(s.label) === query);
   });
+
+  constructor() {
+    // Les photos se résolvent au fil de l'eau, sans jamais retarder
+    // l'affichage : `ensure` est idempotent et ne rend pas la main.
+    effect(() => this.images.ensure(this.itemImageRefs()));
+  }
 
   protected addExisting(suggestion: SuggestionView): void {
     this.store.dispatch(

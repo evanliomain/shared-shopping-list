@@ -87,5 +87,5 @@ Angular reprenne la main.
 - [x] **Lot 2** — Synchro GitHub à deux appareils
 - [x] **Lot 3** — File offline, rattrapage au retour du réseau, invite de mise à jour
 - [x] **Lot 4** — Échange QR de proximité
-- [ ] **Lot 5** — Photos des produits
+- [x] **Lot 5** — Photos des produits
 - [ ] **Lot 6** — Rayons, gestion du catalogue, multi-listes

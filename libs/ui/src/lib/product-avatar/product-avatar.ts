@@ -12,7 +12,13 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 @Component({
   selector: 'sl-product-avatar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span class="glyph" aria-hidden="true">{{ emoji() }}</span>`,
+  template: `
+    @if (null !== imageUrl()) {
+      <img [src]="imageUrl()" [alt]="alt()" />
+    } @else {
+      <span class="glyph" aria-hidden="true">{{ emoji() }}</span>
+    }
+  `,
   styles: `
     :host {
       display: inline-grid;
@@ -33,6 +39,13 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       font-size: calc(var(--avatar-size, 2.25rem) * 0.62);
       line-height: 1;
     }
+
+    img {
+      inline-size: 100%;
+      block-size: 100%;
+      object-fit: cover;
+      border-radius: inherit;
+    }
   `,
   host: {
     '[attr.data-size]': 'size()',
@@ -41,4 +54,14 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 export class ProductAvatar {
   readonly emoji = input.required<string>();
   readonly size = input<'md' | 'lg'>('md');
+  /**
+   * Photo déjà résolue, ou `null`.
+   *
+   * Le composant ne va rien chercher lui-même : un composant muet ne fait pas
+   * d'entrées-sorties. `null` est un état normal — après un échange par QR, la
+   * photo n'est pas encore là et l'emoji fait le travail.
+   */
+  readonly imageUrl = input<string | null>(null);
+  /** Vide par défaut : l'image double le libellé, déjà lu juste à côté. */
+  readonly alt = input('');
 }

@@ -33,7 +33,7 @@ import { ProductAvatar } from '@shopping-list/ui';
         }
       </span>
 
-      <sl-product-avatar [emoji]="item().emoji" />
+      <sl-product-avatar [emoji]="item().emoji" [imageUrl]="imageUrl()" />
 
       <span class="text">
         <span class="label">{{ item().label }}</span>
@@ -235,6 +235,8 @@ import { ProductAvatar } from '@shopping-list/ui';
 export class ItemRow {
   readonly item = input.required<ItemView>();
   readonly menuOpen = input(false);
+  /** Photo du produit, si elle est déjà disponible localement. */
+  readonly imageUrl = input<string | null>(null);
 
   readonly toggled = output<boolean>();
   readonly removed = output<void>();

@@ -63,6 +63,9 @@
       ],
       "@shopping-list/feature/nearby": [
         "./libs/feature/nearby/src/index.ts"
+      ],
+      "@shopping-list/core/blobs": [
+        "./libs/core/blobs/src/index.ts"
       ]
     }
   },

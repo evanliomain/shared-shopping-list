@@ -30,6 +30,7 @@
         <sl-item-row
           [item]="item"
           [menuOpen]="ui.openMenuFor() === item.id"
+          [imageUrl]="images.urlFor(item.imageRef)"
           (toggled)="toggle(item, $event)"
           (removed)="remove(item)"
           (menuToggled)="ui.toggleMenu(item.id)"
@@ -65,6 +66,7 @@
         <sl-item-row
           [item]="item"
           [menuOpen]="ui.openMenuFor() === item.id"
+          [imageUrl]="images.urlFor(item.imageRef)"
           (toggled)="toggle(item, $event)"
           (removed)="remove(item)"
           (menuToggled)="ui.toggleMenu(item.id)"

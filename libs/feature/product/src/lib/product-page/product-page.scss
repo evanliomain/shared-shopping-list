@@ -152,3 +152,42 @@ footer button {
 .save:disabled {
   opacity: 0.5;
 }
+
+.photo-actions {
+  display: flex;
+  gap: var(--sl-space-2);
+  margin-block: var(--sl-space-2);
+}
+
+.photo-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--sl-tap-target);
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius);
+  font-weight: 600;
+}
+
+.photo-button input {
+  /* Le champ natif est illisible sur mobile ; le label sert de bouton. */
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.photo-clear {
+  flex: none;
+  padding-inline: var(--sl-space-3);
+  border: none;
+  background: transparent;
+  color: var(--sl-danger);
+  font-size: 0.875rem;
+}
+
+fieldset.dimmed {
+  opacity: 0.5;
+}

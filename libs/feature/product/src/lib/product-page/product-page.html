@@ -10,7 +10,7 @@
 } @else {
 <main>
   <div class="preview">
-    <sl-product-avatar [emoji]="emoji()" size="lg" />
+    <sl-product-avatar [emoji]="emoji()" [imageUrl]="photoUrl()" size="lg" />
     <div>
       <p class="preview-label">{{ label() || 'Sans nom' }}</p>
       @if ('' !== description()) {
@@ -69,7 +69,31 @@
   </label>
 
   <fieldset>
-    <legend>Image</legend>
+    <legend>Photo</legend>
+    <div class="photo-actions">
+      <label class="photo-button">
+        {{ photoBusy() ? 'Traitement…' : 'Prendre une photo' }}
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          (change)="onPhotoPicked($event)"
+        />
+      </label>
+      @if (null !== photoRef()) {
+      <button type="button" class="photo-clear" (click)="clearPhoto()">
+        Revenir à un emoji
+      </button>
+      }
+    </div>
+    <small>
+      Réduite à 160 px et encodée en WebP : quelques kilo-octets, synchronisés à
+      part de la liste.
+    </small>
+  </fieldset>
+
+  <fieldset [class.dimmed]="null !== photoRef()">
+    <legend>Emoji</legend>
     <div class="emoji-grid">
       @for (choice of emojiChoices; track choice) {
       <button
@@ -84,7 +108,9 @@
       </button>
       }
     </div>
-    <small>Les photos arrivent au lot 5.</small>
+    @if (null !== photoRef()) {
+    <small>La photo est utilisée à la place de l'emoji.</small>
+    }
   </fieldset>
 </main>
 
