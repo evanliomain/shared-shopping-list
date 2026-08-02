@@ -1,13 +1,14 @@
 :host {
-  /* La barre d'ajout reste collée en bas, le contenu défile entre les deux. */
+  /* La barre d'ajout reste collée en bas, le contenu défile entre les deux.
+     `relative` sert d'ancrage au bandeau d'annulation. */
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr auto;
   block-size: 100dvh;
 }
 
 header {
-  padding: calc(var(--sl-safe-top) + var(--sl-space-4)) var(--sl-space-4)
-    var(--sl-space-3);
+  padding-block-start: var(--sl-safe-top);
   border-block-end: 1px solid var(--sl-border);
   background: var(--sl-surface);
 }
@@ -15,70 +16,154 @@ header {
 .title-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--sl-space-2);
-}
-
-.sync,
-.history {
-  flex: none;
-  text-decoration: none;
-}
-
-.history {
-  display: grid;
-  place-items: center;
-  inline-size: var(--sl-tap-target);
-  min-block-size: var(--sl-tap-target);
-  border-radius: var(--sl-radius);
-  font-size: 1.1rem;
+  padding: 0.625rem var(--sl-space-3) 0 1.25rem;
 }
 
 h1 {
+  flex: 1;
+  min-inline-size: 0;
   margin: 0;
-  font-size: 1.375rem;
-  line-height: 1.2;
+  font-size: var(--sl-font-xl);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: var(--sl-tap-target);
+  block-size: var(--sl-tap-target);
+  border-radius: var(--sl-radius-sm);
+  font-size: 1.1875rem;
+  text-decoration: none;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sl-space-3);
+  padding: 0.125rem 1.25rem var(--sl-space-3);
 }
 
 .count {
-  margin: var(--sl-space-1) 0 0;
+  margin: 0;
+  min-inline-size: 0;
   color: var(--sl-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--sl-font-md);
+}
+
+.count strong {
+  color: var(--sl-text);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+/* La pastille tient dans une cible tactile sans en occuper la hauteur : le
+   lien s'étend autour d'elle. */
+.sync {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--sl-tap-target);
+  text-decoration: none;
+}
+
+.progress {
+  block-size: 3px;
+  background: var(--sl-surface-sunken);
+}
+
+.progress-fill {
+  block-size: 100%;
+  background: var(--sl-brand);
+  transition: inline-size 200ms ease;
 }
 
 main {
+  min-block-size: 0;
   overflow-y: auto;
-  padding: var(--sl-space-2) var(--sl-space-2) var(--sl-space-6);
-  -webkit-overflow-scrolling: touch;
+  padding-block: var(--sl-space-1) var(--sl-space-6);
+  background: var(--sl-bg);
 }
 
+/* Pendant la saisie, la liste passe derrière la feuille de suggestions. */
+main.dimmed {
+  opacity: 0.45;
+}
+
+/* Le rayon reste visible tant qu'on est dedans : au milieu d'une longue
+   liste, savoir devant quel rayon on se trouve vaut mieux qu'un titre lu il y
+   a deux écrans. */
 .aisle {
-  margin-block-end: var(--sl-space-4);
-}
-
-h2 {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: var(--sl-space-2);
-  margin: 0 0 var(--sl-space-1);
-  padding-inline: var(--sl-space-2);
+  margin: 0;
+  padding: var(--sl-space-3) var(--sl-space-4) 0.375rem;
+  background: var(--sl-bg);
   color: var(--sl-text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--sl-font-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-ul {
-  margin: 0;
+.aisle span {
+  font-size: var(--sl-font-sm);
+}
+
+.card {
+  margin: 0 var(--sl-space-2) 0.875rem;
   padding: 0;
   list-style: none;
+  overflow: hidden;
+  border-radius: var(--sl-radius);
+  background: var(--sl-surface);
+  box-shadow: var(--sl-shadow);
+}
+
+/* Un popover ouvert doit dépasser de sa carte — et passer au-dessus des
+   cartes suivantes, qui viennent après lui dans l'ordre du document. */
+.card.menu-open {
+  position: relative;
+  z-index: 5;
+  overflow: visible;
+}
+
+/* Filet inter-lignes aligné sur le texte, comme une liste iOS. En
+   pseudo-élément plutôt qu'en bordure : une marge décalerait la ligne. */
+.card li + li {
+  position: relative;
+}
+
+.card li + li::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 3.875rem 0;
+  block-size: 1px;
+  background: var(--sl-border);
 }
 
 .basket {
-  margin-block-start: var(--sl-space-4);
+  margin: 1.375rem var(--sl-space-2) 0;
+  padding-block-start: 0.375rem;
   border-block-start: 1px solid var(--sl-border);
-  padding-block-start: var(--sl-space-2);
+}
+
+.basket .card {
+  margin-inline: 0;
+  margin-block-start: 0.125rem;
 }
 
 .basket-head {
@@ -91,14 +176,15 @@ ul {
 .disclosure {
   display: flex;
   align-items: center;
-  gap: var(--sl-space-2);
+  gap: 0.625rem;
   min-block-size: var(--sl-tap-target);
   padding-inline: var(--sl-space-2);
   border: none;
   background: transparent;
   color: var(--sl-text-muted);
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: var(--sl-font-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .chevron {
@@ -112,5 +198,88 @@ ul {
   border: none;
   background: transparent;
   color: var(--sl-danger);
-  font-size: 0.875rem;
+  font-size: var(--sl-font-sm);
+  font-weight: 600;
+}
+
+/* Ancré à la hauteur de la barre d'ajout : le bandeau se pose au-dessus
+   d'elle, jamais dessus. */
+.undo {
+  position: absolute;
+  inset-inline: var(--sl-space-3);
+  inset-block-end: calc(6rem + var(--sl-safe-bottom));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--sl-space-3);
+  padding: 0.625rem var(--sl-space-3) 0.625rem var(--sl-space-4);
+  border-radius: var(--sl-radius);
+  background: var(--sl-text);
+  color: var(--sl-bg);
+  box-shadow: var(--sl-shadow-lg);
+}
+
+.undo-text {
+  flex: 1;
+  min-inline-size: 0;
+  font-size: var(--sl-font-md);
+  line-height: 1.35;
+}
+
+.undo button {
+  flex: none;
+  min-block-size: 2.25rem;
+  padding-inline: 0.875rem;
+  border: none;
+  border-radius: var(--sl-radius-sm);
+  background: var(--sl-brand);
+  color: var(--sl-text-on-brand);
+  font-size: var(--sl-font-md);
+  font-weight: 650;
+}
+
+/* --- Bureau : l'historique devient la colonne de droite ----------------- */
+
+@media (min-width: 65rem) {
+  :host {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      'header history'
+      'main   history'
+      'addbar history';
+    inline-size: 100%;
+    max-inline-size: 65rem;
+    margin-inline: auto;
+    border-inline: 1px solid var(--sl-border);
+  }
+
+  header {
+    grid-area: header;
+  }
+
+  main {
+    grid-area: main;
+  }
+
+  sl-add-bar {
+    grid-area: addbar;
+  }
+
+  sl-history-pane {
+    grid-area: history;
+  }
+
+  /* Plus d'encoche à contourner : la fenêtre n'en a pas. */
+  header {
+    padding-block-start: 0;
+  }
+
+  h1 {
+    font-size: 1.875rem;
+    line-height: 1.05;
+  }
+
+  .undo {
+    inset-inline: var(--sl-space-3) 50%;
+  }
 }

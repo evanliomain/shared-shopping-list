@@ -39,7 +39,7 @@ test('crée un article et l’affiche sous son rayon', async ({ page }) => {
   await expect(row(page, 'Lait')).toBeVisible();
   // « Lait » doit être reconnu et rangé en crèmerie, pas dans « divers ».
   await expect(page.getByRole('heading', { name: /Crèmerie/ })).toBeVisible();
-  await expect(page.getByText('1 article à prendre')).toBeVisible();
+  await expect(page.getByText('1 restant')).toBeVisible();
 });
 
 test('groupe les rayons dans l’ordre de parcours du magasin', async ({
@@ -53,7 +53,7 @@ test('groupe les rayons dans l’ordre de parcours du magasin', async ({
   // On assied l'assertion sur les clés de rayon plutôt que sur le texte
   // rendu, qui dépend du CSS (`text-transform: uppercase`).
   const aisles = await page
-    .locator('main section.aisle')
+    .locator('main h2.aisle')
     .evaluateAll((sections) =>
       sections.map((s) => s.getAttribute('data-aisle')),
     );
@@ -184,7 +184,7 @@ test('la pastille de synchro mène à l’écran d’appairage', async ({ page }
     'data-status',
     'unpaired',
   );
-  await expect(page.locator('sl-sync-badge')).toContainText('appareil seul');
+  await expect(page.locator('sl-sync-badge')).toContainText('Appareil seul');
 
   await page.getByLabel('Synchronisation').click();
 

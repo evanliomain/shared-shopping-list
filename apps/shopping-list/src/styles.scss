@@ -5,19 +5,29 @@
 :root {
   color-scheme: light dark;
 
-  /* Couleurs — la marque est le vert du caddie. */
-  --sl-brand: #16a34a;
-  --sl-brand-strong: #15803d;
-  --sl-brand-soft: #dcfce7;
-  --sl-danger: #dc2626;
-  --sl-warning: #d97706;
+  /* Couleurs — la marque est le vert du caddie, assombri pour rester lisible
+     sur blanc en plein soleil. Chaque teinte a son fond doux (`-soft`) et son
+     encre (`-ink`) : la couleur ne porte jamais le message toute seule. */
+  --sl-brand: #0b8a48;
+  --sl-brand-strong: #076436;
+  --sl-brand-soft: #e3f3e8;
+  --sl-brand-ink: #076436;
 
-  --sl-bg: #ffffff;
+  --sl-danger: #c0362c;
+  --sl-danger-soft: #fbeae8;
+  --sl-danger-ink: #992a22;
+
+  --sl-warning: #a35a06;
+  --sl-warning-soft: #fdf0dd;
+  --sl-warning-ink: #8a4b05;
+
+  /* Papier chaud plutôt que blanc pur : les cartes blanches s'en détachent. */
+  --sl-bg: #f7f6f3;
   --sl-surface: #ffffff;
-  --sl-surface-sunken: #f4f4f5;
-  --sl-border: #e4e4e7;
-  --sl-text: #18181b;
-  --sl-text-muted: #71717a;
+  --sl-surface-sunken: #efede8;
+  --sl-border: #e3e0d9;
+  --sl-text: #1a1917;
+  --sl-text-muted: #6f6b64;
   --sl-text-on-brand: #ffffff;
 
   /* Espacements — échelle de 4 px. */
@@ -28,13 +38,30 @@
   --sl-space-5: 1.5rem;
   --sl-space-6: 2rem;
 
-  --sl-radius: 0.75rem;
-  --sl-radius-sm: 0.5rem;
+  --sl-radius: 1rem;
+  --sl-radius-sm: 0.625rem;
+  --sl-radius-lg: 1.5rem;
   --sl-radius-full: 999px;
 
   --sl-tap-target: 2.75rem;
+  /* Hauteur d'une ligne d'article : 60 px, bien au-dessus des 44 px exigés. */
+  --sl-row-height: 3.75rem;
 
-  --sl-shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 4px 12px rgb(0 0 0 / 6%);
+  /* Échelle typographique. Les tailles intermédiaires (15,5 px, 12,5 px) ne
+     sont pas des approximations : elles viennent de la maquette, où le libellé
+     d'article devait tenir sur une ligne en 390 px sans paraître tassé. */
+  --sl-font-2xs: 0.6875rem;
+  --sl-font-xs: 0.75rem;
+  --sl-font-sm: 0.8125rem;
+  --sl-font-md: 0.875rem;
+  --sl-font-base: 0.96875rem;
+  --sl-font-lg: 1.0625rem;
+  --sl-font-xl: 1.75rem;
+
+  /* Ombre de repos très légère : les cartes se posent, elles ne flottent pas.
+     `-lg` est réservée à ce qui passe réellement au-dessus du contenu. */
+  --sl-shadow: 0 1px 2px rgb(26 25 23 / 5%);
+  --sl-shadow-lg: 0 2px 6px rgb(26 25 23 / 6%), 0 18px 40px rgb(26 25 23 / 10%);
 
   /* Encoches et barre système des téléphones. */
   --sl-safe-top: env(safe-area-inset-top, 0px);
@@ -43,18 +70,30 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --sl-brand: #22c55e;
-    --sl-brand-strong: #16a34a;
-    --sl-brand-soft: #14532d;
+    --sl-brand: #3ddc84;
+    --sl-brand-strong: #2bb96c;
+    --sl-brand-soft: #12371f;
+    --sl-brand-ink: #8ff0b5;
 
-    --sl-bg: #09090b;
-    --sl-surface: #18181b;
-    --sl-surface-sunken: #27272a;
-    --sl-border: #3f3f46;
-    --sl-text: #fafafa;
-    --sl-text-muted: #a1a1aa;
+    --sl-danger: #ff6f63;
+    --sl-danger-soft: #3a1a17;
+    --sl-danger-ink: #ffa79e;
 
-    --sl-shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 12px rgb(0 0 0 / 40%);
+    --sl-warning: #e6a53a;
+    --sl-warning-soft: #3a2a12;
+    --sl-warning-ink: #f2c67e;
+
+    --sl-bg: #0e0f10;
+    --sl-surface: #17191a;
+    --sl-surface-sunken: #212426;
+    --sl-border: #32363a;
+    --sl-text: #f4f3f1;
+    --sl-text-muted: #9b9a96;
+    /* Encre foncée sur le vert clair : le blanc y était illisible. */
+    --sl-text-on-brand: #052e17;
+
+    --sl-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+    --sl-shadow-lg: 0 2px 6px rgb(0 0 0 / 40%), 0 18px 40px rgb(0 0 0 / 45%);
   }
 }
 

@@ -58,6 +58,19 @@ export class CatalogPage {
       : all.filter((entry) => !this.archived().has(entry.productId));
   });
 
+  /**
+   * Les archivés sont regroupés sous leur propre en-tête plutôt qu'entremêlés
+   * à la liste active : cherchés, ils se trouvent d'un coup d'œil ; pas
+   * cherchés, ils ne coupent plus le parcours toutes les trois lignes.
+   */
+  protected readonly activeEntries = computed(() =>
+    this.visible().filter((entry) => !this.archived().has(entry.productId)),
+  );
+
+  protected readonly archivedEntries = computed(() =>
+    this.visible().filter((entry) => this.archived().has(entry.productId)),
+  );
+
   protected readonly archivedCount = computed(() => this.archived().size);
   protected readonly total = computed(() => this.entries().length);
 

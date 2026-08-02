@@ -33,10 +33,11 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
     :host([data-size='lg']) {
       --avatar-size: 3.5rem;
+      border-radius: var(--sl-radius);
     }
 
     .glyph {
-      font-size: calc(var(--avatar-size, 2.25rem) * 0.62);
+      font-size: calc(var(--avatar-size, 2.25rem) * 0.585);
       line-height: 1;
     }
 

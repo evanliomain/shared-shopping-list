@@ -1,87 +1,120 @@
+<sl-scan-overlay [active]="'scanning' === step()" (cancelled)="restart()">
+  <div
+    data-slot="head"
+    class="gauge dark"
+    role="img"
+    [attr.aria-label]="gaugeLabel()"
+  >
+    @for (segment of segments; track segment) {
+    <span [attr.data-state]="segmentState(segment)"></span>
+    }
+  </div>
+
+  <video #video muted playsinline></video>
+
+  <div data-slot="status" class="scan-status">
+    @if ('scanning' === step()) {
+    <p>{{ instruction() }}</p>
+    @if (0 < scanProgress().total) {
+    <!-- « 2 / 3 » seul ne dit pas si ça avance encore. -->
+    <div class="scan-bar">
+      <div [style.inline-size.%]="scanPercent()"></div>
+    </div>
+    <p class="scan-count">
+      {{ 'nearby.scanProgress' | transloco : { received:
+      scanProgress().received, total: scanProgress().total } }}
+    </p>
+    } }
+  </div>
+</sl-scan-overlay>
+
 <header>
+  @if ('done' !== step()) {
   <button type="button" class="back" (click)="close()">
     ← {{ 'common.back' | transloco }}
   </button>
+  } @else {
+  <span class="balance" aria-hidden="true"></span>
+  }
   <h1>{{ 'nearby.title' | transloco }}</h1>
+  <span class="balance" aria-hidden="true"></span>
+
+  <!-- Quatre segments : sans eux, on ne sait pas combien d'allers-retours il
+       reste à faire. -->
+  <div class="gauge" [attr.aria-label]="gaugeLabel()" role="img">
+    @for (segment of segments; track segment) {
+    <span [attr.data-state]="segmentState(segment)"></span>
+    }
+  </div>
 </header>
 
+@switch (step()) { @case ('choose-role') {
 <main>
-  <!-- Toujours dans le DOM, seulement visible pendant la lecture : `viewChild`
-       le résout donc dès le départ, sans dépendre du moment du rendu. -->
-  <video
-    #video
-    class="camera"
-    [class.active]="'scanning' === step()"
-    muted
-    playsinline
-  ></video>
+  <p class="lead">{{ 'nearby.lead' | transloco }}</p>
+  <p class="decide">{{ 'nearby.decide' | transloco }}</p>
 
-  @switch (step()) { @case ('choose-role') {
-  <section>
-    <p class="lead">{{ 'nearby.lead' | transloco }}</p>
-    <p class="lead">{{ 'nearby.decide' | transloco }}</p>
+  <button type="button" class="primary tall" (click)="startAsInitiator()">
+    {{ 'nearby.iStart' | transloco }}
+  </button>
 
-    <button type="button" class="primary" (click)="startAsInitiator()">
-      {{ 'nearby.iStart' | transloco }}
-    </button>
-
-    @if (canScan) {
-    <button type="button" (click)="startAsResponder()">
-      {{ 'nearby.otherStarts' | transloco }}
-    </button>
-    } @else {
-    <p class="hint">{{ 'nearby.noCamera' | transloco }}</p>
-    }
-  </section>
-  } @case ('showing') {
-  <section class="showing">
-    <p class="instruction">{{ instruction() }}</p>
-
-    @if (null !== frameImage()) {
-    <img [src]="frameImage()" [alt]="'nearby.frameAlt' | transloco" />
-    } @if (1 < frameCount()) {
-    <p class="hint">
-      {{ 'nearby.framePosition' | transloco: { position: framePosition(), total:
-      frameCount() } }}
-    </p>
-    }
-
-    <button type="button" class="primary" (click)="afterShown()">
-      {{ 'nearby.shown' | transloco }}
-    </button>
-  </section>
-  } @case ('scanning') {
-  <section class="scanning">
-    <p class="instruction">{{ instruction() }}</p>
-
-    @if (0 < scanProgress().total) {
-    <p class="hint">
-      {{ 'nearby.scanProgress' | transloco : { received:
-      scanProgress().received, total: scanProgress().total, } }}
-    </p>
-    }
-
-    <button type="button" (click)="restart()">
-      {{ 'common.cancel' | transloco }}
-    </button>
-  </section>
-  } @case ('done') {
-  <section class="done">
-    <p class="glyph" aria-hidden="true">✅</p>
-    <p class="instruction">{{ 'nearby.doneTitle' | transloco }}</p>
-    <button type="button" class="primary" (click)="close()">
-      {{ 'nearby.backToList' | transloco }}
-    </button>
-  </section>
-  } @case ('failed') {
-  <section>
-    <p class="error" role="alert">{{ error() }}</p>
-    <button type="button" class="primary" (click)="restart()">
-      {{ 'nearby.restart' | transloco }}
-    </button>
-    <button type="button" (click)="close()">
-      {{ 'nearby.giveUp' | transloco }}
-    </button>
-  </section>
-  } }
+  @if (canScan) {
+  <button type="button" class="tall" (click)="startAsResponder()">
+    {{ 'nearby.otherStarts' | transloco }}
+  </button>
+  } @else {
+  <p class="lead">{{ 'nearby.noCamera' | transloco }}</p>
+  }
 </main>
+} @case ('showing') {
+<main class="showing">
+  <p class="instruction">{{ instruction() }}</p>
+
+  @if (null !== frameImage()) {
+  <img [src]="frameImage()" [alt]="'nearby.frameAlt' | transloco" />
+  } @if (1 < frameCount()) {
+  <div class="dots" aria-hidden="true">
+    @for (frame of frames(); track $index) {
+    <span [class.on]="$index === frameIndex()"></span>
+    }
+  </div>
+  <p class="hint">
+    {{ 'nearby.framePosition' | transloco: { position: framePosition(), total:
+    frameCount() } }}
+  </p>
+  }
+</main>
+
+<footer>
+  <button type="button" class="primary" (click)="afterShown()">
+    {{ 'nearby.shown' | transloco }}
+  </button>
+</footer>
+} @case ('done') {
+<main class="done">
+  <p class="glyph" aria-hidden="true">✅</p>
+  <p class="done-title">{{ 'nearby.doneTitle' | transloco }}</p>
+  <p class="done-detail">
+    {{ 'nearby.doneReceived' | plural: received() }}. {{ 'nearby.donePutAway' |
+    transloco }}
+  </p>
+</main>
+
+<footer>
+  <button type="button" class="primary" (click)="close()">
+    {{ 'nearby.backToList' | transloco }}
+  </button>
+</footer>
+} @case ('failed') {
+<main>
+  <p class="error" role="alert">
+    <span aria-hidden="true">⚠️</span>
+    <span>{{ error() }}</span>
+  </p>
+  <button type="button" class="primary tall" (click)="restart()">
+    {{ 'nearby.restart' | transloco }}
+  </button>
+  <button type="button" class="tall" (click)="close()">
+    {{ 'nearby.giveUp' | transloco }}
+  </button>
+</main>
+} }

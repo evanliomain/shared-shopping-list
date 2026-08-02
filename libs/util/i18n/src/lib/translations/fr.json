@@ -8,7 +8,8 @@
   "common": {
     "back": "Retour",
     "close": "Fermer",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "undo": "Annuler"
   },
   "update": {
     "available": "Nouvelle version disponible.",
@@ -16,19 +17,19 @@
     "later": "Plus tard"
   },
   "sync": {
-    "alone": "Hors ligne · appareil seul",
+    "alone": "Appareil seul",
     "connecting": "Connexion…",
     "synced": "Synchronisé",
     "failed": "Synchro en panne",
     "sending": {
       "=0": "Envoi…",
-      "one": "Envoi… · {{count}} modif en attente",
-      "other": "Envoi… · {{count}} modifs en attente"
+      "one": "Envoi… · {{count}} modif gardée",
+      "other": "Envoi… · {{count}} modifs gardées"
     },
     "offline": {
       "=0": "Hors ligne",
-      "one": "Hors ligne · {{count}} modif en attente",
-      "other": "Hors ligne · {{count}} modifs en attente"
+      "one": "Hors ligne · {{count}} modif gardée",
+      "other": "Hors ligne · {{count}} modifs gardées"
     },
     "providers": {
       "github": "GitHub",
@@ -42,14 +43,17 @@
     "loading": "Chargement…",
     "allInBasket": "Tout est dans le panier",
     "remaining": {
-      "one": "{{count}} article à prendre",
-      "other": "{{count}} articles à prendre"
+      "one": "{{count}} restant",
+      "other": "{{count}} restants"
     },
+    "remainingTotal": "sur {{total}}",
+    "progress": "Progression des courses",
     "emptyTitle": "La liste est vide",
     "emptyHint": "Ajoutez un article ci-dessous. Il sera mémorisé pour les prochaines courses.",
     "basket": "Dans le panier ({{count}})",
     "clearBasket": "Vider",
-    "unknownItem": "Article inconnu"
+    "unknownItem": "Article inconnu",
+    "undoChecked": "{{label}} — dans le panier"
   },
   "addBar": {
     "placeholder": "Ajouter un article…",
@@ -63,8 +67,9 @@
     "remove": "Retirer de la liste"
   },
   "product": {
-    "title": "Fiche produit",
-    "missing": "Ce produit n'existe pas ou plus.",
+    "title": "Produit",
+    "missing": "Ce produit n'existe pas ou plus",
+    "missingHint": "Il a peut-être été archivé depuis l'autre téléphone.",
     "unnamed": "Sans nom",
     "label": "Libellé",
     "description": "Description",
@@ -101,15 +106,23 @@
     },
     "add": "Ajouter {{label}} à la liste",
     "archive": "Archiver",
-    "unarchive": "Réactiver"
+    "unarchive": "Réactiver",
+    "inList": "dans la liste",
+    "archivedSection": "Archivés"
   },
   "pairing": {
     "title": "Synchronisation",
     "scanHint": "Visez le QR affiché sur l'autre téléphone.",
+    "qrTitle": "Appairer un appareil",
     "qrAlt": "QR code d'appairage",
-    "qrWarning": "⚠️ Ce code contient le jeton d'accès. Ne le photographiez pas et ne le laissez pas traîner dans un album partagé.",
+    "qrWarning": "Ce code contient le jeton d'accès. Ne le photographiez pas et ne le laissez pas traîner dans un album partagé.",
     "synced": "Synchronisé.",
     "offline": "Hors ligne — les modifications partiront au retour du réseau.",
+    "failed": {
+      "=0": "Synchro en panne.",
+      "one": "Synchro en panne — {{count}} modif gardée sur cet appareil.",
+      "other": "Synchro en panne — {{count}} modifs gardées sur cet appareil."
+    },
     "connecting": "Connexion…",
     "pairAnother": "Appairer un autre appareil",
     "unpair": "Dissocier cet appareil",
@@ -137,7 +150,13 @@
     "framePosition": "Écran {{position}} sur {{total}} — laissez défiler, ça tourne en boucle.",
     "shown": "C'est scanné",
     "scanProgress": "{{received}} / {{total}} écrans lus",
+    "stepProgress": "Étape {{step}} sur {{total}}",
     "doneTitle": "Les deux listes sont à jour.",
+    "doneReceived": {
+      "one": "{{count}} modification reçue",
+      "other": "{{count}} modifications reçues"
+    },
+    "donePutAway": "Vous pouvez ranger les téléphones.",
     "backToList": "Revenir à la liste",
     "restart": "Recommencer",
     "giveUp": "Abandonner",
@@ -195,7 +214,7 @@
       "unknownMessage": "Type de message inconnu : {{kind}}.",
       "wrongStep": "Ce code ne correspond pas à cette étape de l'échange.",
       "corrupted": "Lecture corrompue. Recommencez l'échange.",
-      "incomplete": "Lecture incomplète.",
+      "incomplete": "L'échange s'est interrompu : un écran n'a pas été lu. Rien n'a été perdu, les deux listes sont restées telles quelles.",
       "tooLarge": "Trop de données pour un échange par QR ({{frames}} écrans). Refaites-le avec du réseau."
     },
     "image": {

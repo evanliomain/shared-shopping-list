@@ -7,6 +7,16 @@
       [attr.aria-label]="'list.historyLink' | transloco"
       >📖</a
     >
+  </div>
+
+  <div class="status-row">
+    <p class="count">
+      @if (!loaded()) { {{ 'list.loading' | transloco }} } @else if (0 ===
+      remaining()) { {{ 'list.allInBasket' | transloco }} } @else {
+      <strong>{{ 'list.remaining' | plural: remaining() }}</strong>
+      {{ 'list.remainingTotal' | transloco: { total: total() } }} }
+    </p>
+
     <a
       class="sync"
       routerLink="/synchronisation"
@@ -15,40 +25,48 @@
       <sl-sync-badge [status]="syncStatus()" [pending]="syncPending()" />
     </a>
   </div>
-  <p class="count">
-    @if (!loaded()) { {{ 'list.loading' | transloco }} } @else if (0 ===
-    remaining()) { {{ 'list.allInBasket' | transloco }} } @else { {{
-    'list.remaining' | plural: remaining() }} }
-  </p>
+
+  <!-- Le compteur dit combien il reste, la barre dit combien est fait. Deux
+       lectures du même chiffre : l'une se lit, l'autre se voit de loin. -->
+  <div
+    class="progress"
+    role="progressbar"
+    [attr.aria-label]="'list.progress' | transloco"
+    [attr.aria-valuenow]="checkedCount()"
+    aria-valuemin="0"
+    [attr.aria-valuemax]="total()"
+  >
+    @if (0 < progress()) {
+    <div class="progress-fill" [style.inline-size.%]="progress()"></div>
+    }
+  </div>
 </header>
 
-<main>
+<main [class.dimmed]="ui.picking()">
   @if (isEmpty()) {
   <sl-empty-state
     [title]="'list.emptyTitle' | transloco"
     [hint]="'list.emptyHint' | transloco"
   />
   } @for (group of groups(); track group.aisle) {
-  <section class="aisle" [attr.data-aisle]="group.aisle">
-    <h2>
-      <span aria-hidden="true">{{ group.emoji }}</span>
-      {{ 'aisles.' + group.aisle | transloco }}
-    </h2>
-    <ul>
-      @for (item of group.items; track item.id) {
-      <li>
-        <sl-item-row
-          [item]="item"
-          [menuOpen]="ui.openMenuFor() === item.id"
-          [imageUrl]="images.urlFor(item.imageRef)"
-          (toggled)="toggle(item, $event)"
-          (removed)="remove(item)"
-          (menuToggled)="ui.toggleMenu(item.id)"
-        />
-      </li>
-      }
-    </ul>
-  </section>
+  <h2 class="aisle" [attr.data-aisle]="group.aisle">
+    <span aria-hidden="true">{{ group.emoji }}</span>
+    {{ 'aisles.' + group.aisle | transloco }}
+  </h2>
+  <ul class="card" [class.menu-open]="hasOpenMenu(group.items)">
+    @for (item of group.items; track item.id) {
+    <li>
+      <sl-item-row
+        [item]="item"
+        [menuOpen]="ui.openMenuFor() === item.id"
+        [imageUrl]="images.urlFor(item.imageRef)"
+        (toggled)="toggle(item, $event)"
+        (removed)="remove(item)"
+        (menuToggled)="ui.toggleMenu(item.id)"
+      />
+    </li>
+    }
+  </ul>
   } @if (0 < checkedCount()) {
   <section class="basket">
     <div class="basket-head">
@@ -70,7 +88,7 @@
     </div>
 
     @if (ui.showChecked()) {
-    <ul>
+    <ul class="card" [class.menu-open]="hasOpenMenu(checkedItems())">
       @for (item of checkedItems(); track item.id) {
       <li>
         <sl-item-row
@@ -88,6 +106,23 @@
   </section>
   }
 </main>
+
+<!-- Au-delà de 1040 px, l'historique cesse d'être un écran séparé et devient
+     la colonne de droite : préparer la liste au bureau se fait alors sans
+     aller-retour. Monté seulement quand il sert — sur téléphone, ce sont
+     plusieurs centaines de lignes qu'on ne rendra jamais. -->
+@if (wide()) {
+<sl-history-pane (added)="addFromHistory($event)" />
+} @if (null !== ui.undoable()) {
+<div class="undo" role="status">
+  <span class="undo-text">
+    {{ 'list.undoChecked' | transloco: { label: ui.undoable()!.label } }}
+  </span>
+  <button type="button" (click)="undo()">
+    {{ 'common.undo' | transloco }}
+  </button>
+</div>
+}
 
 <sl-add-bar
   [query]="ui.query()"

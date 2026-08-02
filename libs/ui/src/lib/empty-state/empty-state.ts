@@ -12,12 +12,17 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     }
   `,
   styles: `
+    /* Le centrage vertical et la hauteur pleine servent quand l'état vide est
+       le seul enfant du corps de page : il se centre alors dans l'écran, au
+       lieu de rester collé en haut d'une page par ailleurs vide. */
     :host {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: var(--sl-space-2);
-      padding: var(--sl-space-6) var(--sl-space-4);
+      justify-content: center;
+      gap: 0.625rem;
+      block-size: 100%;
+      padding: var(--sl-space-6) 2.5rem;
       text-align: center;
     }
 
@@ -31,13 +36,17 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     }
 
     .title {
-      font-weight: 600;
+      font-size: var(--sl-font-lg);
+      font-weight: 650;
+      letter-spacing: -0.01em;
     }
 
     .hint {
       color: var(--sl-text-muted);
-      font-size: 0.875rem;
-      max-inline-size: 24rem;
+      font-size: var(--sl-font-md);
+      line-height: 1.5;
+      max-inline-size: 28ch;
+      text-wrap: pretty;
     }
   `,
 })

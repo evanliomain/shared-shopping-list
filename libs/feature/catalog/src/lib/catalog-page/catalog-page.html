@@ -4,16 +4,22 @@
       ← {{ 'common.back' | transloco }}
     </button>
     <h1>{{ 'catalog.title' | transloco }}</h1>
+    <span class="balance" aria-hidden="true"></span>
   </div>
 
-  <input
-    type="search"
-    class="search"
-    [placeholder]="'catalog.search' | transloco"
-    autocomplete="off"
-    [value]="query()"
-    (input)="onQuery($event)"
-  />
+  <!-- Rien à filtrer quand il n'y a rien : la recherche et la case ne
+       s'affichent qu'une fois l'historique commencé. -->
+  @if (0 < total()) {
+  <div class="search">
+    <span aria-hidden="true">🔍</span>
+    <input
+      type="search"
+      [placeholder]="'catalog.search' | transloco"
+      autocomplete="off"
+      [value]="query()"
+      (input)="onQuery($event)"
+    />
+  </div>
 
   <label class="toggle">
     <input
@@ -21,8 +27,10 @@
       [checked]="showArchived()"
       (change)="showArchived.set(!showArchived())"
     />
+    <span class="box" aria-hidden="true">✓</span>
     {{ 'catalog.showArchived' | plural: archivedCount() }}
   </label>
+  }
 </header>
 
 <main>
@@ -39,45 +47,76 @@
     [hint]="'catalog.noMatchHint' | transloco"
   />
   } @else {
-  <ul>
-    @for (entry of visible(); track entry.productId) {
-    <li [class.archived]="isArchived(entry)">
-      <sl-product-avatar
-        [emoji]="entry.emoji"
-        [imageUrl]="images.urlFor(entry.imageRef)"
-      />
+  <div class="scroller">
+    @if (0 < activeEntries().length) {
+    <ul class="card">
+      @for (entry of activeEntries(); track entry.productId) {
+      <li>
+        <sl-product-avatar
+          [emoji]="entry.emoji"
+          [imageUrl]="images.urlFor(entry.imageRef)"
+        />
 
-      <span class="text">
-        <span class="label">{{ entry.label }}</span>
-        @if ('' !== entry.description) {
-        <span class="description">{{ entry.description }}</span>
-        }
-        <span class="meta">
-          {{ 'aisles.' + entry.aisle | transloco }} · {{ 'catalog.usage' |
-          plural: entry.usage }}
+        <span class="text">
+          <span class="label">{{ entry.label }}</span>
+          @if ('' !== entry.description) {
+          <span class="description">{{ entry.description }}</span>
+          }
+          <span class="meta">
+            {{ 'aisles.' + entry.aisle | transloco }} · {{ 'catalog.usage' |
+            plural: entry.usage }}
+          </span>
         </span>
-      </span>
 
-      <div class="actions">
-        @if (!isArchived(entry) && !entry.alreadyInList) {
+        <!-- Un produit déjà dans la liste porte la mention plutôt que de
+             perdre son bouton sans explication. -->
+        @if (entry.alreadyInList) {
+        <span class="chip">{{ 'catalog.inList' | transloco }}</span>
+        } @else {
         <button
           type="button"
           class="add"
-          [attr.aria-label]="
-            'catalog.add' | transloco: { label: entry.label }
-          "
+          [attr.aria-label]="'catalog.add' | transloco: { label: entry.label }"
           (click)="addToList(entry)"
         >
           ＋
         </button>
         }
+
         <button type="button" class="archive" (click)="toggleArchive(entry)">
-          {{ (isArchived(entry) ? 'catalog.unarchive' : 'catalog.archive') |
-          transloco }}
+          {{ 'catalog.archive' | transloco }}
         </button>
-      </div>
-    </li>
+      </li>
+      }
+    </ul>
+    } @if (0 < archivedEntries().length) {
+    <h2 class="section">{{ 'catalog.archivedSection' | transloco }}</h2>
+    <ul class="card archived">
+      @for (entry of archivedEntries(); track entry.productId) {
+      <li>
+        <sl-product-avatar
+          [emoji]="entry.emoji"
+          [imageUrl]="images.urlFor(entry.imageRef)"
+        />
+
+        <span class="text">
+          <span class="label">{{ entry.label }}</span>
+          @if ('' !== entry.description) {
+          <span class="description">{{ entry.description }}</span>
+          }
+          <span class="meta">
+            {{ 'aisles.' + entry.aisle | transloco }} · {{ 'catalog.usage' |
+            plural: entry.usage }}
+          </span>
+        </span>
+
+        <button type="button" class="archive" (click)="toggleArchive(entry)">
+          {{ 'catalog.unarchive' | transloco }}
+        </button>
+      </li>
+      }
+    </ul>
     }
-  </ul>
+  </div>
   }
 </main>

@@ -10,7 +10,11 @@ import {
   viewChild,
 } from '@angular/core';
 import { translateSignal, TranslocoPipe } from '@jsverse/transloco';
-import { newId, YDocService } from '@shopping-list/core/crdt';
+import {
+  countTouchedEntities,
+  newId,
+  YDocService,
+} from '@shopping-list/core/crdt';
 import { QrScanner, renderQrDataUrl, ScanError } from '@shopping-list/core/qr';
 import {
   announce,
@@ -22,7 +26,12 @@ import {
   FrameCollector,
   respond,
 } from '@shopping-list/core/sync-qr';
-import { ErrorText, TranslatableError } from '@shopping-list/util/i18n';
+import { ScanOverlay } from '@shopping-list/ui';
+import {
+  ErrorText,
+  PluralPipe,
+  TranslatableError,
+} from '@shopping-list/util/i18n';
 
 /** Marque les mises à jour venues d'un échange de proximité. */
 const NEARBY_ORIGIN = Symbol('sl.nearby');
@@ -55,7 +64,7 @@ type Step =
 @Component({
   selector: 'sl-nearby-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslocoPipe],
+  imports: [PluralPipe, ScanOverlay, TranslocoPipe],
   templateUrl: './nearby-page.html',
   styleUrl: './nearby-page.scss',
 })
@@ -76,8 +85,8 @@ export class NearbyPage {
   protected readonly error = signal<string | null>(null);
 
   /** Trames à afficher, et laquelle est visible. */
-  private readonly frames = signal<readonly string[]>([]);
-  private readonly frameIndex = signal(0);
+  protected readonly frames = signal<readonly string[]>([]);
+  protected readonly frameIndex = signal(0);
   protected readonly frameImage = signal<string | null>(null);
 
   protected readonly frameCount = computed(() => this.frames().length);
@@ -85,7 +94,53 @@ export class NearbyPage {
 
   protected readonly scanProgress = signal({ received: 0, total: 0 });
 
+  protected readonly scanPercent = computed(() => {
+    const { received, total } = this.scanProgress();
+    return 0 === total ? 0 : (received / total) * 100;
+  });
+
+  /**
+   * Entités arrivées de l'autre téléphone.
+   *
+   * L'écran final l'annonce : sans ce chiffre, deux minutes de manipulation se
+   * terminent sur « c'est bon » sans qu'on sache si quoi que ce soit a
+   * circulé.
+   */
+  protected readonly received = signal(0);
+
   protected readonly canScan = this.scanner.isSupported();
+
+  /** Les quatre temps de l'assistant : rôle, montrer, scanner, terminé. */
+  protected readonly segments = [1, 2, 3, 4] as const;
+
+  private readonly stepIndex = computed(() => {
+    switch (this.step()) {
+      case 'choose-role':
+        return 1;
+      case 'showing':
+        return 2;
+      case 'scanning':
+      case 'failed':
+        return 3;
+      default:
+        return 4;
+    }
+  });
+
+  protected readonly gaugeLabel = translateSignal(
+    'nearby.stepProgress',
+    computed(() => ({
+      step: this.stepIndex(),
+      total: this.segments.length,
+    })),
+  );
+
+  protected segmentState(segment: number): 'on' | 'off' | 'error' {
+    if (segment === this.stepIndex()) {
+      return 'failed' === this.step() ? 'error' : 'on';
+    }
+    return segment < this.stepIndex() ? 'on' : 'off';
+  }
 
   /** Instruction affichée, dépendante du rôle et de l'étape. */
   private readonly instructionKey = computed(() => {
@@ -223,21 +278,41 @@ export class NearbyPage {
         }
 
         // Étape 4 : on applique le dernier différentiel.
-        completeAsResponder(this.yDoc.doc, message, NEARBY_ORIGIN);
+        this.applyCounting(() =>
+          completeAsResponder(this.yDoc.doc, message, NEARBY_ORIGIN),
+        );
         this.finish();
         return;
       }
 
       // Initiateur, étape 3 : on applique, puis on renvoie ce qui manque.
       this.exchanged = true;
-      await this.show(
-        encodeMessage(
-          completeAsInitiator(this.yDoc.doc, message, NEARBY_ORIGIN),
-        ),
+      const reply = this.applyCounting(() =>
+        completeAsInitiator(this.yDoc.doc, message, NEARBY_ORIGIN),
       );
+      await this.show(encodeMessage(reply));
     } catch (error) {
       this.fail(error);
     }
+  }
+
+  /**
+   * Applique un différentiel en comptant ce qu'il apporte.
+   *
+   * On ne compte que ce qu'on **reçoit** : ce qu'on envoie n'est mesurable
+   * que par l'autre appareil, qui l'annoncera de son côté. Un delta Yjs ne
+   * porte que les opérations manquantes, il n'y a pas moyen d'en déduire
+   * combien d'entités il touchera chez le destinataire.
+   */
+  private applyCounting<T>(apply: () => T): T {
+    let result!: T;
+
+    const touched = countTouchedEntities(this.yDoc.doc, () => {
+      result = apply();
+    });
+
+    this.received.update((count) => count + touched);
+    return result;
   }
 
   private finish(): void {
@@ -258,6 +333,7 @@ export class NearbyPage {
     this.role.set(null);
     this.frames.set([]);
     this.frameImage.set(null);
+    this.received.set(0);
     this.step.set('choose-role');
   }
 

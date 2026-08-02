@@ -1,55 +1,57 @@
+<sl-scan-overlay [active]="'scanning' === mode()" (cancelled)="stopScan()">
+  <video #video muted playsinline></video>
+
+  <p data-slot="status">{{ 'pairing.scanHint' | transloco }}</p>
+</sl-scan-overlay>
+
 <header>
   <button type="button" class="back" (click)="close()">
     ← {{ 'common.back' | transloco }}
   </button>
-  <h1>{{ 'pairing.title' | transloco }}</h1>
+  <h1>
+    {{ ('showing-qr' === mode() ? 'pairing.qrTitle' : 'pairing.title') |
+    transloco }}
+  </h1>
+  <span class="balance" aria-hidden="true"></span>
 </header>
 
 <main>
-  <!-- Toujours dans le DOM, seulement visible pendant la lecture : `viewChild`
-       la résout donc immédiatement. La placer dans le @if obligeait à parier
-       sur le moment du rendu, et le scan échouait en silence. -->
-  <video
-    #video
-    class="camera"
-    [class.active]="'scanning' === mode()"
-    muted
-    playsinline
-  ></video>
-
-  @if (null !== error()) {
-  <p class="error" role="alert">{{ error() }}</p>
-  } @if ('scanning' === mode()) {
-  <section class="scanner">
-    <p class="hint">{{ 'pairing.scanHint' | transloco }}</p>
-    <button type="button" class="secondary" (click)="stopScan()">
-      {{ 'common.cancel' | transloco }}
-    </button>
-  </section>
-  } @else if ('showing-qr' === mode()) {
+  @if (null !== alert()) {
+  <p class="alert" role="alert">{{ alert() }}</p>
+  } @if ('showing-qr' === mode()) {
   <section class="qr">
+    <p class="instruction">{{ 'nearby.showFirst' | transloco }}</p>
     <img [src]="qrDataUrl()" [alt]="'pairing.qrAlt' | transloco" />
-    <p class="warning">{{ 'pairing.qrWarning' | transloco }}</p>
-    <button type="button" class="secondary" (click)="hideQr()">
+    <p class="warning">
+      <span aria-hidden="true">⚠️</span>
+      <span>{{ 'pairing.qrWarning' | transloco }}</span>
+    </p>
+    <button type="button" (click)="hideQr()">
       {{ 'common.close' | transloco }}
     </button>
   </section>
   } @else if (null !== config()) {
   <section class="paired">
-    <p class="state">
-      <span class="dot" [attr.data-status]="providerState()?.status"></span>
-      {{ config()!.owner }}/{{ config()!.repo }}
-    </p>
+    <div class="card">
+      <p class="state">
+        <span class="dot" [attr.data-status]="providerState()?.status"></span>
+        {{ config()!.owner }}/{{ config()!.repo }}
+      </p>
 
-    @switch (providerState()?.status) { @case ('live') {
-    <p class="detail">{{ 'pairing.synced' | transloco }}</p>
-    } @case ('offline') {
-    <p class="detail">{{ 'pairing.offline' | transloco }}</p>
-    } @case ('error') {
-    <p class="detail error-text">{{ providerState()?.lastError }}</p>
-    } @default {
-    <p class="detail">{{ 'pairing.connecting' | transloco }}</p>
-    } }
+      @switch (providerState()?.status) { @case ('live') {
+      <p class="detail">{{ 'pairing.synced' | transloco }}</p>
+      } @case ('offline') {
+      <p class="detail">{{ 'pairing.offline' | transloco }}</p>
+      } @case ('error') {
+      <!-- Devant une panne de synchro, la seule question qu'on se pose est
+           « et mes modifications ? ». On y répond avant tout le reste. -->
+      <p class="detail error-text">
+        {{ 'pairing.failed' | plural: syncPending() }}
+      </p>
+      } @default {
+      <p class="detail">{{ 'pairing.connecting' | transloco }}</p>
+      } }
+    </div>
 
     <button type="button" (click)="showQr()">
       {{ 'pairing.pairAnother' | transloco }}
@@ -66,7 +68,7 @@
     <button type="button" class="primary" (click)="startScan()">
       {{ 'pairing.scanOther' | transloco }}
     </button>
-    <p class="or">{{ 'pairing.or' | transloco }}</p>
+    <p class="or"><span>{{ 'pairing.or' | transloco }}</span></p>
     }
 
     <label>
@@ -117,8 +119,7 @@
       {{ (busy() ? 'pairing.checking' : 'pairing.connect') | transloco }}
     </button>
   </section>
-  }
-
+  } @if ('showing-qr' !== mode()) {
   <section class="nearby">
     <h2>{{ 'pairing.nearbyTitle' | transloco }}</h2>
     <p class="lead">{{ 'pairing.nearbyLead' | transloco }}</p>
@@ -126,4 +127,5 @@
       {{ 'pairing.nearbyLink' | transloco }}
     </a>
   </section>
+  }
 </main>
