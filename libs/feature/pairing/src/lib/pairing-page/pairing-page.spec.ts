@@ -59,11 +59,17 @@ class FakeProvider {
 
 class FakeScanner {
   supported = false;
+  /** Élément réellement reçu : sert à prouver que la vue était rendue. */
+  received: HTMLVideoElement | null = null;
+
   isSupported(): boolean {
     return this.supported;
   }
-  async scanOnce(): Promise<string> {
-    return '';
+
+  async scanOnce(video: HTMLVideoElement): Promise<string> {
+    this.received = video;
+    // Ne se résout jamais : on observe le démarrage, pas la lecture.
+    return new Promise(() => undefined);
   }
 }
 
@@ -221,5 +227,35 @@ describe('PairingPage', () => {
     expect(
       fixture.nativeElement.querySelector('img').getAttribute('src'),
     ).toContain('data:image/svg+xml');
+  });
+
+  it('démarre réellement la caméra au clic sur « Scanner »', async () => {
+    // Non-régression. L'élément vidéo vivait dans un `@if` et le composant
+    // pariait sur un microtask pour qu'Angular l'ait rendu. `viewChild`
+    // renvoyait donc `undefined`, et le code retombait en silence sur `idle` :
+    // vu de l'utilisateur, le bouton ne faisait rien.
+    const { scanner } = setup();
+    scanner.supported = true;
+
+    const fixture = await render();
+    clickButton(fixture, 'Scanner le QR');
+    await fixture.whenStable();
+
+    expect(scanner.received).toBeInstanceOf(HTMLVideoElement);
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('rend l’aperçu caméra visible pendant la lecture', async () => {
+    const { scanner } = setup();
+    scanner.supported = true;
+
+    const fixture = await render();
+    const camera = fixture.nativeElement.querySelector('.camera');
+    expect(camera.classList.contains('active')).toBe(false);
+
+    clickButton(fixture, 'Scanner le QR');
+    await fixture.whenStable();
+
+    expect(camera.classList.contains('active')).toBe(true);
   });
 });

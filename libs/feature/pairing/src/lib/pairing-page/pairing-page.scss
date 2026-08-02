@@ -114,12 +114,18 @@ button.danger {
   color: var(--sl-danger);
 }
 
-.scanner video {
+.camera {
+  display: none;
   inline-size: 100%;
   aspect-ratio: 1;
+  margin-block-end: var(--sl-space-3);
   object-fit: cover;
   border-radius: var(--sl-radius);
   background: #000;
+}
+
+.camera.active {
+  display: block;
 }
 
 .qr {

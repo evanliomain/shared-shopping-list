@@ -90,11 +90,13 @@ export class PairingPage {
     this.error.set(null);
     this.mode.set('scanning');
 
-    // Laisse Angular rendre l'élément vidéo avant de brancher le flux.
-    await Promise.resolve();
-
     const video = this.videoRef()?.nativeElement;
     if (undefined === video) {
+      // Ne jamais échouer en silence : sans message, le bouton donne
+      // l'impression d'être mort.
+      this.error.set(
+        "L'aperçu caméra n'a pas pu être initialisé. Saisissez les informations à la main.",
+      );
       this.mode.set('idle');
       return;
     }

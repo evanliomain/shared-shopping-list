@@ -4,11 +4,21 @@
 </header>
 
 <main>
+  <!-- Toujours dans le DOM, seulement visible pendant la lecture : `viewChild`
+       la résout donc immédiatement. La placer dans le @if obligeait à parier
+       sur le moment du rendu, et le scan échouait en silence. -->
+  <video
+    #video
+    class="camera"
+    [class.active]="'scanning' === mode()"
+    muted
+    playsinline
+  ></video>
+
   @if (null !== error()) {
   <p class="error" role="alert">{{ error() }}</p>
   } @if ('scanning' === mode()) {
   <section class="scanner">
-    <video #video muted playsinline></video>
     <p class="hint">Visez le QR affiché sur l'autre téléphone.</p>
     <button type="button" class="secondary" (click)="stopScan()">
       Annuler
