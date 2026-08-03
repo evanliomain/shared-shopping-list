@@ -280,6 +280,20 @@ _testé_ : seulement qu'il a été traversé.
 En local, les deux relevés sont éteints par défaut — ils coûtent quelques secondes pour un chiffre
 qu'on ne lit qu'en revue. `npm run coverage` les allume et affiche le tableau.
 
+La couverture unitaire est à **100 %**, et un seuil la retient là : chaque projet refuse de passer
+sous 100 % de lignes, branches, fonctions et instructions. Le relevé cesse donc d'être une
+information qu'on lit après coup pour devenir une condition de fusion — un test oublié fait échouer
+le job, en nommant le fichier fautif plutôt qu'en annonçant un total en baisse. Le seuil vit dans le
+bloc `coverage` de chaque `vite.config.mts`, et dans les options de la cible `test` de
+[`project.json`](apps/shopping-list/project.json) pour l'application, qui passe par l'exécuteur
+Angular et non par Vitest directement.
+
+Ce que ces 100 % ne disent pas : qu'un test est bon. Une ligne traversée n'est pas une ligne
+vérifiée, et c'est le **test de mutation** qui tranche — on casse le code de production et on
+regarde si la suite tombe. Une poignée de gardes échappent par ailleurs à la mesure, marquées
+`/* v8 ignore */` avec leur justification : elles protègent des invariants qu'aucun test ne peut
+mettre en défaut aujourd'hui.
+
 ### Première configuration de la synchro
 
 1. Ouvrir l'app, taper la pastille de synchro dans l'en-tête.

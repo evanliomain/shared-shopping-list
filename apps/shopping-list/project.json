@@ -86,7 +86,14 @@
         "watch": false,
         "coverageInclude": ["apps/shopping-list/src/**/*.ts"],
         "coverageExclude": ["apps/shopping-list/src/**/*.spec.ts"],
-        "coverageReporters": ["text-summary", "json-summary", "lcovonly"]
+        "coverageReporters": ["text-summary", "json-summary", "lcovonly"],
+        "coverageThresholds": {
+          "perFile": true,
+          "lines": 100,
+          "branches": 100,
+          "functions": 100,
+          "statements": 100
+        }
       }
     },
     "serve-static": {
