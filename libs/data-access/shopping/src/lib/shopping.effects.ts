@@ -20,6 +20,7 @@ import {
 import { suggestCategory } from '@shopping-list/util/categories';
 import { map, tap } from 'rxjs/operators';
 
+import { maintenanceEffects } from './maintenance.effects';
 import { catalogActions, crdtActions, listActions } from './shopping.actions';
 import { DEFAULT_LIST_ID } from './shopping.feature';
 
@@ -179,4 +180,5 @@ export const shoppingEffects = {
   projectSnapshot,
   writeListIntents,
   writeCatalogIntents,
+  ...maintenanceEffects,
 };

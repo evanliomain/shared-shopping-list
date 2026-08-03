@@ -1,8 +1,15 @@
 import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { ImageRef } from '@shopping-list/core/crdt';
 
-import { hasBlob, listBlobHashes, readBlob, writeBlob } from './blob-store';
+import {
+  deleteBlob,
+  hasBlob,
+  listBlobHashes,
+  readBlob,
+  writeBlob,
+} from './blob-store';
 import { hashContent, processImage } from './image-pipeline';
+import { BlobMeta, orphanBlobsToDelete } from './orphan-blobs';
 
 /** Préfixe des références d'image stockées dans le CRDT. */
 const BLOB_PREFIX = 'blob:';
@@ -97,6 +104,67 @@ export class BlobService {
 
   async bytesOf(hash: string): Promise<Uint8Array | null> {
     return (await readBlob(hash))?.bytes ?? null;
+  }
+
+  /**
+   * Efface les photos que plus aucun produit ne réclame.
+   *
+   * `reachable` doit contenir les empreintes de **tout** le catalogue, archives
+   * comprises, et l'appelant doit s'être assuré que le catalogue est chargé :
+   * un catalogue vide parce que le premier snapshot n'est pas arrivé ferait
+   * passer toutes les photos pour orphelines.
+   *
+   * Le ménage reste local. Les images publiées dans le dépôt ne sont jamais
+   * supprimées : elles servent aux autres appareils, et le chemin froid sait
+   * les réadopter à la demande.
+   *
+   * @returns le nombre de photos réellement effacées
+   */
+  async collectGarbage(
+    reachable: ReadonlySet<string>,
+    now = Date.now(),
+    graceMs?: number,
+  ): Promise<number> {
+    try {
+      // On ne lit les métadonnées que des candidates : les orphelines sont
+      // rares, donc on ne charge presque rien depuis IndexedDB.
+      const candidates = (await listBlobHashes()).filter(
+        (hash) => !reachable.has(hash),
+      );
+
+      const stored: BlobMeta[] = [];
+      for (const hash of candidates) {
+        const blob = await readBlob(hash);
+        if (null !== blob) {
+          stored.push({ hash, storedAt: blob.storedAt });
+        }
+      }
+
+      const doomed = orphanBlobsToDelete({ stored, reachable, now, graceMs });
+      for (const hash of doomed) {
+        await deleteBlob(hash);
+        this.forgetObjectUrl(hash);
+      }
+
+      if (0 < doomed.length) {
+        await this.refreshAvailable();
+      }
+
+      return doomed.length;
+    } catch {
+      // IndexedDB indisponible : on réessaiera à la prochaine session. Un
+      // ménage raté ne doit jamais faire échouer un écran.
+      return 0;
+    }
+  }
+
+  /** Libère l'URL objet d'une photo effacée, sinon la `Map` garde un lien mort. */
+  private forgetObjectUrl(hash: string): void {
+    const url = this.objectUrls.get(hash);
+    if (undefined !== url) {
+      URL.revokeObjectURL(url);
+      this.objectUrls.delete(hash);
+    }
   }
 
   private async refreshAvailable(): Promise<void> {

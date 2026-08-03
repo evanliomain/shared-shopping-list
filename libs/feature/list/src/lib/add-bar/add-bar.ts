@@ -1,11 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  effect,
+  inject,
   input,
   output,
 } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { SuggestionView } from '@shopping-list/data-access/shopping';
+import {
+  ProductImages,
+  SuggestionView,
+} from '@shopping-list/data-access/shopping';
 import { ProductAvatar } from '@shopping-list/ui';
 import { PluralPipe } from '@shopping-list/util/i18n';
 
@@ -39,7 +44,10 @@ import { PluralPipe } from '@shopping-list/util/i18n';
                 [class.already]="suggestion.alreadyInList"
                 (click)="picked.emit(suggestion)"
               >
-                <sl-product-avatar [emoji]="suggestion.emoji" />
+                <sl-product-avatar
+                  [emoji]="suggestion.emoji"
+                  [imageUrl]="images.urlFor(suggestion.imageRef)"
+                />
                 <span class="text">
                   <span class="label">{{ suggestion.label }}</span>
                   <span class="second">
@@ -293,6 +301,19 @@ export class AddBar {
   readonly created = output<string>();
   readonly focused = output<void>();
   readonly dismissed = output<void>();
+
+  protected readonly images = inject(ProductImages);
+
+  constructor() {
+    // Les suggestions arrivent déjà filtrées par la saisie : on ne résout que
+    // ce qui est réellement à l'écran, et seulement panneau ouvert. Une photo
+    // qui manque n'empêche rien — l'emoji tient la place en attendant.
+    effect(() => {
+      if (this.picking()) {
+        this.images.ensure(this.suggestions().map((s) => s.imageRef));
+      }
+    });
+  }
 
   protected onInput(event: Event): void {
     this.queryChanged.emit((event.target as HTMLInputElement).value);
