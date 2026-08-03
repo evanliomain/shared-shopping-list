@@ -172,6 +172,8 @@ export class QrScanner {
       };
 
       const abort = (): void => {
+        /* v8 ignore if -- inatteignable : un AbortSignal ne notifie qu'une
+           fois, et `finish` retire l'écouteur avant de tenir la promesse. */
         if (settled) {
           return;
         }

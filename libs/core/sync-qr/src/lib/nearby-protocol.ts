@@ -102,6 +102,8 @@ export function decodeMessage(bytes: Uint8Array): NearbyMessage {
       return { kind: MESSAGE_DIFF, diff: readSegment() };
     default:
       throw new TranslatableError('errors.nearby.unknownMessage', {
+        /* v8 ignore next -- garde défensive : une enveloppe de longueur nulle
+           est déjà refusée plus haut, donc `kind` ne peut pas être absent. */
         kind: kind ?? '?',
       });
   }

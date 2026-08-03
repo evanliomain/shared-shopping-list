@@ -32,6 +32,10 @@ const AISLE_RANK: Readonly<Record<string, number>> = Object.fromEntries(
 );
 
 function rankOf(aisle: string): number {
+  // Le rayon sort toujours d'`aisleOf`, donc d'`AISLES`, et `AISLE_RANK` est
+  // construit depuis cette même liste : le repli est un garde-fou de typage,
+  // pas un cas possible.
+  /* v8 ignore next -- repli inatteignable, voir ci-dessus */
   return AISLE_RANK[aisle] ?? AISLES.length;
 }
 
@@ -216,6 +220,9 @@ export function filterSuggestions(
       .chain(
         sortBy(
           (scored) => (scored.suggestion.alreadyInList ? 1 : 0),
+          // Le `filter` ci-dessus a écarté tous les scores nuls ; le repli
+          // n'est là que parce que le type ne le sait pas.
+          /* v8 ignore next -- repli inatteignable, voir ci-dessus */
           (scored) => -(scored.score ?? 0),
         ),
       )

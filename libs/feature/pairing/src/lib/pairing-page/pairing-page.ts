@@ -75,6 +75,8 @@ export class PairingPage {
   );
 
   protected readonly syncPending = computed(
+    /* v8 ignore next -- `?? 0` ne garde que le type : le gabarit ne lit
+       `syncPending` que dans le cas « error », qui suppose l'état présent. */
     () => this.providerState()?.pending ?? 0,
   );
 

@@ -18,6 +18,9 @@ function openDatabase(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = () => {
       const db = request.result;
+      /* v8 ignore else -- la version demandée est figée à 1 : `onupgradeneeded`
+         ne survient donc qu'à la création de la base, magasin forcément absent.
+         Garde défensive au cas où cette version viendrait à bouger. */
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
       }
