@@ -217,6 +217,28 @@ describe('QrScanner', () => {
       expect(requested).toHaveLength(1);
     });
 
+    it('retient tous les codes d’une même image', async () => {
+      // Deux trames peuvent tenir dans le cadre en même temps ; n'en garder
+      // qu'une gaspillerait un tour de boucle complet en face.
+      restore.push(
+        stubDetector(() => [{ rawValue: 'trame-0' }, { rawValue: 'trame-1' }]),
+      );
+      restore.push(stubCamera('ok'));
+
+      const seen: string[] = [];
+      await scanner().scanMany(
+        fakeVideo(),
+        new AbortController().signal,
+        (raw) => {
+          seen.push(raw);
+          return 2 === seen.length;
+        },
+      );
+
+      expect(seen).toEqual(['trame-0', 'trame-1']);
+      expect(requested).toHaveLength(1);
+    });
+
     it('ne repasse pas deux fois le même code', async () => {
       // Une trame reste dans le cadre pendant des dizaines d'images.
       restore.push(stubDetector(() => [{ rawValue: 'même trame' }]));

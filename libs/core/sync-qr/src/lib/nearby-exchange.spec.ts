@@ -162,14 +162,32 @@ describe('trames QR', () => {
 });
 
 /**
- * Au-delà, les modules deviennent trop fins pour être lus sur l'écran d'un
- * autre téléphone : à 30 % de la largeur d'une image 720p, cent modules ne
- * font plus que 3,7 pixels chacun, et la détection lâche sans rien dire.
+ * Ce qu'on demande à la caméra (voir `QrScanner`), et la part de la largeur
+ * d'image qu'occupe le code quand on le cadre dans la lucarne.
  */
-const MAX_SCANNABLE_MODULES = 85;
+const CAMERA_WIDTH = 1920;
+const FRAMING = 0.3;
 
-function modulesOf(frame: string): number {
-  return QRCode.create(frame, { errorCorrectionLevel: 'M' }).modules.size;
+/**
+ * Seuil de détection de `BarcodeDetector`, en pixels par module.
+ *
+ * En dessous de trois, il ne trouve rien — et ne le dit pas : la caméra tourne
+ * dans le vide. On se garde une marge, parce que le code est lu sur un écran,
+ * de biais, avec des reflets.
+ */
+const MIN_PIXELS_PER_MODULE = 5;
+
+/**
+ * Pixels par module d'une trame dans l'image de la caméra.
+ *
+ * C'est **la** grandeur qui décide si un échange aboutit. Le nombre de modules
+ * ne s'en déduit pas de tête : le base64url contient des minuscules, donc le QR
+ * passe en mode octet, sensiblement moins compact que le mode alphanumérique.
+ */
+function pixelsPerModule(frame: string): number {
+  const { modules } = QRCode.create(frame, { errorCorrectionLevel: 'M' });
+  // + 4 : la marge silencieuse, qui compte dans ce que la caméra doit résoudre.
+  return (CAMERA_WIDTH * FRAMING) / (modules.size + 4);
 }
 
 /** Une ouverture de l'application : Yjs y tire un `clientID` neuf. */
@@ -181,13 +199,26 @@ function inNewSession(doc: Y.Doc, write: (session: Y.Doc) => void): void {
 }
 
 describe('densité des trames', () => {
-  it('garde des codes lisibles sur un document vécu', async () => {
-    // La régression : le vecteur d'état grossit d'environ six octets par
-    // ouverture de l'application, indéfiniment. À 700 octets par trame, le
-    // tout premier code de l'échange finissait à une centaine de modules —
-    // affiché correctement, mais jamais détecté par la caméra d'en face.
+  it('garde une trame pleine lisible par la caméra', async () => {
+    // Incompressible : chaque trame porte exactement sa charge maximale, donc
+    // le cas le plus dense que l'écran puisse afficher.
+    const payload = crypto.getRandomValues(new Uint8Array(4000));
+    const { frames } = await encodeFrames(payload, 'session');
+
+    for (const frame of frames) {
+      expect(pixelsPerModule(frame)).toBeGreaterThanOrEqual(
+        MIN_PIXELS_PER_MODULE,
+      );
+    }
+  });
+
+  it('annonce un document vécu sans animer l’écran', async () => {
+    // Le vecteur d'état grossit d'environ six octets par ouverture de
+    // l'application, indéfiniment. Il doit rester tenable en **un seul code
+    // immobile** sur la durée de vie réaliste d'une liste de courses : scanner
+    // une cible qui défile est autrement plus difficile.
     const doc = new Y.Doc();
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 100; i++) {
       inNewSession(doc, (session) =>
         courses(session).set(`p${i}`, `Article ${i}`),
       );
@@ -198,20 +229,10 @@ describe('densité des trames', () => {
       'session',
     );
 
-    expect(frames.length).toBeGreaterThan(1);
-    for (const frame of frames) {
-      expect(modulesOf(frame)).toBeLessThanOrEqual(MAX_SCANNABLE_MODULES);
-    }
-  });
-
-  it('garde des codes lisibles pour une trame pleine', async () => {
-    // Incompressible : la trame porte exactement sa charge maximale.
-    const payload = crypto.getRandomValues(new Uint8Array(4000));
-    const { frames } = await encodeFrames(payload, 'session');
-
-    for (const frame of frames) {
-      expect(modulesOf(frame)).toBeLessThanOrEqual(MAX_SCANNABLE_MODULES);
-    }
+    expect(frames).toHaveLength(1);
+    expect(pixelsPerModule(frames[0])).toBeGreaterThanOrEqual(
+      MIN_PIXELS_PER_MODULE,
+    );
   });
 });
 

@@ -481,25 +481,29 @@ sequenceDiagram
 Détails techniques :
 
 - Compression via `CompressionStream('deflate-raw')` — natif, aucune dépendance.
-- Découpage en trames de **300 octets**. Ce qui dimensionne cette valeur n'est pas la capacité du
-  QR mais la **finesse des modules** : un code lu sur l'écran d'un autre téléphone doit garder au
-  moins trois pixels par module dans l'image de la caméra. 300 octets font un code de 69 modules ;
-  700 en faisaient 101, illisibles en pratique.
+- Découpage en trames de **600 octets**, soit un code de 109 modules. Deux contraintes tirent en
+  sens opposés : plus une trame porte, plus ses modules sont fins (il en faut au moins trois pixels
+  dans l'image de la caméra) ; mais moins elle porte, plus il faut de trames — et **scanner une
+  cible qui défile est autrement plus difficile que scanner un code immobile**. Le nombre de modules
+  ne se déduit pas de tête : le base64url contient des minuscules, donc le QR passe en mode octet,
+  sensiblement moins compact que le mode alphanumérique.
 - Format de trame : `SL1|<sessionId>|<idx>|<total>|<payload base64url>` + hash du payload complet.
-- Les trames défilent **en boucle** à ~5 fps. Le récepteur affiche `2/3 trames` et rattrape ce qui
-  lui manque au tour suivant — pas besoin de fountain coding pour 3 trames.
+- Les trames défilent **en boucle**, une par **700 ms**. Le récepteur affiche `2/3 trames` et
+  rattrape ce qui lui manque au tour suivant — pas besoin de fountain coding pour 3 trames.
+- Toutes les trames sont **rendues en images avant** le premier affichage : le défilement ne fait
+  que changer de `src`, sur des URL déjà décodées par le navigateur.
 
 > **Deltas uniquement, et c'est essentiel avec un catalogue.** 300 produits pèsent une dizaine de
 > Ko compressés, soit des dizaines de trames — infaisable à scanner. C'est précisément pourquoi le
 > protocole échange d'abord les vecteurs d'état : en rayon, la différence se limite à quelques
-> cases cochées, donc **une trame**. Garde-fou : au-delà de **20 trames**, l'app refuse et affiche
+> cases cochées, donc **une trame**. Garde-fou : au-delà de **12 trames**, l'app refuse et affiche
 > « trop de données pour un QR, refaites-le avec du réseau ». Le premier appairage se fait de toute
 > façon à la maison, via GitHub.
 
 Lecture caméra : `getUserMedia` + `BarcodeDetector`, avec repli sur `zxing-wasm` dans un Web Worker
 là où l'API native manque.
 
-> **Deux détails de caméra qui décident du succès ou de l'échec.**
+> **Trois détails de caméra qui décident du succès ou de l'échec.**
 >
 > 1. **La définition doit être demandée.** Sans contrainte `width`/`height`, les navigateurs
 >    ouvrent en 640×480. Un code d'une centaine de modules y tombe sous deux pixels par module :
@@ -509,14 +513,28 @@ là où l'API native manque.
 >    d'une seconde de `getUserMedia` entre deux lectures, pendant laquelle la boucle d'en face
 >    continuait de défiler : un message de plusieurs écrans n'était jamais complété.
 >    `QrScanner.scanMany()` lit jusqu'à ce que l'assembleur dise qu'il a tout.
+> 3. **Tous les codes de l'image sont retenus**, pas seulement le premier que rend
+>    `BarcodeDetector.detect()` : deux trames peuvent parfaitement tenir dans le cadre en même
+>    temps, et en ignorer une gaspille un tour de boucle complet.
+
+> **Une cible qui défile ne se scanne pas comme un code immobile.** C'est le piège de ce lot, et il
+> s'est refermé deux fois. La caméra d'en face doit faire sa mise au point, régler son exposition,
+> puis réussir une détection sur le **même** code ; et à cadence rapide une bonne part des images
+> capturées tombe à cheval sur deux codes, donc illisible. D'où deux règles :
+>
+> - **le cas courant doit tenir en un seul code** — c'est ce qui fixe la taille de trame à 600
+>   octets plutôt qu'à 300, maintenant que la définition caméra est corrigée ;
+> - **quand il en faut plusieurs, chacun reste affiché longtemps** — 700 ms, soit une quinzaine de
+>   tentatives de détection, et non 200 ms.
 
 > **Le vecteur d'état grossit avec l'usage.** Yjs tire un `clientID` neuf à chaque chargement de
 > l'application : le vecteur gagne environ six octets par ouverture, indéfiniment, sur les deux
-> téléphones. Un document neuf annonce son état en 25 modules ; après une centaine d'ouvertures,
-> en une centaine. C'est ce qui faisait « marcher au début, plus du tout ensuite ». Le découpage en
-> trames de 300 octets absorbe cette croissance — au prix de quelques écrans de plus à faire
+> téléphones. Un document neuf annonce son état en quelques octets ; après cent ouvertures, en
+> ~550. C'est ce qui faisait « marcher au début, plus du tout ensuite ». À 600 octets par trame,
+> cent ouvertures tiennent encore en **un seul code immobile** ; au-delà, l'annonce commence à
 > défiler. La borner vraiment demanderait un `clientID` stable par appareil, ce que Yjs déconseille
-> tant que deux onglets peuvent écrire en parallèle.
+> tant que deux onglets peuvent écrire en parallèle — et qui ne réparerait de toute façon pas les
+> documents existants, où les identifiants sont déjà inscrits.
 
 ### Et le Bluetooth ?
 
@@ -740,15 +758,15 @@ lourde pour le bénéfice le plus faible.
 
 ### Unitaires (Vitest)
 
-| Cible                   | Ce qu'on vérifie                                                                                                                                                   |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Convergence CRDT**    | Test de propriété : N opérations concurrentes appliquées dans un ordre aléatoire sur plusieurs répliques → snapshots identiques. Le test qui protège tout le reste |
-| **G-Counter**           | Deux appareils incrémentent hors ligne le même produit → après fusion le total vaut **2**, pas 1                                                                   |
-| **Reducer / selectors** | Groupement par rayon, compte des restants, filtrage des tombstones, ordre des suggestions, exclusion des archivés                                                  |
-| **Provider GitHub**     | `fetch` mocké : chemin 304, chemin 200, et surtout **le chemin 409** — deux écritures concurrentes doivent converger, pas se perdre                                |
-| **Store de blobs**      | Le même fichier encodé deux fois donne le même hash (un seul envoi) ; un `blob:` absent ne fait jamais planter le rendu                                            |
-| **Trames QR**           | Aller-retour découpage/réassemblage, trames désordonnées, trame manquante rattrapée, payload corrompu rejeté, **refus au-delà de 20 trames**, et **densité** : sur un document vécu, aucun code ne dépasse 85 modules |
-| **Échange de proximité** | L'écran complet sur un vrai Y.Doc : ce que l'autre a modifié hors ligne arrive bien, un message de plusieurs trames s'assemble en **une seule ouverture de caméra**, et l'instruction n'annonce « ce dernier code » qu'une fois le différentiel appliqué |
+| Cible                    | Ce qu'on vérifie                                                                                                                                                                                                                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Convergence CRDT**     | Test de propriété : N opérations concurrentes appliquées dans un ordre aléatoire sur plusieurs répliques → snapshots identiques. Le test qui protège tout le reste                                                                                                                                                           |
+| **G-Counter**            | Deux appareils incrémentent hors ligne le même produit → après fusion le total vaut **2**, pas 1                                                                                                                                                                                                                             |
+| **Reducer / selectors**  | Groupement par rayon, compte des restants, filtrage des tombstones, ordre des suggestions, exclusion des archivés                                                                                                                                                                                                            |
+| **Provider GitHub**      | `fetch` mocké : chemin 304, chemin 200, et surtout **le chemin 409** — deux écritures concurrentes doivent converger, pas se perdre                                                                                                                                                                                          |
+| **Store de blobs**       | Le même fichier encodé deux fois donne le même hash (un seul envoi) ; un `blob:` absent ne fait jamais planter le rendu                                                                                                                                                                                                      |
+| **Trames QR**            | Aller-retour découpage/réassemblage, trames désordonnées, trame manquante rattrapée, payload corrompu rejeté, **refus au-delà de 12 trames**, et **densité** exprimée en ce qui compte vraiment : au moins 5 pixels par module dans une image 1080p, et l'annonce d'un document de cent ouvertures qui tient en un seul code |
+| **Échange de proximité** | L'écran complet sur un vrai Y.Doc : ce que l'autre a modifié hors ligne arrive bien, un message de plusieurs trames s'assemble en **une seule ouverture de caméra** et continue de défiler, et l'instruction n'annonce « ce dernier code » qu'une fois le différentiel appliqué                                              |
 
 ### End-to-end (Playwright)
 

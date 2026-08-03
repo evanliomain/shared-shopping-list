@@ -36,8 +36,20 @@ import {
 /** Marque les mises à jour venues d'un échange de proximité. */
 const NEARBY_ORIGIN = Symbol('sl.nearby');
 
-/** Cadence de défilement des trames. Assez lent pour être lu, assez vif pour boucler. */
-const FRAME_INTERVAL_MS = 200;
+/**
+ * Cadence de défilement des trames.
+ *
+ * 200 ms — cinq images par seconde — semblait « assez lent pour être lu ». Ça
+ * ne l'était pas du tout : en face, la caméra doit faire sa mise au point,
+ * régler son exposition, puis réussir une détection sur le **même** code. À
+ * cinq images par seconde, une bonne part des images capturées tombe en plus à
+ * cheval sur deux codes, donc illisible.
+ *
+ * 700 ms laissent une quinzaine de tentatives de détection par code. C'est
+ * long à l'œil, mais c'est ce qui fait la différence entre un échange qui
+ * aboutit et un écran qui clignote sans rien donner.
+ */
+const FRAME_INTERVAL_MS = 700;
 
 type Role = 'initiator' | 'responder';
 
@@ -84,9 +96,20 @@ export class NearbyPage {
   protected readonly role = signal<Role | null>(null);
   protected readonly error = signal<string | null>(null);
 
-  /** Trames à afficher, et laquelle est visible. */
+  /**
+   * Trames à afficher, **déjà rendues en images**, et laquelle est visible.
+   *
+   * Le rendu se fait une fois pour toutes à l'ouverture de l'étape. Ré-encoder
+   * le SVG à chaque tick, comme avant, forçait le navigateur à reparser et
+   * rasteriser une URL inédite cinq fois par seconde : le code affiché passait
+   * une partie du temps à moitié peint, ce qui n'aide pas la caméra d'en face.
+   * En ne faisant que revenir sur des URL déjà vues, le décodage est réutilisé.
+   */
   protected readonly frames = signal<readonly string[]>([]);
   protected readonly frameIndex = signal(0);
+
+  private frameImages: readonly string[] = [];
+
   protected readonly frameImage = signal<string | null>(null);
 
   protected readonly frameCount = computed(() => this.frames().length);
@@ -203,28 +226,35 @@ export class NearbyPage {
 
     try {
       const { frames } = await encodeFrames(payload, newId());
+
+      // Tout rendre avant d'afficher quoi que ce soit : le défilement ne doit
+      // rien avoir à calculer, seulement changer d'image.
+      this.frameImages = await Promise.all(
+        frames.map((frame) => renderQrDataUrl(frame)),
+      );
+
       this.frames.set(frames);
       this.frameIndex.set(0);
       this.step.set('showing');
-      await this.paint();
+      this.paint();
 
       if (1 < frames.length) {
-        this.ticker = setInterval(() => void this.advance(), FRAME_INTERVAL_MS);
+        this.ticker = setInterval(() => this.advance(), FRAME_INTERVAL_MS);
       }
     } catch (error) {
       this.fail(error);
     }
   }
 
-  private async advance(): Promise<void> {
-    this.frameIndex.update((index) => (index + 1) % this.frames().length);
-    await this.paint();
+  private advance(): void {
+    this.frameIndex.update((index) => (index + 1) % this.frameImages.length);
+    this.paint();
   }
 
-  private async paint(): Promise<void> {
-    const frame = this.frames()[this.frameIndex()];
-    if (undefined !== frame) {
-      this.frameImage.set(await renderQrDataUrl(frame));
+  private paint(): void {
+    const image = this.frameImages[this.frameIndex()];
+    if (undefined !== image) {
+      this.frameImage.set(image);
     }
   }
 
@@ -335,6 +365,7 @@ export class NearbyPage {
     this.error.set(null);
     this.role.set(null);
     this.frames.set([]);
+    this.frameImages = [];
     this.frameImage.set(null);
     this.received.set(0);
     this.step.set('choose-role');

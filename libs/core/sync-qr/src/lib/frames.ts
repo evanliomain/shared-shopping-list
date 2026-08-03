@@ -21,36 +21,45 @@ const SEPARATOR = '|';
 /**
  * Octets utiles par trame.
  *
- * Ce qui dimensionne cette valeur n'est pas la capacité du QR (2 953 octets en
- * version 40) mais la **finesse des modules** : un code lu sur l'écran d'un
- * autre téléphone doit garder au moins trois pixels par module dans l'image de
- * la caméra, sans quoi `BarcodeDetector` ne trouve rien — et ne dit rien.
+ * Deux contraintes tirent en sens opposés, et c'est tout l'arbitrage :
  *
- * | octets | version | modules | à 30 % du cadre en 720p |
- * | ------ | ------- | ------- | ----------------------- |
- * | 300    | 13      | 69      | 5,3 px/module           |
- * | 700    | 21      | 101     | 3,7 px/module           |
+ *  - **plus une trame porte, plus ses modules sont fins**, et un code lu sur
+ *    l'écran d'un autre téléphone doit garder au moins trois pixels par module
+ *    dans l'image de la caméra, sans quoi `BarcodeDetector` ne trouve rien — et
+ *    ne dit rien ;
+ *  - **moins une trame porte, plus il en faut**, et un message qui ne tient pas
+ *    en un seul code doit être animé. Or scanner une cible qui change est
+ *    autrement plus difficile que scanner un code immobile : la mise au point
+ *    n'a pas le temps de se faire, et une partie des images capturées tombe à
+ *    cheval sur deux codes.
  *
- * 700 octets passaient sur un document neuf, dont le vecteur d'état tient en
- * quelques octets. Ils ne passaient plus une fois l'application vécue : le
- * vecteur grossit d'environ six octets par ouverture de l'application (Yjs
- * tire un `clientID` neuf à chaque chargement), et le tout premier code de
- * l'échange finissait à une centaine de modules, illisible en silence.
+ * Le nombre de modules ne se déduit pas de tête : le base64url contient des
+ * minuscules, donc le QR passe en **mode octet**, sensiblement moins compact
+ * que le mode alphanumérique.
  *
- * 300 octets tiennent la densité sous contrôle quelle que soit la taille du
- * document ; ce qui dépasse part simplement en plusieurs trames.
+ * | octets | modules | 720p à 30 % | 1080p à 30 % | vecteur d'état de 100 ouvertures |
+ * | ------ | ------- | ----------- | ------------ | -------------------------------- |
+ * | 300    | 81      | 4,5 px      | 6,8 px       | 2 trames                         |
+ * | 600    | 109     | 3,4 px      | 5,1 px       | **1 trame**                      |
+ * | 700    | 117     | 3,2 px      | 4,8 px       | 1 trame                          |
+ *
+ * 300 octets réglaient la densité mais rendaient l'animation systématique :
+ * un document un peu vécu partait en deux codes qui défilaient, et plus rien
+ * ne se scannait. Maintenant que la caméra est ouverte en 1080p (voir
+ * `QrScanner`), 600 octets restent lus sans peine **et** ramènent le cas
+ * courant à un seul code immobile.
  */
-export const FRAME_PAYLOAD_BYTES = 300;
+export const FRAME_PAYLOAD_BYTES = 600;
 
 /**
  * Au-delà, on refuse.
  *
- * Vingt trames à 5 images par seconde font quatre secondes par tour de boucle,
- * et il faut souvent deux ou trois tours. Mieux vaut dire honnêtement
- * « refaites-le avec du réseau » que d'imposer une minute de scan à bout de
- * bras.
+ * Douze trames tenues chacune assez longtemps pour être lues font près de dix
+ * secondes par tour de boucle, et il faut parfois deux tours. Mieux vaut dire
+ * honnêtement « refaites-le avec du réseau » que d'imposer une minute de scan
+ * à bout de bras.
  */
-export const MAX_FRAMES = 20;
+export const MAX_FRAMES = 12;
 
 export class PayloadTooLargeError extends TranslatableError {
   constructor(readonly frames: number) {
