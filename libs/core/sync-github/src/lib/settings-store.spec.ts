@@ -75,4 +75,19 @@ describe('stockage des réglages', () => {
     );
     expect(base.openConnections()).toBe(0);
   });
+
+  describe('sur une base déjà pourvue de son magasin', () => {
+    beforeEach(() => {
+      base.restore();
+      base = installFakeIndexedDb({ entries: [[KEY, CONFIG]] });
+    });
+
+    it('ne recrée pas le magasin, donc ne perd pas le jeton', async () => {
+      // Le jour où la version de la base montera, la montée retrouvera un
+      // magasin déjà là. Le recréer viderait les réglages — dont le jeton
+      // GitHub, qu'il faudrait ressaisir sur chaque appareil.
+      expect(await readSetting(KEY)).toEqual(CONFIG);
+      expect(base.created).toEqual([]);
+    });
+  });
 });
