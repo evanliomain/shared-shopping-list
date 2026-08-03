@@ -7,8 +7,13 @@
 
   /* Couleurs — la marque est le vert du caddie, assombri pour rester lisible
      sur blanc en plein soleil. Chaque teinte a son fond doux (`-soft`) et son
-     encre (`-ink`) : la couleur ne porte jamais le message toute seule. */
-  --sl-brand: #0b8a48;
+     encre (`-ink`) : la couleur ne porte jamais le message toute seule.
+
+     Le vert descend jusqu'à ce que les trois emplois passent les 4,5:1 du
+     RGAA : texte blanc dessus (5,4:1), et lui-même en texte sur le blanc des
+     cartes (5,4:1) comme sur le papier du fond (5,0:1). Le précédent, plus
+     clair de deux crans, plafonnait à 4,4:1 et 4,1:1. */
+  --sl-brand: #097a40;
   --sl-brand-strong: #076436;
   --sl-brand-soft: #e3f3e8;
   --sl-brand-ink: #076436;

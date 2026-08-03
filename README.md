@@ -41,6 +41,7 @@ npm start              # http://localhost:4200
 | `npm run lint`                  | ESLint sur tout le workspace  |
 | `npx nx e2e shopping-list-e2e`  | Tests end-to-end (Playwright) |
 | `npm run coverage`              | Couverture, les deux suites   |
+| `node tools/contraste.mjs`      | Vérifie les contrastes AA     |
 | `node tools/generate-icons.mjs` | Régénère les icônes PWA       |
 
 Les tests e2e ont besoin des navigateurs une première fois :
@@ -135,6 +136,27 @@ La pile n'est pas journalisée : elle est **dérivée de la liste**, par la date
 création des articles depuis l'ouverture de la feuille. Une pile tenue à part
 mentirait dès qu'un article en sortirait autrement — retiré d'un glissé, ou
 emporté par un delta reçu de l'autre téléphone.
+
+## Contrastes
+
+Les jetons de couleur passent les **4,5:1** exigés par le RGAA et le WCAG AA
+dans les deux thèmes, texte normal compris.
+[`node tools/contraste.mjs`](tools/contraste.mjs) relit les couleurs dans
+`styles.scss` et rejoue les paires — un tableau de référence tenu à part
+finirait par mentir.
+
+Deux pièges rencontrés, qui valent d'être écrits :
+
+- **le vert de marque était trop clair de deux crans.** Texte blanc dessus
+  comme lui-même en texte sur blanc plafonnaient à 4,4:1. Il descend à
+  `#097a40` : 5,4:1 des deux côtés, pour un vert qu'on ne distingue pas de
+  l'ancien ;
+- **l'encapsulation Angular renforce les sélecteurs descendants.** `main button`
+  devient `main[x] button[x]`, qui pèse plus lourd que `.primary[x]` : le bouton
+  primaire de l'échange de proximité gardait le fond des boutons secondaires
+  avec l'encre prévue pour le vert — blanc sur blanc en clair, vert sombre sur
+  gris sombre en sombre. La parade est d'écrire `main button.primary`, ce que
+  faisait déjà l'écran d'appairage.
 
 ## Langues
 
