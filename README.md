@@ -40,6 +40,7 @@ npm start              # http://localhost:4200
 | `npm test`                      | Tests unitaires (Vitest)      |
 | `npm run lint`                  | ESLint sur tout le workspace  |
 | `npx nx e2e shopping-list-e2e`  | Tests end-to-end (Playwright) |
+| `npm run coverage`              | Couverture, les deux suites   |
 | `node tools/generate-icons.mjs` | Régénère les icônes PWA       |
 
 Les tests e2e ont besoin des navigateurs une première fois :
@@ -178,6 +179,27 @@ Angular reprenne la main.
 
 Pages est configuré en mode _GitHub Actions_ et le site est servi depuis
 `/shared-shopping-list/`.
+
+### Couverture des tests
+
+Chaque pull request reçoit un commentaire — un seul, réécrit à chaque push — qui donne la couverture
+des deux suites : le total en titre, puis le détail par projet, du moins couvert au mieux couvert. Le
+même tableau apparaît dans le résumé du job, et les rapports `lcov` sont archivés en artefact.
+
+Les deux chiffres ne se mesurent pas de la même façon, et ne veulent pas dire la même chose :
+
+| Suite      | Comment                                                                                            | Ce que ça dit                             |
+| ---------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Unitaires  | Vitest instrumente chaque projet avec le provider V8                                               | Quelles lignes un test exerce directement |
+| End-to-end | V8 relève ce que le navigateur exécute, les _source maps_ le ramènent aux `.ts`, Monocart l'agrège | Quel code un vrai parcours traverse       |
+
+Deux limites à garder en tête. La couverture e2e ne compte que les projets **Chromium** :
+`page.coverage` passe par le protocole Chrome DevTools, que WebKit n'expose pas — les parcours Mobile
+Safari tournent, mais sans relevé. Et un chiffre e2e élevé sur un fichier ne dit pas qu'il est
+_testé_ : seulement qu'il a été traversé.
+
+En local, les deux relevés sont éteints par défaut — ils coûtent quelques secondes pour un chiffre
+qu'on ne lit qu'en revue. `npm run coverage` les allume et affiche le tableau.
 
 ### Première configuration de la synchro
 

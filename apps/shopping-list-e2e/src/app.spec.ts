@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 test('la racine redirige vers la liste', async ({ page }) => {
   await page.goto('/');

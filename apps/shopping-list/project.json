@@ -83,7 +83,10 @@
     "test": {
       "executor": "@angular/build:unit-test",
       "options": {
-        "watch": false
+        "watch": false,
+        "coverageInclude": ["apps/shopping-list/src/**/*.ts"],
+        "coverageExclude": ["apps/shopping-list/src/**/*.spec.ts"],
+        "coverageReporters": ["text-summary", "json-summary", "lcovonly"]
       }
     },
     "serve-static": {
