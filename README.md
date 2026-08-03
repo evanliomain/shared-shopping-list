@@ -84,20 +84,55 @@ Sur téléphone, la liste se mène au pouce, une main sur le caddie :
 | Menu ⋯ de la ligne   | Modifier le produit, retirer   |
 | Menu ⋯ de l'en-tête  | Vider la liste                 |
 
+À la souris, au-delà de 1040 px, ce menu ⋯ devient trois boutons sur la ligne —
+voir plus bas.
+
 La voie découverte par le glissé se teinte doucement, puis se sature au
 franchissement du seuil : le point de bascule se voit au lieu de se deviner.
 Aucun geste n'est le seul chemin — tout reste atteignable au tap, au clavier et
 à l'assistance vocale.
 
-C'est pourquoi la case à cocher n'apparaît **qu'au-delà de 1040 px** : sur
-téléphone, la ligne entière coche et le glissé fait le même travail, tandis que
-la souris n'a ni l'un ni l'autre. Un article coché part dans le panier, barré :
-le barré et le rangement disent l'état mieux qu'un cercle de 26 px.
+Il n'y a **plus de case à cocher** : la ligne entière coche, le glissé fait le
+même travail, et un article coché part dans le panier, barré et marqué d'un ✓
+vert. Le barré et le rangement disent l'état mieux qu'un cercle de 26 px, qui
+n'était qu'une cible de plus à viser.
+
+**Au-delà de 1040 px, le menu ⋯ de la ligne cède la place à trois boutons
+toujours visibles** — ✓ cocher, ✏️ modifier, ✕ retirer. Il y a la place, et la
+souris n'a ni le glissé ni la ligne entière comme cible évidente : un menu qui
+ne cache rien d'utile ne justifie pas le geste qu'il coûte.
 
 « Vider la liste » ne touche pas au catalogue — c'est toute la différence avec
 l'historique, et ce qui permet de refaire les courses suivantes sans rien
 retaper. Le geste n'ayant pas de retour en arrière, il passe par une
 confirmation.
+
+## Ajouter un article
+
+L'ajout n'occupe plus une barre collée en bas en permanence. Il prend la taille
+de ce qu'il vaut à l'instant où on regarde l'écran :
+
+| Où l'on est              | Ce qu'on voit                                        |
+| ------------------------ | ---------------------------------------------------- |
+| Liste vide               | Un bouton de 64 px au centre : l'ajout _est_ l'écran |
+| Liste peuplée, téléphone | Un bouton flottant de 62 px en bas à droite          |
+| Au-delà de 1040 px       | La barre permanente, dans le pied de la colonne      |
+
+Le bouton flottant **se retire quand on défile vers l'avant de la liste et
+revient dès qu'on remonte** : lire sa liste ne se fait pas avec un bouton posé
+sur la dernière ligne. Il rend ainsi 62 px de liste sans jamais s'éloigner d'un
+geste.
+
+Le toucher ouvre une feuille qui **reste ouverte après chaque ajout** : le champ
+se vide, l'article rejoint une pile de pastilles en haut, les suggestions se
+réordonnent. On enchaîne dix articles sans revenir à la liste, et « Terminé »
+ferme tout. Chaque pastille porte son ✕ : tant que la feuille est ouverte, un
+ajout se défait d'un geste — pas de bandeau d'annulation à chronométrer.
+
+La pile n'est pas journalisée : elle est **dérivée de la liste**, par la date de
+création des articles depuis l'ouverture de la feuille. Une pile tenue à part
+mentirait dès qu'un article en sortirait autrement — retiré d'un glissé, ou
+emporté par un delta reçu de l'autre téléphone.
 
 ## Langues
 

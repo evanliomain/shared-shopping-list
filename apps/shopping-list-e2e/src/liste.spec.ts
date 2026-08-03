@@ -7,12 +7,35 @@ import { expect, Page, test } from '@playwright/test';
  * démarre avec une liste et un catalogue vides.
  */
 
-const input = (page: Page) => page.getByPlaceholder('Ajouter un article…');
+/* Le placeholder change une fois qu'on enchaîne (« Article suivant… ») : c'est
+   la feuille qu'on vise, pas un libellé. */
+const input = (page: Page) => page.locator('sl-add-bar input');
 const row = (page: Page, label: string) =>
   page.locator('sl-item-row').filter({ hasText: label });
 
+/**
+ * Ouvre l'ajout.
+ *
+ * Au bureau la barre est permanente, sur téléphone il faut passer par le
+ * bouton : flottant sur une liste peuplée, au centre sur une liste vide.
+ */
+async function openAdd(page: Page): Promise<void> {
+  if (await input(page).isVisible()) {
+    await input(page).click();
+    return;
+  }
+
+  await page.getByRole('button', { name: 'Ajouter un article' }).click();
+  await expect(input(page)).toBeVisible();
+}
+
+/** Referme la feuille : « Terminé » dès qu'il y a des ajouts, « Fermer » sinon. */
+async function closeAdd(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^(Terminé|Fermer)$/ }).click();
+}
+
 async function createArticle(page: Page, label: string): Promise<void> {
-  await input(page).click();
+  await openAdd(page);
   await input(page).fill(label);
   await page.getByRole('button', { name: `Créer « ${label} »` }).click();
 }
@@ -23,9 +46,36 @@ async function openMenu(page: Page, label: string): Promise<void> {
     .click();
 }
 
+/**
+ * Retire un article. Au-delà de 1040 px la ligne porte ses trois boutons ; en
+ * dessous, c'est le menu ⋯ qui les tient. Le parcours passe par ce qui est
+ * réellement à l'écran.
+ */
 async function removeArticle(page: Page, label: string): Promise<void> {
+  const button = row(page, label).getByRole('button', {
+    name: 'Retirer de la liste',
+  });
+  if (await button.isVisible()) {
+    await button.click();
+    return;
+  }
+
   await openMenu(page, label);
   await page.getByRole('menuitem', { name: 'Retirer de la liste' }).click();
+}
+
+/** Même partage : le ✏️ de la ligne au bureau, le menu ⋯ sur téléphone. */
+async function editArticle(page: Page, label: string): Promise<void> {
+  const link = row(page, label).getByRole('link', {
+    name: 'Modifier le produit',
+  });
+  if (await link.isVisible()) {
+    await link.click();
+    return;
+  }
+
+  await openMenu(page, label);
+  await page.getByRole('menuitem', { name: 'Modifier le produit' }).click();
 }
 
 /**
@@ -85,10 +135,48 @@ test('groupe les rayons dans l’ordre de parcours du magasin', async ({
   await expect(page.getByRole('heading', { name: /Crèmerie/ })).toBeVisible();
 });
 
+test('la liste vide met l’ajout au centre de l’écran', async ({ page }) => {
+  // Quand il n'y a rien à cocher, l'ajout *est* l'écran.
+  await expect(page.getByText('La liste est vide')).toBeVisible();
+
+  const add = page
+    .locator('sl-empty-state')
+    .getByRole('button', { name: 'Ajouter un article' });
+  await expect(add).toBeVisible();
+
+  await add.click();
+
+  await expect(input(page)).toBeFocused();
+});
+
+test('enchaîne les ajouts sans refermer, et défait à la pastille', async ({
+  page,
+}) => {
+  // Dix articles d'affilée sans revenir à la liste : le champ se vide, la
+  // feuille reste, et chaque ajout garde son ✕ tant qu'elle est ouverte.
+  await createArticle(page, 'Lait');
+  await expect(input(page)).toBeVisible();
+  await expect(input(page)).toHaveValue('');
+
+  await createArticle(page, 'Pain');
+
+  await expect(page.getByText('2 articles ajoutés')).toBeVisible();
+  await expect(page.locator('sl-add-bar .chip')).toHaveCount(2);
+
+  await page.getByRole('button', { name: 'Retirer Pain de la liste' }).click();
+
+  await expect(page.getByText('1 article ajouté')).toBeVisible();
+  await expect(row(page, 'Pain')).toHaveCount(0);
+  await expect(row(page, 'Lait')).toBeVisible();
+
+  // « Terminé » ferme tout, et la pile de pastilles avec.
+  await closeAdd(page);
+  await expect(page.locator('sl-add-bar .chip')).toHaveCount(0);
+});
+
 test('cocher déplace l’article dans le panier', async ({ page }) => {
   await createArticle(page, 'Pain');
-  await input(page).press('Escape');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
   await row(page, 'Pain').getByRole('checkbox').click();
 
@@ -101,12 +189,12 @@ test('cocher déplace l’article dans le panier', async ({ page }) => {
 test('l’historique propose les articles déjà saisis', async ({ page }) => {
   // Le geste central de l'application : refaire la liste sans rien retaper.
   await createArticle(page, 'Yaourt');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
   await removeArticle(page, 'Yaourt');
   await expect(row(page, 'Yaourt')).toHaveCount(0);
 
-  await input(page).click();
+  await openAdd(page);
   await input(page).fill('yao');
 
   const suggestion = page.locator('.suggestion').filter({ hasText: 'Yaourt' });
@@ -132,7 +220,7 @@ test('ne propose pas de créer un doublon d’un produit connu', async ({
 
 test('la liste survit à un rechargement', async ({ page }) => {
   await createArticle(page, 'Pommes');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
   await expect(row(page, 'Pommes')).toBeVisible();
 
   await page.reload();
@@ -146,7 +234,7 @@ test('vider le panier retire les articles cochés et garde les autres', async ({
 }) => {
   await createArticle(page, 'Lait');
   await createArticle(page, 'Pain');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
   await row(page, 'Lait').getByRole('checkbox').click();
   await page.getByRole('button', { name: 'Vider' }).click();
@@ -159,7 +247,7 @@ test('glisser à droite coche, glisser à gauche retire', async ({ page }) => {
   // Les deux gestes du pouce, ceux qu'on fait en poussant un caddie.
   await createArticle(page, 'Lait');
   await createArticle(page, 'Pain');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
   await swipe(page, 'Lait', 120);
 
@@ -177,7 +265,7 @@ test('glisser à droite coche, glisser à gauche retire', async ({ page }) => {
 
 test('un glissé trop court ne fait rien', async ({ page }) => {
   await createArticle(page, 'Lait');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
   await swipe(page, 'Lait', 40);
 
@@ -188,7 +276,7 @@ test('un glissé trop court ne fait rien', async ({ page }) => {
 test('vider la liste garde l’historique', async ({ page }) => {
   await createArticle(page, 'Lait');
   await createArticle(page, 'Pain');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
   // Se raviser doit rester possible : le geste est sans retour en arrière.
   await page.getByLabel('Menu de la liste').click();
@@ -205,7 +293,7 @@ test('vider la liste garde l’historique', async ({ page }) => {
 
   // Le catalogue, lui, est intact : c'est toute la différence entre vider la
   // liste et vider l'historique.
-  await input(page).click();
+  await openAdd(page);
   await expect(page.locator('.suggestion')).toHaveCount(2);
 });
 
@@ -213,17 +301,16 @@ test('distingue deux produits de même libellé par leur description', async ({
   page,
 }) => {
   await createArticle(page, 'Yaourt');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
   await expect(row(page, 'Yaourt')).toHaveCount(1);
 });
 
 test('modifier un produit se répercute sur la liste', async ({ page }) => {
   await createArticle(page, 'Yaourt');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
-  await openMenu(page, 'Yaourt');
-  await page.getByRole('menuitem', { name: 'Modifier le produit' }).click();
+  await editArticle(page, 'Yaourt');
 
   await expect(page).toHaveURL(/\/produit\//);
   await page.getByLabel('Description').fill('à la vanille');
@@ -235,21 +322,20 @@ test('modifier un produit se répercute sur la liste', async ({ page }) => {
 
 test('archiver un produit le retire des suggestions', async ({ page }) => {
   await createArticle(page, 'Bougie');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
   await removeArticle(page, 'Bougie');
 
   // Le produit reste dans le catalogue : on le retrouve par les suggestions.
-  await input(page).click();
+  await openAdd(page);
   await expect(page.locator('.suggestion')).toHaveCount(1);
   await page.locator('.suggestion').click();
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
-  await openMenu(page, 'Bougie');
-  await page.getByRole('menuitem', { name: 'Modifier le produit' }).click();
+  await editArticle(page, 'Bougie');
   await page.getByRole('button', { name: 'Archiver' }).click();
 
   await removeArticle(page, 'Bougie');
-  await input(page).click();
+  await openAdd(page);
 
   // Archivé : plus proposé, mais toujours présent dans l'historique.
   await expect(page.locator('.suggestion')).toHaveCount(0);
@@ -309,7 +395,7 @@ test('l’échange de proximité est accessible sans réseau', async ({ page }) 
 
 test('l’historique permet de retrouver et d’archiver', async ({ page }) => {
   await createArticle(page, 'Bougie');
-  await page.getByRole('button', { name: 'Fermer' }).click();
+  await closeAdd(page);
 
   await page.getByLabel('Historique').click();
   await expect(page).toHaveURL(/\/historique$/);

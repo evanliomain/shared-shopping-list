@@ -104,4 +104,75 @@ describe('ListUiStore', () => {
     ui.toggleChecked();
     expect(ui.showChecked()).toBe(false);
   });
+
+  describe('fenêtre des ajouts', () => {
+    it('date l’ouverture du panneau, et l’oublie en refermant', () => {
+      const ui = store();
+      expect(ui.pickingSince()).toBe(0);
+
+      ui.startPicking();
+      expect(ui.pickingSince()).toBeGreaterThan(0);
+
+      ui.stopPicking();
+      expect(ui.pickingSince()).toBe(0);
+    });
+
+    it('ne redate pas un panneau déjà ouvert', () => {
+      // Sinon taper dans le champ effacerait la pile de pastilles à chaque
+      // caractère, et l'enchaînement perdrait son filet.
+      const ui = store();
+      ui.startPicking();
+      const opened = ui.pickingSince();
+
+      ui.setQuery('lai');
+      ui.startPicking();
+
+      expect(ui.pickingSince()).toBe(opened);
+    });
+  });
+
+  describe('bouton flottant', () => {
+    it('se retire vers l’avant de la liste et revient en remontant', () => {
+      const ui = store();
+
+      ui.noteScroll(200);
+      expect(ui.fabHidden()).toBe(true);
+
+      ui.noteScroll(150);
+      expect(ui.fabHidden()).toBe(false);
+    });
+
+    it('ignore les défilements sous le seuil', () => {
+      // Un pouce posé sur l'écran ne doit pas faire clignoter le bouton.
+      const ui = store();
+      ui.noteScroll(200);
+
+      ui.noteScroll(196);
+
+      expect(ui.fabHidden()).toBe(true);
+    });
+
+    it('est toujours là en haut de liste', () => {
+      // C'est là qu'on arrive, et là qu'on ajoute.
+      const ui = store();
+      ui.noteScroll(400);
+      expect(ui.fabHidden()).toBe(true);
+
+      ui.noteScroll(0);
+
+      expect(ui.fabHidden()).toBe(false);
+    });
+
+    it('revient en refermant le panneau', () => {
+      const ui = store();
+      ui.noteScroll(300);
+
+      ui.startPicking();
+      expect(ui.fabHidden()).toBe(false);
+
+      ui.noteScroll(600);
+      ui.stopPicking();
+      expect(ui.fabHidden()).toBe(false);
+    });
+  });
 });

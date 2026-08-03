@@ -49,7 +49,8 @@
     "remainingTotal": "of {{total}}",
     "progress": "Shopping progress",
     "emptyTitle": "The list is empty",
-    "emptyHint": "Add an item below. It will be remembered for your next shopping trip.",
+    "emptyHint": "The first item will be remembered for your next shopping trips.",
+    "addArticle": "Add an item",
     "basket": "In the basket ({{count}})",
     "clearBasket": "Clear",
     "menu": "List menu",
@@ -64,12 +65,21 @@
   },
   "addBar": {
     "placeholder": "Add an item…",
+    "nextPlaceholder": "Next item…",
     "emptyHistory": "Nothing in the history yet. Type an item and it will be there next time.",
     "alreadyInList": "already in the list",
+    "added": {
+      "one": "{{count}} item added",
+      "other": "{{count}} items added"
+    },
+    "done": "Done",
+    "undoAdd": "Remove {{label}} from the list",
     "create": "Create “{{label}}”"
   },
   "itemRow": {
     "actions": "Actions for {{label}}",
+    "check": "Tick off",
+    "uncheck": "Put back on the list",
     "edit": "Edit product",
     "remove": "Remove from list"
   },

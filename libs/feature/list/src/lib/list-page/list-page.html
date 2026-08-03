@@ -49,12 +49,21 @@
   </div>
 </header>
 
-<main [class.dimmed]="ui.picking()">
+<main [class.dimmed]="ui.picking()" (scroll)="onScroll($event)">
   @if (isEmpty()) {
   <sl-empty-state
     [title]="'list.emptyTitle' | transloco"
     [hint]="'list.emptyHint' | transloco"
-  />
+  >
+    <!-- Quand il n'y a rien à cocher, l'ajout *est* l'écran : le geste monte
+         au centre en 64 px, au lieu de rester en bas à attendre. -->
+    <sl-add-button
+      class="empty-add"
+      variant="block"
+      [label]="'list.addArticle' | transloco"
+      (pressed)="startAdding()"
+    />
+  </sl-empty-state>
   } @for (group of groups(); track group.aisle) {
   <h2 class="aisle" [attr.data-aisle]="group.aisle">
     <span aria-hidden="true">{{ group.emoji }}</span>
@@ -131,14 +140,29 @@
 </div>
 }
 
+<!-- Le bouton flottant rend à la liste les 62 px que prenait la barre collée en
+     bas, et se retire quand on défile vers l'avant : lire sa liste ne se fait
+     pas avec un bouton posé sur la dernière ligne. Sur la liste vide, c'est le
+     gros bouton du centre qui prend le relais ; au bureau, la barre permanente,
+     qui a la place de rester. -->
+@if (!wide() && !isEmpty()) {
+<sl-add-button
+  [retracted]="fabRetracted()"
+  [label]="'list.addArticle' | transloco"
+  (pressed)="startAdding()"
+/>
+} @if (wide() || ui.picking()) {
 <sl-add-bar
   [query]="ui.query()"
   [picking]="ui.picking()"
   [suggestions]="suggestions()"
   [canCreate]="canCreate()"
+  [added]="justAdded()"
   (queryChanged)="ui.setQuery($event)"
   (focused)="ui.startPicking()"
   (dismissed)="ui.stopPicking()"
   (picked)="addExisting($event)"
   (created)="createAndAdd($event)"
+  (undone)="remove($event)"
 />
+}

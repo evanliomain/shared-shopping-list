@@ -1,10 +1,13 @@
 :host {
-  /* La barre d'ajout reste collée en bas, le contenu défile entre les deux.
-     `relative` sert d'ancrage au bandeau d'annulation. */
+  /* En-tête et pied d'ajout tiennent l'écran, le contenu défile entre les deux.
+     `relative` sert d'ancrage au bandeau d'annulation et au bouton flottant ;
+     `overflow` empêche ce dernier, une fois retiré vers le bas, de rendre la
+     page entière scrollable. */
   position: relative;
   display: grid;
   grid-template-rows: auto 1fr auto;
   block-size: 100dvh;
+  overflow: hidden;
 }
 
 header {
@@ -89,7 +92,11 @@ h1 {
 main {
   min-block-size: 0;
   overflow-y: auto;
-  padding-block: var(--sl-space-1) var(--sl-space-6);
+  /* Le bouton flottant se pose sur le bas de la liste : on lui réserve sa
+     hauteur, sinon la dernière ligne resterait à moitié couverte une fois
+     arrivé en bas. Les 96 px couvrent aussi l'encoche du bas, elle qui ne
+     dépasse jamais 34 px. */
+  padding-block: var(--sl-space-1) 6rem;
   background: var(--sl-bg);
 }
 
@@ -194,8 +201,13 @@ main.dimmed {
   font-weight: 600;
 }
 
-/* Ancré à la hauteur de la barre d'ajout : le bandeau se pose au-dessus
-   d'elle, jamais dessus. */
+.empty-add {
+  margin-block-start: 0.875rem;
+}
+
+/* Ancré à 96 px du bas — la hauteur que réserve l'ajout, bouton flottant sur
+   téléphone comme barre permanente au bureau : le bandeau se pose au-dessus de
+   lui, jamais dessus. */
 .undo {
   position: absolute;
   inset-inline: var(--sl-space-3);

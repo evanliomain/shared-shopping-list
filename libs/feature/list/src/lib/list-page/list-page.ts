@@ -29,7 +29,12 @@ import {
 } from '@shopping-list/data-access/shopping';
 import { RouterLink } from '@angular/router';
 import { SyncRegistry } from '@shopping-list/core/sync';
-import { EmptyState, SyncBadge, SyncBadgeStatus } from '@shopping-list/ui';
+import {
+  AddButton,
+  EmptyState,
+  SyncBadge,
+  SyncBadgeStatus,
+} from '@shopping-list/ui';
 import { normalize } from '@shopping-list/util/categories';
 
 import { AddBar } from '../add-bar/add-bar';
@@ -43,6 +48,7 @@ import { ListUiStore } from '../list-ui.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AddBar,
+    AddButton,
     EmptyState,
     HistoryPane,
     ItemRow,
@@ -111,10 +117,39 @@ export class ListPage {
 
   private readonly allSuggestions = this.store.selectSignal(selectSuggestions);
 
+  private readonly itemViews = this.store.selectSignal(selectItemViews);
+
   private readonly itemImageRefs = computed(() =>
-    this.store
-      .selectSignal(selectItemViews)()
-      .map((view) => view.imageRef),
+    this.itemViews().map((view) => view.imageRef),
+  );
+
+  /**
+   * Les articles entrés depuis l'ouverture du panneau d'ajout, du plus récent
+   * au plus ancien : la pile de pastilles annulables.
+   *
+   * Dérivés de la liste plutôt que journalisés au fil des ajouts. Une pile
+   * tenue à part mentirait dès qu'un article en sortirait autrement — retiré
+   * d'un glissé, ou emporté par un delta reçu de l'autre téléphone. Un article
+   * déjà présent n'y apparaît pas non plus : `addItem` réutilise sa ligne au
+   * lieu d'en créer une seconde, donc sa date de création ne bouge pas.
+   */
+  protected readonly justAdded = computed<readonly ItemView[]>(() => {
+    if (!this.ui.picking()) {
+      return [];
+    }
+
+    const since = this.ui.pickingSince();
+    return this.itemViews()
+      .filter((view) => view.createdAt >= since)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  });
+
+  /**
+   * Le bouton flottant s'efface aussi pendant la saisie : la feuille d'ajout
+   * porte déjà le geste, à la même place.
+   */
+  protected readonly fabRetracted = computed(
+    () => this.ui.fabHidden() || this.ui.picking(),
   );
 
   /**
@@ -171,6 +206,15 @@ export class ListPage {
     inject(DestroyRef).onDestroy(() =>
       query.removeEventListener('change', onChange),
     );
+  }
+
+  /** Depuis le bouton flottant ou celui de la liste vide : la feuille s'ouvre. */
+  protected startAdding(): void {
+    this.ui.startPicking();
+  }
+
+  protected onScroll(event: Event): void {
+    this.ui.noteScroll((event.target as HTMLElement).scrollTop);
   }
 
   protected addExisting(suggestion: SuggestionView): void {
