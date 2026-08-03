@@ -289,6 +289,73 @@ describe('GithubSyncEngine', () => {
     });
   });
 
+  describe('réglages par défaut', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('espace les tentatives d’un recul exponentiel plafonné', async () => {
+      // Sans recul, deux téléphones qui se disputent le fichier se
+      // resynchroniseraient en cadence et se refuseraient indéfiniment. La
+      // gigue casse cette cadence, et le plafond évite d'attendre une minute.
+      vi.useFakeTimers();
+
+      const delays: number[] = [];
+      const scheduled = globalThis.setTimeout;
+      globalThis.setTimeout = ((run: () => void, ms: number) => {
+        delays.push(ms);
+        return scheduled(run, ms);
+      }) as typeof globalThis.setTimeout;
+
+      const repo = new FakeRepo();
+      repo.write = async () => ({ kind: 'conflict' });
+
+      const doc = new Y.Doc();
+      courses(doc).set('a', 'Lait');
+      // Aucune option : ni le nombre de tentatives ni l'attente ne sont fournis.
+      // L'assertion est posée avant de faire tourner l'horloge, sinon le rejet
+      // survient sans personne pour l'attendre.
+      const failure = expect(
+        new GithubSyncEngine(doc, repo, ORIGIN).push(),
+      ).rejects.toThrow('errors.github.publishFailed');
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      await failure;
+
+      // Cinq tentatives par défaut, donc cinq attentes.
+      const bases = [250, 500, 1000, 2000, 4000];
+      expect(delays).toHaveLength(bases.length);
+      delays.forEach((delay, attempt) => {
+        expect(delay).toBeGreaterThanOrEqual(bases[attempt]);
+        expect(delay).toBeLessThan(bases[attempt] + 250);
+      });
+    });
+  });
+
+  it('conserve son sha quand la relecture ne rend rien de neuf', async () => {
+    // Un port qui répond « inchangé » à une relecture inconditionnelle ne
+    // renseigne rien : effacer le sha ferait repartir l'envoi suivant en
+    // création, et GitHub le refuserait encore.
+    const shas: Array<string | null> = [];
+    let attempt = 0;
+    const port: SyncPort = {
+      read: async () => ({ kind: 'unchanged' }),
+      write: async (_update, sha) => {
+        shas.push(sha);
+        attempt++;
+        return 2 === attempt
+          ? { kind: 'conflict' }
+          : { kind: 'written', sha: `sha-${attempt}` };
+      },
+    };
+
+    const engine = new GithubSyncEngine(new Y.Doc(), port, ORIGIN, {
+      wait: () => Promise.resolve(),
+    });
+    await engine.push();
+    await engine.push();
+
+    expect(shas).toEqual([null, 'sha-1', 'sha-1']);
+  });
+
   it('reset oublie ETag et sha', async () => {
     const repo = new FakeRepo();
     const doc = new Y.Doc();

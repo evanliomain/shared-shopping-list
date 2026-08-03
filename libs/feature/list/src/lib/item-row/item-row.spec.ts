@@ -56,6 +56,27 @@ describe('ItemRow', () => {
     expect(nativeElement.querySelector('.qty')).toBeNull();
   });
 
+  it('affiche la note de la ligne quand elle en porte une', async () => {
+    const { nativeElement } = await render({ note: 'le petit format' });
+
+    expect(nativeElement.querySelector('.note').textContent).toContain(
+      'le petit format',
+    );
+  });
+
+  it('nomme l’article dont le produit n’est pas encore arrivé', async () => {
+    // Un delta qui ajoute la ligne peut précéder celui qui crée le produit :
+    // une ligne sans libellé serait illisible le temps que l'autre arrive.
+    const { nativeElement } = await render({
+      unknownProduct: true,
+      label: '',
+    });
+
+    expect(nativeElement.querySelector('.label').textContent).toContain(
+      'Article inconnu',
+    );
+  });
+
   it('expose son état coché à l’assistance vocale', async () => {
     const unchecked = await render();
     expect(
@@ -190,13 +211,22 @@ describe('ItemRow', () => {
       host.dispatchEvent(pointer(end, ...(steps.at(-1) ?? [0, 0])));
     }
 
-    function pointer(type: string, dx: number, dy: number): PointerEvent {
+    function pointer(
+      type: string,
+      dx: number,
+      dy: number,
+      pointerId = 1,
+    ): PointerEvent {
       return new PointerEvent(type, {
-        pointerId: 1,
+        pointerId,
         clientX: dx,
         clientY: dy,
         bubbles: true,
       });
+    }
+
+    function transform(host: HTMLElement): string {
+      return host.querySelector<HTMLElement>('.content').style.transform;
     }
 
     it('coche en glissant vers la droite', async () => {
@@ -295,6 +325,68 @@ describe('ItemRow', () => {
       );
 
       expect(touched).toBe(false);
+    });
+
+    it('ne bouge pas pour un frémissement du doigt', async () => {
+      // Sous le seuil, on ne sait pas encore si le geste est un glissé ou un
+      // tap : la ligne attend plutôt que de partir de travers.
+      const fixture = await render();
+      const { nativeElement } = fixture;
+
+      nativeElement.dispatchEvent(pointer('pointerdown', 0, 0));
+      nativeElement.dispatchEvent(pointer('pointermove', 8, 4));
+      await fixture.whenStable();
+
+      expect(nativeElement.getAttribute('data-swipe')).toBe('none');
+      expect(transform(nativeElement)).toBe('translateX(0px)');
+    });
+
+    it('laisse le premier doigt mener le geste', async () => {
+      // Deux doigts sur l'écran, c'est un pincement : le second ne prend pas
+      // le geste en cours, et ne recale pas son point de départ.
+      const fixture = await render();
+      const { nativeElement } = fixture;
+
+      nativeElement.dispatchEvent(pointer('pointerdown', 0, 0));
+      nativeElement.dispatchEvent(pointer('pointerdown', 300, 0, 2));
+      nativeElement.dispatchEvent(pointer('pointermove', 360, 0, 2));
+      await fixture.whenStable();
+
+      expect(transform(nativeElement)).toBe('translateX(0px)');
+
+      nativeElement.dispatchEvent(pointer('pointermove', 40, 0));
+      await fixture.whenStable();
+
+      expect(transform(nativeElement)).toBe('translateX(40px)');
+    });
+
+    it('montre sous la ligne ce que le relâcher va faire', async () => {
+      // La voie colorée est la seule chose qui distingue « je coche » de « je
+      // retire » avant qu'il ne soit trop tard.
+      const fixture = await render({ checked: false });
+      const { nativeElement } = fixture;
+
+      nativeElement.dispatchEvent(pointer('pointerdown', 0, 0));
+      nativeElement.dispatchEvent(pointer('pointermove', -30, 0));
+      await fixture.whenStable();
+
+      expect(nativeElement.getAttribute('data-swipe')).toBe('remove');
+      expect(nativeElement.querySelector('.lane-glyph').textContent).toContain(
+        '✕',
+      );
+    });
+
+    it('promet le retour dans la liste sur un article déjà coché', async () => {
+      const fixture = await render({ checked: true });
+      const { nativeElement } = fixture;
+
+      nativeElement.dispatchEvent(pointer('pointerdown', 0, 0));
+      nativeElement.dispatchEvent(pointer('pointermove', 30, 0));
+      await fixture.whenStable();
+
+      expect(nativeElement.querySelector('.lane-glyph').textContent).toContain(
+        '↩',
+      );
     });
 
     it('annonce le seuil franchi pendant le geste', async () => {

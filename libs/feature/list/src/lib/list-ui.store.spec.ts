@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ListUiStore } from './list-ui.store';
+import { ListUiStore, UndoableCheck } from './list-ui.store';
 
 describe('ListUiStore', () => {
   function store() {
@@ -55,6 +55,15 @@ describe('ListUiStore', () => {
     expect(ui.picking()).toBe(false);
   });
 
+  it('referme le menu d’un second appui sur ⋯', () => {
+    const ui = store();
+
+    ui.toggleListMenu();
+    ui.toggleListMenu();
+
+    expect(ui.listMenu()).toBe('closed');
+  });
+
   it('demande confirmation avant de vider la liste', () => {
     // Vider ne s'annule pas : le menu doit passer par une question.
     const ui = store();
@@ -77,6 +86,59 @@ describe('ListUiStore', () => {
 
     ui.toggleChecked();
     expect(ui.showChecked()).toBe(false);
+  });
+
+  describe('bandeau d’annulation', () => {
+    const LAIT: UndoableCheck = { itemId: 'item-1', label: 'Lait' };
+    const PAIN: UndoableCheck = { itemId: 'item-2', label: 'Pain' };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('s’ouvre sur l’article coché et se retire tout seul', () => {
+      const ui = store();
+
+      ui.noteChecked(LAIT);
+      expect(ui.undoable()).toEqual(LAIT);
+
+      vi.advanceTimersByTime(5000);
+
+      expect(ui.undoable()).toBeNull();
+    });
+
+    it('repart de zéro à chaque article coché', () => {
+      // Sans annuler le minuteur précédent, cocher deux articles à trois
+      // secondes d'intervalle escamoterait le second bandeau au bout de deux.
+      const ui = store();
+
+      ui.noteChecked(LAIT);
+      vi.advanceTimersByTime(3000);
+      ui.noteChecked(PAIN);
+      vi.advanceTimersByTime(3000);
+
+      expect(ui.undoable()).toEqual(PAIN);
+
+      vi.advanceTimersByTime(2000);
+
+      expect(ui.undoable()).toBeNull();
+    });
+
+    it('ne revient pas après avoir été écarté', () => {
+      const ui = store();
+      ui.noteChecked(LAIT);
+
+      ui.dismissUndo();
+      expect(ui.undoable()).toBeNull();
+
+      vi.advanceTimersByTime(5000);
+
+      expect(ui.undoable()).toBeNull();
+    });
   });
 
   describe('fenêtre des ajouts', () => {

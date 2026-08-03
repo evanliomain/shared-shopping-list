@@ -115,4 +115,147 @@ describe('BroadcastChannelSyncProvider', () => {
 
     expect(textOf(first)).toEqual([]);
   });
+
+  it('ignore une seconde connexion et reste sur le premier document', async () => {
+    // Rebrancher sur un autre document laisserait deux écouteurs de mise à jour
+    // sur le même canal, et l'onglet diffuserait des deltas de deux documents
+    // qui n'ont rien à voir.
+    const premier = new Y.Doc();
+    const ignore = new Y.Doc();
+    const autre = new Y.Doc();
+    const provider = openTab(premier);
+    provider.connect(ignore);
+    openTab(autre);
+    await settle();
+
+    ignore.getMap<string>('courses').set('a', 'Lait');
+    await settle();
+    expect(textOf(autre)).toEqual([]);
+
+    premier.getMap<string>('courses').set('b', 'Pain');
+    await settle();
+    expect(textOf(autre)).toEqual(['Pain']);
+  });
+});
+
+/**
+ * Le `BroadcastChannel` de Node livre les messages sans jamais échouer et
+ * n'existe pas partout : ces deux situations-là ne s'atteignent qu'en
+ * remplaçant la classe globale.
+ */
+describe('BroadcastChannelSyncProvider — canal doublé', () => {
+  let restaurations: Array<() => void> = [];
+
+  afterEach(() => {
+    for (const restaure of restaurations.reverse()) {
+      restaure();
+    }
+    restaurations = [];
+  });
+
+  interface FauxCanal {
+    onmessage: ((event: MessageEvent) => void) | null;
+    readonly envoyes: unknown[];
+  }
+
+  /** Remplace `BroadcastChannel` ; `echoue` fait rater chaque envoi. */
+  function doubleLeCanal(echoue?: () => never): FauxCanal[] {
+    const canaux: FauxCanal[] = [];
+    const global = globalThis as unknown as Record<string, unknown>;
+    const precedent = global['BroadcastChannel'];
+
+    global['BroadcastChannel'] = class {
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      readonly envoyes: unknown[] = [];
+
+      constructor() {
+        canaux.push(this);
+      }
+
+      postMessage(message: unknown): void {
+        echoue?.();
+        this.envoyes.push(message);
+      }
+
+      close(): void {
+        this.onmessage = null;
+      }
+    };
+
+    restaurations.push(() => {
+      global['BroadcastChannel'] = precedent;
+    });
+
+    return canaux;
+  }
+
+  function retireLeCanal(): void {
+    const global = globalThis as unknown as Record<string, unknown>;
+    const precedent = global['BroadcastChannel'];
+    delete global['BroadcastChannel'];
+
+    restaurations.push(() => {
+      global['BroadcastChannel'] = precedent;
+    });
+  }
+
+  it('reste inerte là où BroadcastChannel n’existe pas', () => {
+    // Rare, mais l'application doit rester utilisable : les autres canaux
+    // suffisent, celui-ci se contente de ne rien annoncer.
+    retireLeCanal();
+    const provider = new BroadcastChannelSyncProvider();
+
+    expect(() => provider.connect(new Y.Doc())).not.toThrow();
+    expect(provider.status()).toBe('idle');
+    expect(provider.lastError()).toBeNull();
+  });
+
+  it('signale un envoi refusé sans interrompre la connexion', () => {
+    const provider = new BroadcastChannelSyncProvider();
+    doubleLeCanal(() => {
+      throw new Error('canal fermé');
+    });
+
+    provider.connect(new Y.Doc());
+
+    // L'échec porte sur l'annonce du vecteur d'état : les autres onglets ne
+    // sauront pas qu'on est là, mais l'onglet lui-même reste opérationnel.
+    expect(provider.status()).toBe('live');
+    expect(provider.lastError()).toBe('canal fermé');
+  });
+
+  it('décrit un refus qui n’est pas une Error', () => {
+    const provider = new BroadcastChannelSyncProvider();
+    doubleLeCanal(() => {
+      throw 'charge non clonable';
+    });
+
+    provider.connect(new Y.Doc());
+
+    expect(provider.lastError()).toBe('charge non clonable');
+  });
+
+  it('ne répond plus à un message arrivé après le détachement', () => {
+    // Un message déjà en vol quand l'onglet se détache : sans la garde, on
+    // encoderait le delta d'un document qu'on ne suit plus.
+    const canaux = doubleLeCanal();
+    const provider = new BroadcastChannelSyncProvider();
+    provider.connect(new Y.Doc());
+
+    const canal = canaux[0];
+    const repondre = canal.onmessage;
+    provider.disconnect();
+    const envoyesAvant = canal.envoyes.length;
+
+    repondre?.(
+      new MessageEvent('message', {
+        data: {
+          kind: 'state-vector',
+          vector: Y.encodeStateVector(new Y.Doc()),
+        },
+      }),
+    );
+
+    expect(canal.envoyes).toHaveLength(envoyesAvant);
+  });
 });

@@ -6,6 +6,7 @@ import {
 } from '@shopping-list/data-access/shopping';
 import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
+import { FakeProductImages } from '../testing/fake-product-images';
 import { AddBar } from './add-bar';
 
 const BASE: SuggestionView = {
@@ -37,23 +38,6 @@ const ADDED: ItemView = {
   createdAt: 0,
 };
 
-/**
- * Faux service de photos : la vraie résolution passe par IndexedDB, que jsdom
- * n'implémente pas. Seul compte ici ce que le composant fait de l'URL.
- */
-class FakeProductImages {
-  readonly ensured: (string | null)[][] = [];
-  url: string | null = null;
-
-  urlFor(): string | null {
-    return this.url;
-  }
-
-  ensure(refs: readonly (string | null)[]): void {
-    this.ensured.push([...refs]);
-  }
-}
-
 describe('AddBar', () => {
   let images: FakeProductImages;
 
@@ -71,12 +55,14 @@ describe('AddBar', () => {
     suggestions: readonly SuggestionView[] = [BASE],
     picking = true,
     added: readonly ItemView[] = [],
+    canCreate = false,
+    query = '',
   ) {
     const fixture = TestBed.createComponent(AddBar);
-    fixture.componentRef.setInput('query', '');
+    fixture.componentRef.setInput('query', query);
     fixture.componentRef.setInput('picking', picking);
     fixture.componentRef.setInput('suggestions', suggestions);
-    fixture.componentRef.setInput('canCreate', false);
+    fixture.componentRef.setInput('canCreate', canCreate);
     fixture.componentRef.setInput('added', added);
     await fixture.whenStable();
 
@@ -114,6 +100,101 @@ describe('AddBar', () => {
     await render([BASE], false);
 
     expect(images.ensured).toEqual([]);
+  });
+
+  it('rapporte la saisie lettre par lettre', async () => {
+    // Les suggestions se réordonnent à la frappe : rien n'attend « Entrée ».
+    const fixture = await render();
+    const emitted: string[] = [];
+    fixture.componentInstance.queryChanged.subscribe((v) => emitted.push(v));
+
+    const field = fixture.nativeElement.querySelector('input');
+    field.value = 'yao';
+    field.dispatchEvent(new Event('input'));
+
+    expect(emitted).toEqual(['yao']);
+  });
+
+  it('choisit une suggestion d’un appui, panneau ouvert', async () => {
+    const fixture = await render();
+    let picked: SuggestionView | undefined;
+    fixture.componentInstance.picked.subscribe((v) => (picked = v));
+
+    fixture.nativeElement.querySelector('.suggestion').click();
+
+    expect(picked).toEqual(BASE);
+  });
+
+  it('propose de créer ce qui ne ressemble à rien de connu', async () => {
+    const fixture = await render([], true, [], true, 'Rutabaga');
+    let created: string | undefined;
+    fixture.componentInstance.created.subscribe((v) => (created = v));
+
+    const create = fixture.nativeElement.querySelector('.create');
+    // Les guillemets français collent leur insécable : on compare à l'espace
+    // près plutôt que d'écrire un caractère invisible dans l'attente.
+    expect(create.textContent.replace(/\s+/g, ' ')).toContain(
+      'Créer « Rutabaga »',
+    );
+
+    create.click();
+
+    expect(created).toBe('Rutabaga');
+  });
+
+  it('explique un historique vide plutôt que de laisser un blanc', async () => {
+    const { nativeElement } = await render([]);
+
+    expect(nativeElement.querySelector('.hint').textContent).toContain(
+      "Rien dans l'historique",
+    );
+  });
+
+  describe('entrée au clavier', () => {
+    /** Rejoue la validation du champ, et rend l'événement pour l'inspecter. */
+    function submit(nativeElement: HTMLElement): Event {
+      const event = new Event('submit', { cancelable: true });
+      nativeElement.querySelector('form').dispatchEvent(event);
+
+      return event;
+    }
+
+    it('prend la première suggestion, celle du haut du panneau', async () => {
+      // Le geste rapide du bureau : taper, valider, enchaîner.
+      const fixture = await render([
+        BASE,
+        { ...BASE, productId: 'product-2', label: 'Lait' },
+      ]);
+      let picked: SuggestionView | undefined;
+      fixture.componentInstance.picked.subscribe((v) => (picked = v));
+
+      const event = submit(fixture.nativeElement);
+
+      expect(picked).toEqual(BASE);
+      // Sans ça, valider rechargerait la page au lieu d'ajouter l'article.
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it('crée le produit quand rien ne correspond à la saisie', async () => {
+      const fixture = await render([], true, [], true, 'Rutabaga');
+      let created: string | undefined;
+      fixture.componentInstance.created.subscribe((v) => (created = v));
+
+      submit(fixture.nativeElement);
+
+      expect(created).toBe('Rutabaga');
+    });
+
+    it('ne crée rien sur un champ vide', async () => {
+      const fixture = await render([]);
+      let touched = false;
+      fixture.componentInstance.picked.subscribe(() => (touched = true));
+      fixture.componentInstance.created.subscribe(() => (touched = true));
+
+      submit(fixture.nativeElement);
+
+      expect(touched).toBe(false);
+    });
   });
 
   describe('ajouts enchaînés', () => {

@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -142,6 +143,26 @@ describe('CatalogPage', () => {
     ]);
   });
 
+  it('désarchive depuis la section des archivés', async () => {
+    // Archiver n'est pas supprimer : le geste inverse doit rester à un clic,
+    // et il préserve le compteur d'usage du produit.
+    const { fixture, dispatched } = await render((doc) => {
+      const bougie = createProduct(doc, { label: 'Bougie' }, NOW);
+      archiveProduct(doc, bougie, NOW);
+    });
+
+    fixture.nativeElement.querySelector('.toggle input').click();
+    await fixture.whenStable();
+
+    fixture.nativeElement
+      .querySelector<HTMLButtonElement>('.archived .archive')
+      ?.click();
+
+    expect(dispatched).toEqual([
+      expect.objectContaining({ type: '[Catalogue] Produit désarchivé' }),
+    ]);
+  });
+
   it('remet un produit dans la liste en un geste', async () => {
     // Le geste que tout le design vise : refaire la liste sans rien retaper.
     const { fixture, dispatched } = await render((doc) => {
@@ -163,5 +184,17 @@ describe('CatalogPage', () => {
     expect(rows(fixture)[0].querySelector('.meta')?.textContent).toContain(
       'Crèmerie',
     );
+  });
+
+  it('rend la main à l’écran d’où l’on vient', async () => {
+    // Un retour en arrière, pas une route en dur : l'historique est ouvert
+    // depuis la liste comme depuis la fiche d'un produit.
+    const { fixture } = await render(() => undefined);
+    const location = TestBed.inject(Location);
+    location.go('/historique');
+
+    fixture.nativeElement.querySelector<HTMLButtonElement>('.back')?.click();
+
+    expect(location.path()).toBe('');
   });
 });

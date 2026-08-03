@@ -18,6 +18,10 @@ import {
 } from './shopping.feature';
 import {
   filterSuggestions,
+  selectActiveItems,
+  selectArchivedIds,
+  selectCatalogEntries,
+  selectCheckedCount,
   selectCheckedItems,
   selectIsEmpty,
   selectItemViews,
@@ -36,7 +40,7 @@ const LIST_NAME = 'Nos courses';
  * dérivation pure, sans avoir à monter un Store.
  */
 function viewsOf(state: ShoppingState): readonly ItemView[] {
-  const active = Object.values(state.items).filter((i) => null === i.removedAt);
+  const active = selectActiveItems.projector(state.items);
   return selectItemViews.projector(active, state.catalog);
 }
 
@@ -76,6 +80,18 @@ class Scenario {
         now: options.at ?? NOW,
       });
     }
+    return this;
+  }
+
+  /** Une ligne dont le produit n'est pas (encore) dans le catalogue. */
+  addUnknown(productId: ProductId): this {
+    addItem(this.doc, {
+      listId: DEFAULT_LIST_ID,
+      productId,
+      addedBy: 'Evan',
+      deviceId: 'device-A',
+      now: NOW,
+    });
     return this;
   }
 
@@ -144,10 +160,30 @@ describe('selectors de la liste', () => {
       .check('lait')
       .state();
 
-    expect(
-      selectCheckedItems.projector(viewsOf(state)).map((v) => v.label),
-    ).toEqual(['Lait']);
+    const checked = selectCheckedItems.projector(viewsOf(state));
+
+    expect(checked.map((v) => v.label)).toEqual(['Lait']);
     expect(pendingOf(state).map((v) => v.label)).toEqual(['Pain']);
+    expect(selectCheckedCount.projector(checked)).toBe(1);
+  });
+
+  it('affiche une ligne dont le produit n’est pas encore arrivé', () => {
+    // Un delta qui ajoute la ligne peut précéder celui qui crée le produit.
+    // L'écran doit rester correct plutôt que de planter au milieu des courses,
+    // et le libellé traduit est posé par le template, d'où le drapeau.
+    const state = new Scenario().addUnknown('fantome').state();
+
+    expect(viewsOf(state)).toMatchObject([
+      {
+        unknownProduct: true,
+        label: '',
+        description: '',
+        qty: '',
+        imageRef: null,
+        emoji: '🛒',
+        aisle: 'divers',
+      },
+    ]);
   });
 
   it('groupe par rayon dans l’ordre de parcours du magasin', () => {
@@ -314,5 +350,70 @@ describe('filterSuggestions', () => {
     );
 
     expect(found.map((s) => s.label)).toEqual(['Laitue', 'Lait']);
+  });
+});
+
+describe('catalogue complet', () => {
+  it('garde les produits archivés, contrairement aux suggestions', () => {
+    // On vient ici précisément pour retrouver et désarchiver : les masquer
+    // rendrait l'opération impossible.
+    const state = new Scenario()
+      .product('bougie', { label: 'Bougie' })
+      .product('lait', { label: 'Lait' })
+      .archive('bougie')
+      .state();
+
+    expect(
+      selectCatalogEntries.projector(state.catalog, []).map((s) => s.label),
+    ).toEqual(['Bougie', 'Lait']);
+    expect(
+      selectSuggestions.projector(state.catalog, []).map((s) => s.label),
+    ).toEqual(['Lait']);
+  });
+
+  it('classe du plus acheté au moins acheté, puis alphabétiquement', () => {
+    // Pas de récence ici, contrairement aux suggestions : à usage égal, on
+    // cherche un produit par son nom.
+    const scenario = new Scenario()
+      .product('pain', { label: 'Pain' })
+      .product('lait', { label: 'Lait' })
+      .product('sel', { label: 'Sel' })
+      .add('pain', { times: 3, at: NOW })
+      .add('lait', { times: 1, at: NOW + 1000 })
+      .add('sel', { times: 1, at: NOW + 5000 });
+    const state = scenario.state();
+
+    expect(
+      selectCatalogEntries.projector(state.catalog, []).map((s) => s.label),
+    ).toEqual(['Pain', 'Lait', 'Sel']);
+  });
+
+  it('signale ce qui est déjà dans la liste', () => {
+    const state = new Scenario()
+      .product('lait', { label: 'Lait' })
+      .product('pain', { label: 'Pain' })
+      .add('lait')
+      .state();
+
+    const entries = selectCatalogEntries.projector(
+      state.catalog,
+      selectActiveItems.projector(state.items),
+    );
+
+    expect(entries.filter((s) => s.alreadyInList).map((s) => s.label)).toEqual([
+      'Lait',
+    ]);
+  });
+
+  it('distingue les produits archivés par leur empreinte', () => {
+    const scenario = new Scenario()
+      .product('bougie', { label: 'Bougie' })
+      .product('lait', { label: 'Lait' })
+      .archive('bougie');
+    const state = scenario.state();
+
+    expect([...selectArchivedIds.projector(state.catalog)]).toEqual([
+      scenario.id('bougie'),
+    ]);
   });
 });

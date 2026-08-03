@@ -16,6 +16,9 @@ const CONFIG: GithubConfig = {
   path: 'state.bin',
 };
 
+/** 2025-11-24 16:00:00 UTC, tel que GitHub le daterait en secondes. */
+const RESET_AT = 1_764_000_000_000;
+
 interface Call {
   url: string;
   init: RequestInit;
@@ -148,6 +151,48 @@ describe('readState', () => {
       GithubRateLimitError,
     );
   });
+
+  it('retient l’heure de réarmement du quota quand GitHub la donne', async () => {
+    // C'est ce qui permet d'annoncer « réessayez à 17 h » plutôt qu'un vague
+    // « quota épuisé ».
+    const { fetch } = stubFetch(
+      () =>
+        new Response(null, {
+          status: 403,
+          headers: {
+            'x-ratelimit-remaining': '0',
+            'x-ratelimit-reset': String(RESET_AT / 1000),
+          },
+        }),
+    );
+
+    await expect(readState(CONFIG, null, fetch)).rejects.toMatchObject({
+      resetAt: new Date(RESET_AT),
+    });
+  });
+
+  it('se passe de l’heure de réarmement quand elle manque', async () => {
+    const { fetch } = stubFetch(
+      () =>
+        new Response(null, {
+          status: 403,
+          headers: { 'x-ratelimit-remaining': '0' },
+        }),
+    );
+
+    await expect(readState(CONFIG, null, fetch)).rejects.toMatchObject({
+      resetAt: null,
+    });
+  });
+
+  it('signale une panne de GitHub avec son statut', async () => {
+    const { fetch } = stubFetch(() => new Response(null, { status: 502 }));
+
+    await expect(readState(CONFIG, null, fetch)).rejects.toMatchObject({
+      key: 'errors.github.readFailed',
+      params: { status: 502 },
+    });
+  });
 });
 
 describe('writeState', () => {
@@ -199,6 +244,19 @@ describe('writeState', () => {
       writeState(CONFIG, update, 'sha-1', 'm', fetch),
     ).rejects.toThrow(GithubAuthError);
   });
+
+  it('signale une panne d’écriture avec son statut', async () => {
+    // Ni conflit ni jeton : rien à refusionner, il n'y a qu'à réessayer plus
+    // tard, et le statut est la seule piste pour comprendre.
+    const { fetch } = stubFetch(() => new Response(null, { status: 500 }));
+
+    await expect(
+      writeState(CONFIG, update, 'sha-1', 'm', fetch),
+    ).rejects.toMatchObject({
+      key: 'errors.github.writeFailed',
+      params: { status: 500 },
+    });
+  });
 });
 
 describe('checkAccess', () => {
@@ -226,5 +284,16 @@ describe('checkAccess', () => {
     );
 
     await expect(checkAccess(CONFIG, fetch)).rejects.toThrow(GithubAuthError);
+  });
+
+  it('refuse l’appairage quand GitHub est en panne', async () => {
+    // Mieux vaut refuser que d'enregistrer une configuration dont on ne sait
+    // rien : on ne veut pas découvrir un jeton invalide au milieu des courses.
+    const { fetch } = stubFetch(() => new Response(null, { status: 503 }));
+
+    await expect(checkAccess(CONFIG, fetch)).rejects.toMatchObject({
+      key: 'errors.github.repoUnreachable',
+      params: { status: 503 },
+    });
   });
 });

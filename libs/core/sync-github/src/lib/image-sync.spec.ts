@@ -64,6 +64,17 @@ describe('fetchImage', () => {
       GithubAuthError,
     );
   });
+
+  it('distingue une panne d’un fichier absent', async () => {
+    // L'absence est normale et se replie sur un emoji ; une panne doit
+    // ressortir, sinon la photo semblerait ne jamais avoir été prise.
+    const { fetch } = stubFetch(() => new Response(null, { status: 500 }));
+
+    await expect(fetchImage(CONFIG, HASH, fetch)).rejects.toMatchObject({
+      key: 'errors.github.imageUnreachable',
+      params: { status: 500 },
+    });
+  });
 });
 
 describe('pushImage', () => {
@@ -105,11 +116,48 @@ describe('pushImage', () => {
     expect(await pushImage(CONFIG, HASH, BYTES, fetch)).toBe(false);
   });
 
+  it('traite un conflit de sha comme un succès', async () => {
+    const { fetch } = stubFetch((call) =>
+      'HEAD' === call.method
+        ? new Response(null, { status: 404 })
+        : new Response(null, { status: 409 }),
+    );
+
+    expect(await pushImage(CONFIG, HASH, BYTES, fetch)).toBe(false);
+  });
+
   it('remonte un jeton invalide', async () => {
     const { fetch } = stubFetch(() => new Response(null, { status: 401 }));
 
     await expect(pushImage(CONFIG, HASH, BYTES, fetch)).rejects.toThrow(
       GithubAuthError,
     );
+  });
+
+  it('remonte un jeton privé du droit d’écriture', async () => {
+    // Un jeton en lecture seule laisse passer la vérification et n'est refusé
+    // qu'à l'envoi : c'est là qu'il faut le dire.
+    const { fetch } = stubFetch((call) =>
+      'HEAD' === call.method
+        ? new Response(null, { status: 404 })
+        : new Response(null, { status: 401 }),
+    );
+
+    await expect(pushImage(CONFIG, HASH, BYTES, fetch)).rejects.toThrow(
+      GithubAuthError,
+    );
+  });
+
+  it('signale une panne d’envoi avec son statut', async () => {
+    const { fetch } = stubFetch((call) =>
+      'HEAD' === call.method
+        ? new Response(null, { status: 404 })
+        : new Response(null, { status: 500 }),
+    );
+
+    await expect(pushImage(CONFIG, HASH, BYTES, fetch)).rejects.toMatchObject({
+      key: 'errors.github.imageUploadFailed',
+      params: { status: 500 },
+    });
   });
 });

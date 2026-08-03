@@ -12,3 +12,22 @@ if (undefined === globalThis.crypto?.subtle) {
     value: webcrypto.subtle,
   });
 }
+
+/**
+ * Le `Blob` de jsdom s'arrête à `slice`, `size` et `type` : ni `arrayBuffer`,
+ * ni `text`. Or c'est par `arrayBuffer` que la réduction d'image récupère les
+ * octets encodés. `FileReader`, lui, est bien là.
+ */
+if (undefined === Blob.prototype.arrayBuffer) {
+  Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+    configurable: true,
+    value: function arrayBuffer(this: Blob): Promise<ArrayBuffer> {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(this);
+      });
+    },
+  });
+}
