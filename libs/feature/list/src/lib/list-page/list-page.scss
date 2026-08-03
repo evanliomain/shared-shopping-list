@@ -92,11 +92,16 @@ h1 {
 main {
   min-block-size: 0;
   overflow-y: auto;
-  /* Le bouton flottant se pose sur le bas de la liste : on lui réserve sa
+  /* Aucun rembourrage en haut : un défilement s'arrête au bord *intérieur* du
+     rembourrage, donc quatre pixels ici décalaient d'autant le rayon collant
+     et laissaient voir passer la ligne au-dessus. C'est le rayon lui-même qui
+     porte son air, par son propre rembourrage.
+
+     En bas, le bouton flottant se pose sur la liste : on lui réserve sa
      hauteur, sinon la dernière ligne resterait à moitié couverte une fois
      arrivé en bas. Les 96 px couvrent aussi l'encoche du bas, elle qui ne
      dépasse jamais 34 px. */
-  padding-block: var(--sl-space-1) 6rem;
+  padding-block: 0 6rem;
   background: var(--sl-bg);
 }
 
