@@ -212,7 +212,14 @@ main button.tall {
   min-block-size: 3.5rem;
 }
 
-.primary {
+/* Le sélecteur reprend `main`/`footer` — sans eux, `.primary` perdait contre
+   la règle du dessus, mieux notée : l'encapsulation Angular ajoute son attribut
+   à *chaque* maillon, et `main[x] button[x]` pèse plus lourd que `.primary[x]`.
+   Le bouton gardait donc le fond des boutons secondaires, avec l'encre prévue
+   pour le vert : blanc sur blanc en clair, vert sombre sur gris sombre en
+   sombre — 1:1 et 1,2:1, très en dessous des 4,5:1 du RGAA. */
+main button.primary,
+footer button.primary {
   border-color: transparent;
   background: var(--sl-brand);
   color: var(--sl-text-on-brand);
