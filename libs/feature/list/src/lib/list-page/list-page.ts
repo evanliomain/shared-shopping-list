@@ -34,8 +34,10 @@ import {
   EmptyState,
   SyncBadge,
   SyncBadgeStatus,
+  ThemeSwitch,
 } from '@shopping-list/ui';
 import { normalize } from '@shopping-list/util/categories';
+import { ThemeStore } from '@shopping-list/util/theme';
 
 import { AddBar } from '../add-bar/add-bar';
 import { HistoryPane } from '../history-pane/history-pane';
@@ -56,6 +58,7 @@ import { ListUiStore } from '../list-ui.store';
     PluralPipe,
     RouterLink,
     SyncBadge,
+    ThemeSwitch,
     TranslocoPipe,
   ],
   providers: [ListUiStore],
@@ -65,6 +68,7 @@ import { ListUiStore } from '../list-ui.store';
 export class ListPage {
   private readonly store = inject(Store);
   protected readonly ui = inject(ListUiStore);
+  protected readonly theme = inject(ThemeStore);
 
   private readonly storedName = this.store.selectSignal(selectListName);
   private readonly fallbackName = translateSignal('app.defaultListName');

@@ -76,6 +76,12 @@
     "undoAdd": "Remove {{label}} from the list",
     "create": "Create “{{label}}”"
   },
+  "theme": {
+    "label": "Theme",
+    "light": "Light theme",
+    "dark": "Dark theme",
+    "system": "System theme"
+  },
   "itemRow": {
     "check": "Tick off",
     "uncheck": "Put back on the list",

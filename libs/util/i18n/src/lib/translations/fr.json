@@ -76,6 +76,12 @@
     "undoAdd": "Retirer {{label}} de la liste",
     "create": "Créer « {{label}} »"
   },
+  "theme": {
+    "label": "Thème",
+    "light": "Thème clair",
+    "dark": "Thème sombre",
+    "system": "Thème du système"
+  },
   "itemRow": {
     "check": "Cocher",
     "uncheck": "Renvoyer dans la liste",

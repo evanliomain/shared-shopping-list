@@ -74,35 +74,56 @@
   --sl-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Les jetons du thème sombre, posés à deux endroits : là où le système le
+   demande, et là où l'écran de réglage l'impose. */
+@mixin dark {
+  color-scheme: dark;
+
+  --sl-brand: #3ddc84;
+  --sl-brand-strong: #2bb96c;
+  --sl-brand-soft: #12371f;
+  --sl-brand-ink: #8ff0b5;
+
+  --sl-danger: #ff6f63;
+  --sl-danger-soft: #3a1a17;
+  --sl-danger-ink: #ffa79e;
+
+  --sl-warning: #e6a53a;
+  --sl-warning-soft: #3a2a12;
+  --sl-warning-ink: #f2c67e;
+
+  --sl-bg: #0e0f10;
+  --sl-surface: #17191a;
+  --sl-surface-sunken: #212426;
+  --sl-border: #32363a;
+  --sl-text: #f4f3f1;
+  --sl-text-muted: #9b9a96;
+  /* Encre foncée sur le vert clair : le blanc y était illisible. Même
+     raisonnement sur le rouge clair. */
+  --sl-text-on-brand: #052e17;
+  --sl-text-on-danger: #3d100b;
+
+  --sl-shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  --sl-shadow-lg: 0 2px 6px rgb(0 0 0 / 40%), 0 18px 40px rgb(0 0 0 / 45%);
+}
+
+/* Sans choix explicite, c'est le téléphone qui décide — et qui continue de
+   décider quand il bascule au coucher du soleil. Le `:not` est ce qui permet
+   à « clair » de tenir devant un système réglé en sombre. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --sl-brand: #3ddc84;
-    --sl-brand-strong: #2bb96c;
-    --sl-brand-soft: #12371f;
-    --sl-brand-ink: #8ff0b5;
-
-    --sl-danger: #ff6f63;
-    --sl-danger-soft: #3a1a17;
-    --sl-danger-ink: #ffa79e;
-
-    --sl-warning: #e6a53a;
-    --sl-warning-soft: #3a2a12;
-    --sl-warning-ink: #f2c67e;
-
-    --sl-bg: #0e0f10;
-    --sl-surface: #17191a;
-    --sl-surface-sunken: #212426;
-    --sl-border: #32363a;
-    --sl-text: #f4f3f1;
-    --sl-text-muted: #9b9a96;
-    /* Encre foncée sur le vert clair : le blanc y était illisible. Même
-       raisonnement sur le rouge clair. */
-    --sl-text-on-brand: #052e17;
-    --sl-text-on-danger: #3d100b;
-
-    --sl-shadow: 0 1px 2px rgb(0 0 0 / 40%);
-    --sl-shadow-lg: 0 2px 6px rgb(0 0 0 / 40%), 0 18px 40px rgb(0 0 0 / 45%);
+  :root:not([data-theme='light']) {
+    @include dark;
   }
+}
+
+/* Choix explicite. `data-theme` est posé par `ThemeStore`, et déjà par le
+   script de `index.html` pour que le premier rendu soit le bon. */
+:root[data-theme='dark'] {
+  @include dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
 }
 
 *,

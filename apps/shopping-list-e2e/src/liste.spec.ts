@@ -274,6 +274,24 @@ test('la recherche pardonne les lettres manquantes', async ({ page }) => {
   await expect(suggestions.first().locator('mark').first()).toBeVisible();
 });
 
+test('le thème choisi survit au rechargement', async ({ page }) => {
+  // Le choix vit dans le `localStorage` de l'appareil, pas dans le CRDT : deux
+  // téléphones ont le droit d'être réglés différemment.
+  await page.getByRole('radio', { name: 'Thème sombre' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(
+    page.getByRole('radio', { name: 'Thème sombre' }),
+  ).toHaveAttribute('aria-checked', 'true');
+
+  // Revenir au système retire l'attribut : sans ça, « système » resterait figé
+  // sur le dernier choix.
+  await page.getByRole('radio', { name: 'Thème du système' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.*/);
+});
+
 test('vider la liste garde l’historique', async ({ page }) => {
   await createArticle(page, 'Lait');
   await createArticle(page, 'Pain');

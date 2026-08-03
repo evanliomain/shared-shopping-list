@@ -22,6 +22,21 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#097a40" />
 
+    <!-- Le thème choisi, posé avant le premier pixel. Angular le repose lui
+         aussi au démarrage, mais trop tard : un thème clair sur un téléphone
+         réglé en sombre commencerait par un éclair noir. Cinq lignes en ligne
+         valent mieux qu'une requête, et la clé est celle de `ThemeStore`. -->
+    <script>
+      try {
+        var theme = localStorage.getItem('sl.theme');
+        if ('light' === theme || 'dark' === theme) {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+      } catch (error) {
+        /* Stockage refusé : le thème du système fera l'affaire. */
+      }
+    </script>
+
     <link
       rel="icon"
       type="image/png"
