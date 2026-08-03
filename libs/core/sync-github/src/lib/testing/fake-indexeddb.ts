@@ -10,6 +10,11 @@
 
 type Handler = (() => void) | null;
 
+// Le stockage de réglages est le seul client de ce double : ses noms sont donc
+// connus d'avance, et c'est ce qui permet de semer une base déjà pourvue.
+const DB_NAME = 'shopping-list-settings';
+const STORE_NAME = 'kv';
+
 interface StoredDatabase {
   version: number;
   readonly stores: Map<string, Map<IDBValidKey, unknown>>;
@@ -26,6 +31,8 @@ class FakeRequest<T> {
 export interface FakeIndexedDb {
   /** Connexions ouvertes et pas encore refermées. */
   openConnections(): number;
+  /** Magasins créés pendant une montée de version. */
+  readonly created: string[];
   /** La prochaine ouverture de base échouera. */
   failNextOpen(): void;
   /** La prochaine lecture ou écriture échouera. */
@@ -33,10 +40,31 @@ export interface FakeIndexedDb {
   restore(): void;
 }
 
-export function installFakeIndexedDb(): FakeIndexedDb {
+export interface FakeIndexedDbOptions {
+  /**
+   * Réglages déjà rangés. Leur présence implique un magasin déjà créé, donc une
+   * base à faire monter de version plutôt qu'à initialiser.
+   */
+  readonly entries?: readonly (readonly [IDBValidKey, unknown])[];
+}
+
+export function installFakeIndexedDb(
+  options: FakeIndexedDbOptions = {},
+): FakeIndexedDb {
   const databases = new Map<string, StoredDatabase>();
   const failing = { open: false, request: false };
+  const created: string[] = [];
   let connections = 0;
+
+  if (undefined !== options.entries) {
+    // Version 0 : la base existe et porte déjà son magasin, mais reste en deçà
+    // de celle que le code demande. C'est le seul montage qui fait entrer
+    // `onupgradeneeded` sur un magasin présent.
+    databases.set(DB_NAME, {
+      version: 0,
+      stores: new Map([[STORE_NAME, new Map(options.entries)]]),
+    });
+  }
 
   function later<T>(request: FakeRequest<T>, run: () => T): void {
     queueMicrotask(() => {
@@ -91,6 +119,7 @@ export function installFakeIndexedDb(): FakeIndexedDb {
     }
 
     createObjectStore(name: string): FakeObjectStore {
+      created.push(name);
       const data = new Map<IDBValidKey, unknown>();
       this.stored.stores.set(name, data);
       return new FakeObjectStore(data);
@@ -150,6 +179,7 @@ export function installFakeIndexedDb(): FakeIndexedDb {
 
   return {
     openConnections: () => connections,
+    created,
     failNextOpen: () => {
       failing.open = true;
     },
