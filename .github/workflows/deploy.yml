@@ -17,28 +17,61 @@ concurrency:
 permissions:
   contents: read
 
+# Le pipeline est éclaté en jobs pour se lire d'un coup d'œil : on voit lequel
+# a cassé sans dérouler un journal, et les quatre vérifications tournent en
+# parallèle au lieu de s'enchaîner.
+#
+#   installation ─┬─ lint ─────────────────────────────┐
+#                 ├─ tests-unitaires ─┬─ couverture ───┤
+#                 ├─ tests-e2e ───────┘                ├─ deploy
+#                 └─ build ────────────────────────────┘
 jobs:
-  build:
+  installation:
+    name: Installation
     runs-on: ubuntu-latest
-    # `pull-requests: write` sert au commentaire de couverture, et à rien d'autre.
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      # Le `npm ci` du pipeline, payé une fois : l'action pose le cache que les
+      # jobs suivants restaurent.
+      - uses: ./.github/actions/preparer-node
+
+  lint:
+    name: Lint
+    needs: installation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparer-node
+
+      - run: npx nx run-many -t lint --parallel
+
+  tests-unitaires:
+    name: Tests unitaires
+    needs: installation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparer-node
+
+      - run: npx nx run-many -t test --parallel --coverage
+
+      # Les deux couvertures sont relevées sur deux machines : l'artefact est à
+      # la fois le seul chemin vers le job `couverture` et l'archive des `lcov`.
+      - name: Archiver la couverture unitaire
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 22
-          cache: npm
+          name: couverture-unitaire
+          path: coverage
+          if-no-files-found: error
 
-      - run: npm ci
-
-      - name: Lint
-        run: npx nx run-many -t lint --parallel
-
-      - name: Tests unitaires
-        run: npx nx run-many -t test --parallel --coverage
+  tests-e2e:
+    name: Tests end-to-end
+    needs: installation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparer-node
 
       - name: Navigateurs Playwright
         run: npx playwright install chromium webkit --with-deps
@@ -49,30 +82,20 @@ jobs:
           # Relève la couverture des parcours, sur les projets Chromium.
           E2E_COVERAGE: 'true'
 
-      - name: Rapport de couverture
-        run: |
-          node tools/rapport-couverture.mjs \
-            | tee "$RUNNER_TEMP/couverture.md" >> "$GITHUB_STEP_SUMMARY"
-
-      # Un seul commentaire, réécrit à chaque push : on veut lire la couverture
-      # de la branche, pas l'historique de ses allers-retours. Un fork n'a qu'un
-      # jeton en lecture, donc pas de commentaire — le résumé du job reste.
-      - name: Commenter la pull request
-        if: >-
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --body-file "$RUNNER_TEMP/couverture.md" --edit-last --create-if-none
-
-      - name: Archiver les rapports de couverture
+      - name: Archiver la couverture end-to-end
         uses: actions/upload-artifact@v4
         with:
-          name: couverture
-          path: coverage
+          name: couverture-e2e
+          path: coverage/e2e
           if-no-files-found: error
+
+  build:
+    name: Build
+    needs: installation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/preparer-node
 
       - name: Build
         run: npx nx build shopping-list --configuration=github-pages
@@ -92,10 +115,62 @@ jobs:
         with:
           path: dist/apps/shopping-list/browser
 
-  # Une pull request s'arrête après `build` : elle valide la branche sans
-  # écraser le site en ligne.
+  # Rassemble les deux relevés en un seul tableau. Le job existe parce que les
+  # tests tournent en parallèle : personne d'autre ne voit les deux moitiés.
+  couverture:
+    name: Rapport de couverture
+    needs: [tests-unitaires, tests-e2e]
+    runs-on: ubuntu-latest
+    # `pull-requests: write` sert au commentaire de couverture, et à rien d'autre.
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Le rapport ne lit que des JSON avec les modules de Node : pas besoin
+      # des dépendances, seulement de la bonne version de Node.
+      - uses: ./.github/actions/preparer-node
+        with:
+          node-modules: 'false'
+
+      - name: Récupérer la couverture unitaire
+        uses: actions/download-artifact@v4
+        with:
+          name: couverture-unitaire
+          path: coverage
+
+      - name: Récupérer la couverture end-to-end
+        uses: actions/download-artifact@v4
+        with:
+          name: couverture-e2e
+          path: coverage/e2e
+
+      - name: Rapport de couverture
+        run: |
+          node tools/rapport-couverture.mjs \
+            | tee "$RUNNER_TEMP/couverture.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # Un seul commentaire, réécrit à chaque push : on veut lire la couverture
+      # de la branche, pas l'historique de ses allers-retours. Un fork n'a qu'un
+      # jeton en lecture, donc pas de commentaire — le résumé du job reste.
+      - name: Commenter la pull request
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body-file "$RUNNER_TEMP/couverture.md" --edit-last --create-if-none
+
+  # Une pull request s'arrête avant `deploy` : elle valide la branche sans
+  # écraser le site en ligne. Le déploiement attend toutes les vérifications,
+  # pas seulement le build : un artefact qui compile mais casse un parcours ne
+  # doit pas partir en ligne.
   deploy:
-    needs: build
+    name: Déploiement
+    needs: [lint, tests-unitaires, tests-e2e, couverture, build]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
