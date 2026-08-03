@@ -198,9 +198,12 @@
     "boissons": "Drinks",
     "surgeles": "Frozen",
     "hygiene": "Toiletries",
+    "pharmacie": "Pharmacy",
     "entretien": "Household",
     "bebe": "Baby",
     "animaux": "Pets",
+    "librairie": "Books & stationery",
+    "multimedia": "Multimedia",
     "divers": "Other"
   },
   "errors": {

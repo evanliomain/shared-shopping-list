@@ -198,9 +198,12 @@
     "boissons": "Boissons",
     "surgeles": "Surgelés",
     "hygiene": "Hygiène",
+    "pharmacie": "Pharmacie",
     "entretien": "Entretien",
     "bebe": "Bébé",
     "animaux": "Animaux",
+    "librairie": "Librairie",
+    "multimedia": "Multimédia",
     "divers": "Divers"
   },
   "errors": {
