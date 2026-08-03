@@ -70,7 +70,7 @@ libs/core/                CRDT, QR, providers de synchro (IndexedDB, GitHub)
 libs/data-access/         NgRx (actions, reducers, selectors, effects)
 libs/feature/             pages et parcours (liste, produit, appairage, proximité)
 libs/ui/                  composants muets
-libs/util/                dictionnaire rayons/emoji, internationalisation
+libs/util/                rayons/emoji, i18n, recherche approximative, thème
 docs/architecture.md      le document de référence
 ```
 
@@ -172,6 +172,26 @@ texte d'origine à partir d'index calculés sur sa forme repliée.
 
 Tout cela vit dans [`libs/util/search/`](libs/util/search/src/lib/), une
 fonction pure et un découpage — aucune connaissance du domaine.
+
+## Thème
+
+Un sélecteur à trois positions dans l'en-tête de la liste : **clair**,
+**sombre**, **système**.
+
+« Système » n'est pas « clair par défaut » : c'est l'absence de choix, celle qui
+continue de suivre le téléphone quand il bascule au coucher du soleil. D'où
+trois segments plutôt qu'un interrupteur — et plutôt qu'un bouton qui fait le
+tour, lequel ne dit jamais où il en est sans qu'on le regarde.
+
+Le choix vit dans le `localStorage` de l'appareil et **pas dans le CRDT** :
+c'est une préférence d'appareil, deux téléphones ont le droit d'être réglés
+différemment, et un réglage qui se synchroniserait changerait l'écran de l'autre
+au milieu de ses courses.
+
+Il pose un attribut `data-theme` sur `<html>`, que lisent les jetons de
+`styles.scss`. Cinq lignes en ligne dans `index.html` le reposent avant le
+premier pixel : sans elles, un thème clair sur un téléphone réglé en sombre
+commencerait par un éclair noir.
 
 ## Contrastes
 

@@ -4,3 +4,4 @@ export * from './lib/empty-state/empty-state';
 export * from './lib/matched-text/matched-text';
 export * from './lib/scan-overlay/scan-overlay';
 export * from './lib/sync-badge/sync-badge';
+export * from './lib/theme-switch/theme-switch';

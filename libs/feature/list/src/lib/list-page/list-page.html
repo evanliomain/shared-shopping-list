@@ -1,6 +1,11 @@
 <header>
   <div class="title-row">
     <h1>{{ listName() }}</h1>
+
+    <!-- Le thème se règle depuis l'écran qu'on regarde tout le temps : c'est
+         là qu'on se rend compte qu'il éblouit, pas dans un menu de réglages. -->
+    <sl-theme-switch [theme]="theme.theme()" (chosen)="theme.set($event)" />
+
     <a
       class="history"
       routerLink="/historique"
