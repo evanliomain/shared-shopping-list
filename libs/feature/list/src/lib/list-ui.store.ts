@@ -19,6 +19,18 @@ export interface UndoableCheck {
 const UNDO_MS = 5000;
 
 /**
+ * En deçà de ce défilement, le bouton flottant est toujours là : le haut de la
+ * liste est l'endroit où l'on arrive, et où l'on ajoute.
+ */
+const FAB_REVEAL_PX = 24;
+
+/**
+ * Amplitude en dessous de laquelle un défilement ne compte pas. Sans ce seuil,
+ * un pouce posé sur l'écran ferait clignoter le bouton.
+ */
+const FAB_SLOP_PX = 8;
+
+/**
  * Le menu de la liste, et son étape de confirmation.
  *
  * Un seul champ à trois valeurs plutôt que deux booléens : « fermé mais en
@@ -32,6 +44,16 @@ interface ListUiState {
   readonly query: string;
   /** Le panneau de suggestions est-il déployé ? */
   readonly picking: boolean;
+  /**
+   * Instant d'ouverture du panneau, en millisecondes. Ce qui est entré dans la
+   * liste depuis fait la pile de pastilles annulables. Zéro : panneau fermé.
+   */
+  readonly pickingSince: number;
+  /**
+   * Le bouton flottant s'est retiré, parce qu'on défile vers l'avant de la
+   * liste. Il revient dès qu'on remonte.
+   */
+  readonly fabHidden: boolean;
   /** Le bloc « Dans le panier » est-il déployé ? */
   readonly showChecked: boolean;
   /** Ligne dont le menu est ouvert, s'il y en a une. */
@@ -45,6 +67,8 @@ interface ListUiState {
 const initial: ListUiState = {
   query: '',
   picking: false,
+  pickingSince: 0,
+  fabHidden: false,
   showChecked: false,
   openMenuFor: null,
   undoable: null,
@@ -73,6 +97,28 @@ export const ListUiStore = signalStore(
      */
     let undoTimer: ReturnType<typeof setTimeout> | null = null;
 
+    /**
+     * Dernier défilement observé. Hors de l'état pour la même raison : on ne le
+     * lit que pour en déduire un sens, jamais pour l'afficher.
+     */
+    let lastScrollTop = 0;
+
+    /**
+     * Ouvrir le panneau redémarre la pile d'ajouts. Idempotent : taper dans un
+     * champ déjà ouvert ne doit pas effacer les pastilles de la session.
+     */
+    const startPicking = (): void => {
+      if (store.picking()) {
+        return;
+      }
+
+      patchState(store, {
+        picking: true,
+        pickingSince: Date.now(),
+        fabHidden: false,
+      });
+    };
+
     const stopUndoTimer = (): void => {
       if (null !== undoTimer) {
         clearTimeout(undoTimer);
@@ -88,13 +134,38 @@ export const ListUiStore = signalStore(
     return {
       setQuery(query: string): void {
         // Taper ouvre le panneau : on ne veut pas d'un geste supplémentaire.
-        patchState(store, { query, picking: true });
+        startPicking();
+        patchState(store, { query });
       },
-      startPicking(): void {
-        patchState(store, { picking: true });
-      },
+      startPicking,
       stopPicking(): void {
-        patchState(store, { picking: false, query: '' });
+        patchState(store, {
+          picking: false,
+          pickingSince: 0,
+          query: '',
+          fabHidden: false,
+        });
+      },
+      /**
+       * Note un défilement du corps de liste, et en déduit le sort du bouton
+       * flottant : il se retire vers l'avant de la liste, revient dès qu'on
+       * remonte. Lire sa liste ne se fait pas avec un bouton posé dessus.
+       */
+      noteScroll(top: number): void {
+        const previous = lastScrollTop;
+        lastScrollTop = top;
+
+        if (FAB_REVEAL_PX >= top) {
+          patchState(store, { fabHidden: false });
+          return;
+        }
+
+        const delta = top - previous;
+        if (FAB_SLOP_PX > Math.abs(delta)) {
+          return;
+        }
+
+        patchState(store, { fabHidden: 0 < delta });
       },
       /** Après un ajout : on vide la saisie mais on laisse le panneau ouvert. */
       clearQuery(): void {
@@ -104,21 +175,27 @@ export const ListUiStore = signalStore(
         patchState(store, ({ showChecked }) => ({ showChecked: !showChecked }));
       },
       toggleMenu(itemId: ItemId): void {
-        patchState(store, ({ openMenuFor }): Partial<ListUiState> => ({
-          openMenuFor: openMenuFor === itemId ? null : itemId,
-          // Deux popovers ouverts en même temps, sur un écran de téléphone,
-          // c'est un de trop.
-          listMenu: 'closed',
-        }));
+        patchState(
+          store,
+          ({ openMenuFor }): Partial<ListUiState> => ({
+            openMenuFor: openMenuFor === itemId ? null : itemId,
+            // Deux popovers ouverts en même temps, sur un écran de téléphone,
+            // c'est un de trop.
+            listMenu: 'closed',
+          }),
+        );
       },
       closeMenu(): void {
         patchState(store, { openMenuFor: null });
       },
       toggleListMenu(): void {
-        patchState(store, ({ listMenu }): Partial<ListUiState> => ({
-          listMenu: 'closed' === listMenu ? 'open' : 'closed',
-          openMenuFor: null,
-        }));
+        patchState(
+          store,
+          ({ listMenu }): Partial<ListUiState> => ({
+            listMenu: 'closed' === listMenu ? 'open' : 'closed',
+            openMenuFor: null,
+          }),
+        );
       },
       /**
        * Vider la liste ne s'annule pas : on demande confirmation dans le menu

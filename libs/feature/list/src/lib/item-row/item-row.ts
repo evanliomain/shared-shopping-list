@@ -34,6 +34,11 @@ type Swipe = 'none' | 'check' | 'remove';
  * **glisser à droite** coche, **glisser à gauche** retire de la liste. Aucun
  * des deux n'est le seul chemin — le tap et le menu ⋯ font toujours le même
  * travail, pour le clavier, la souris et l'assistance vocale.
+ *
+ * Au-delà de 1040 px, le menu ⋯ cède la place à trois boutons toujours
+ * visibles (cocher, modifier, retirer) : il y a la place, et la souris n'a ni
+ * le glissé ni la ligne entière comme cible évidente. Un menu qui ne cache
+ * rien d'utile ne justifie pas le geste qu'il coûte.
  */
 @Component({
   selector: 'sl-item-row',
@@ -54,11 +59,12 @@ type Swipe = 'none' | 'check' | 'remove';
         [attr.aria-checked]="item().checked"
         (click)="onTap()"
       >
-        <span class="box" aria-hidden="true">
-          @if (item().checked) {
-            <span class="tick">✓</span>
-          }
-        </span>
+        <!-- Un article coché part dans le panier, barré. Le ✓ vert n'est plus
+             une cible : il dit l'état, là où une case de 26 px invitait à
+             viser. -->
+        @if (item().checked) {
+          <span class="tick" aria-hidden="true">✓</span>
+        }
 
         <sl-product-avatar [emoji]="item().emoji" [imageUrl]="imageUrl()" />
 
@@ -78,6 +84,35 @@ type Swipe = 'none' | 'check' | 'remove';
       </button>
 
       <div class="actions">
+        <!-- Au-delà de 1040 px : les trois entrées du menu, dépliées. -->
+        <span class="desk">
+          <button
+            type="button"
+            class="desk-check"
+            [attr.aria-label]="
+              (item().checked ? 'itemRow.uncheck' : 'itemRow.check') | transloco
+            "
+            (click)="onTap()"
+          >
+            {{ item().checked ? '↩' : '✓' }}
+          </button>
+          <a
+            class="desk-edit"
+            [routerLink]="['/produit', item().productId]"
+            [attr.aria-label]="'itemRow.edit' | transloco"
+          >
+            ✏️
+          </a>
+          <button
+            type="button"
+            class="desk-remove"
+            [attr.aria-label]="'itemRow.remove' | transloco"
+            (click)="onRemoveTap()"
+          >
+            ✕
+          </button>
+        </span>
+
         <button
           type="button"
           class="menu-toggle"
@@ -223,42 +258,17 @@ type Swipe = 'none' | 'check' | 'remove';
       background: var(--sl-surface-sunken);
     }
 
-    /* Sur téléphone, la case ne dit rien que la ligne ne dise déjà : toute la
-       ligne coche, le glissé aussi, et un article coché part dans le panier en
-       barré. Elle revient au-delà de 1040 px, là où la souris n'a ni l'un ni
-       l'autre. */
-    .box {
-      display: none;
-      place-items: center;
-      flex: none;
-      inline-size: 1.625rem;
-      block-size: 1.625rem;
-      border: 2px solid var(--sl-border);
-      border-radius: var(--sl-radius-full);
-      transition:
-        background 120ms ease,
-        border-color 120ms ease;
-    }
-
-    @media (min-width: 65rem) {
-      .box {
-        display: grid;
-      }
-
-      /* La case décale la vignette de 2,375 rem : le filet la suit. */
-      :host::before {
-        inset-inline: 3.875rem 0;
-      }
-    }
-
-    :host([data-checked='true']) .box {
-      border-color: var(--sl-brand);
-      background: var(--sl-brand);
-    }
-
+    /* La case à cocher a disparu de la ligne : elle ne disait rien que la ligne
+       ne dise déjà. Toute la ligne coche, le glissé aussi, le bouton ✓ au
+       bureau — et un article coché part dans le panier, barré et marqué d'un ✓
+       vert. Le barré et le rangement disent l'état mieux qu'un cercle de
+       26 px. */
     .tick {
-      color: var(--sl-text-on-brand);
-      font-size: var(--sl-font-sm);
+      flex: none;
+      inline-size: 1.125rem;
+      color: var(--sl-brand);
+      font-size: 0.9375rem;
+      font-weight: 700;
       line-height: 1;
     }
 
@@ -317,6 +327,61 @@ type Swipe = 'none' | 'check' | 'remove';
     .actions {
       position: relative;
       flex: none;
+    }
+
+    /* Les trois boutons ne servent qu'au bureau : sur téléphone, ils prendraient
+       120 px sur un libellé qui en manque déjà, pour doubler deux gestes du
+       pouce. C'est le menu ⋯ qui tient ce rôle là-bas. */
+    .desk {
+      display: none;
+      gap: 0.125rem;
+    }
+
+    .desk > * {
+      display: grid;
+      place-items: center;
+      inline-size: 2.5rem;
+      block-size: 2.5rem;
+      border: none;
+      border-radius: var(--sl-radius-sm);
+      background: transparent;
+      font-size: 0.9375rem;
+      text-decoration: none;
+    }
+
+    .desk > *:hover {
+      background: var(--sl-surface-sunken);
+    }
+
+    /* Cocher est l'action de l'écran : seule des trois à porter la marque. */
+    .desk-check {
+      background: var(--sl-brand-soft);
+      color: var(--sl-brand-ink);
+      font-weight: 700;
+    }
+
+    .desk-check:hover {
+      background: var(--sl-brand);
+      color: var(--sl-text-on-brand);
+    }
+
+    .desk-edit {
+      color: var(--sl-text-muted);
+    }
+
+    .desk-remove {
+      color: var(--sl-danger);
+      font-weight: 700;
+    }
+
+    @media (min-width: 65rem) {
+      .desk {
+        display: flex;
+      }
+
+      .menu-toggle {
+        display: none;
+      }
     }
 
     .menu-toggle {
@@ -535,6 +600,18 @@ export class ItemRow {
     }
 
     this.menuToggled.emit();
+  }
+
+  /**
+   * Le glissé se pratique aussi à la souris, boutons visibles : sans ce garde,
+   * un geste qui finit sur le ✕ retirerait deux fois.
+   */
+  protected onRemoveTap(): void {
+    if (this.consumeSwipeFallout()) {
+      return;
+    }
+
+    this.removed.emit();
   }
 
   private consumeSwipeFallout(): boolean {

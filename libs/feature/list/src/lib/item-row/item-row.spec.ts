@@ -112,6 +112,64 @@ describe('ItemRow', () => {
     expect(removed).toBe(true);
   });
 
+  describe('boutons du bureau', () => {
+    it('offre les trois entrées du menu, dépliées', async () => {
+      // Au-delà de 1040 px il y a la place : un menu qui ne cache rien d'utile
+      // ne justifie pas le geste qu'il coûte. C'est le CSS qui choisit lequel
+      // des deux s'affiche.
+      const { nativeElement } = await render();
+
+      expect(nativeElement.querySelector('.desk-check')).not.toBeNull();
+      expect(
+        nativeElement.querySelector('.desk-edit').getAttribute('href'),
+      ).toBe('/produit/product-1');
+      expect(nativeElement.querySelector('.desk-remove')).not.toBeNull();
+    });
+
+    it('coche par le bouton ✓, renvoie dans la liste par le ↩', async () => {
+      const pending = await render({ checked: false });
+      let emitted: boolean | undefined;
+      pending.componentInstance.toggled.subscribe((v) => (emitted = v));
+      expect(
+        pending.nativeElement.querySelector('.desk-check').textContent,
+      ).toContain('✓');
+
+      pending.nativeElement.querySelector('.desk-check').click();
+      expect(emitted).toBe(true);
+
+      const checked = await render({ checked: true });
+      checked.componentInstance.toggled.subscribe((v) => (emitted = v));
+      expect(
+        checked.nativeElement.querySelector('.desk-check').textContent,
+      ).toContain('↩');
+
+      checked.nativeElement.querySelector('.desk-check').click();
+      expect(emitted).toBe(false);
+    });
+
+    it('retire par le bouton ✕', async () => {
+      const fixture = await render();
+      let removed = false;
+      fixture.componentInstance.removed.subscribe(() => (removed = true));
+
+      fixture.nativeElement.querySelector('.desk-remove').click();
+
+      expect(removed).toBe(true);
+    });
+
+    it('marque l’état coché sans case à cocher', async () => {
+      // La case ronde a disparu : le ✓ vert dit l'état, il n'est plus une cible.
+      const pending = await render({ checked: false });
+      expect(pending.nativeElement.querySelector('.tick')).toBeNull();
+      expect(pending.nativeElement.querySelector('.box')).toBeNull();
+
+      const checked = await render({ checked: true });
+      expect(
+        checked.nativeElement.querySelector('.tick').textContent,
+      ).toContain('✓');
+    });
+  });
+
   describe('glissé', () => {
     /**
      * Rejoue un geste : un appui, quelques mouvements, un relâcher. Les étapes
@@ -271,6 +329,22 @@ describe('ItemRow', () => {
       fixture.nativeElement.querySelector('.toggle').click();
 
       expect(emitted).toEqual([true]);
+    });
+
+    it('n’enchaîne pas sur le ✕ du bureau ce que le geste vient de faire', async () => {
+      // Le glissé se pratique aussi à la souris, boutons visibles : un geste qui
+      // finit sur le ✕ retirerait deux fois.
+      const fixture = await render();
+      let removed = 0;
+      fixture.componentInstance.removed.subscribe(() => (removed += 1));
+
+      swipe(fixture.nativeElement, [
+        [-20, 0],
+        [-100, 0],
+      ]);
+      fixture.nativeElement.querySelector('.desk-remove').click();
+
+      expect(removed).toBe(1);
     });
 
     it('coche toujours au tap, une fois le geste retombé', async () => {

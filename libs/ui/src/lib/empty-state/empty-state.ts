@@ -1,6 +1,12 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-/** Écran vide : un emoji, un titre, une explication. */
+/**
+ * Écran vide : un emoji, un titre, une explication.
+ *
+ * Et, en option, le geste qui en sort — projeté plutôt que décrit par une
+ * entrée : un état vide ne connaît ni les routes ni les actions de la page qui
+ * l'affiche. Rien à projeter reste le cas courant, celui d'un simple constat.
+ */
 @Component({
   selector: 'sl-empty-state',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -10,6 +16,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     @if ('' !== hint()) {
       <p class="hint">{{ hint() }}</p>
     }
+    <ng-content />
   `,
   styles: `
     /* Le centrage vertical et la hauteur pleine servent quand l'état vide est

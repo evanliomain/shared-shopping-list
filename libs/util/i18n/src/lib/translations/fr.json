@@ -49,7 +49,8 @@
     "remainingTotal": "sur {{total}}",
     "progress": "Progression des courses",
     "emptyTitle": "La liste est vide",
-    "emptyHint": "Ajoutez un article ci-dessous. Il sera mémorisé pour les prochaines courses.",
+    "emptyHint": "Le premier article sera mémorisé pour les prochaines courses.",
+    "addArticle": "Ajouter un article",
     "basket": "Dans le panier ({{count}})",
     "clearBasket": "Vider",
     "menu": "Menu de la liste",
@@ -64,12 +65,21 @@
   },
   "addBar": {
     "placeholder": "Ajouter un article…",
+    "nextPlaceholder": "Article suivant…",
     "emptyHistory": "Rien dans l'historique pour l'instant. Tapez un article, il y sera la prochaine fois.",
     "alreadyInList": "déjà dans la liste",
+    "added": {
+      "one": "{{count}} article ajouté",
+      "other": "{{count}} articles ajoutés"
+    },
+    "done": "Terminé",
+    "undoAdd": "Retirer {{label}} de la liste",
     "create": "Créer « {{label}} »"
   },
   "itemRow": {
     "actions": "Actions pour {{label}}",
+    "check": "Cocher",
+    "uncheck": "Renvoyer dans la liste",
     "edit": "Modifier le produit",
     "remove": "Retirer de la liste"
   },

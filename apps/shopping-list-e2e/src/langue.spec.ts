@@ -14,6 +14,10 @@ test.describe('navigateur en anglais', () => {
     await page.goto('/liste');
 
     await expect(page.locator('h1')).toHaveText('Our groceries');
+
+    // La liste est vide : l'ajout est au centre de l'écran, et c'est lui qui
+    // ouvre la feuille — sur téléphone, il n'y a pas de barre à trouver.
+    await page.getByRole('button', { name: 'Add an item' }).click();
     await expect(page.getByPlaceholder('Add an item…')).toBeVisible();
 
     // Jusqu'aux libellés que seul le CSS ou l'assistance vocale lisent.
@@ -26,8 +30,8 @@ test.describe('navigateur en anglais', () => {
   test('accorde les libellés selon la règle anglaise', async ({ page }) => {
     await page.goto('/liste');
 
-    const input = page.getByPlaceholder('Add an item…');
-    await input.click();
+    await page.getByRole('button', { name: 'Add an item' }).click();
+    const input = page.locator('sl-add-bar input');
     await input.fill('Milk');
     await page.getByRole('button', { name: 'Create “Milk”' }).click();
 
