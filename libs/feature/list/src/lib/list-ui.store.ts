@@ -56,8 +56,6 @@ interface ListUiState {
   readonly fabHidden: boolean;
   /** Le bloc « Dans le panier » est-il déployé ? */
   readonly showChecked: boolean;
-  /** Ligne dont le menu est ouvert, s'il y en a une. */
-  readonly openMenuFor: ItemId | null;
   /** Dernier article coché, tant que le bandeau d'annulation est affiché. */
   readonly undoable: UndoableCheck | null;
   /** Le menu de l'en-tête, celui qui porte « Vider la liste ». */
@@ -70,7 +68,6 @@ const initial: ListUiState = {
   pickingSince: 0,
   fabHidden: false,
   showChecked: false,
-  openMenuFor: null,
   undoable: null,
   listMenu: 'closed',
 };
@@ -174,26 +171,11 @@ export const ListUiStore = signalStore(
       toggleChecked(): void {
         patchState(store, ({ showChecked }) => ({ showChecked: !showChecked }));
       },
-      toggleMenu(itemId: ItemId): void {
-        patchState(
-          store,
-          ({ openMenuFor }): Partial<ListUiState> => ({
-            openMenuFor: openMenuFor === itemId ? null : itemId,
-            // Deux popovers ouverts en même temps, sur un écran de téléphone,
-            // c'est un de trop.
-            listMenu: 'closed',
-          }),
-        );
-      },
-      closeMenu(): void {
-        patchState(store, { openMenuFor: null });
-      },
       toggleListMenu(): void {
         patchState(
           store,
           ({ listMenu }): Partial<ListUiState> => ({
             listMenu: 'closed' === listMenu ? 'open' : 'closed',
-            openMenuFor: null,
           }),
         );
       },

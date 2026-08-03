@@ -144,14 +144,6 @@ main.dimmed {
   box-shadow: var(--sl-shadow);
 }
 
-/* Un popover ouvert doit dépasser de sa carte — et passer au-dessus des
-   cartes suivantes, qui viennent après lui dans l'ordre du document. */
-.card.menu-open {
-  position: relative;
-  z-index: 5;
-  overflow: visible;
-}
-
 /* Filet inter-lignes : c'est la ligne elle-même qui le dessine, parce que son
    décalage dépend de ce qu'elle affiche à gauche. La carte dit seulement
    lesquelles en portent un — la première, non. */

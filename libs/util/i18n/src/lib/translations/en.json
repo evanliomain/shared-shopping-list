@@ -77,7 +77,6 @@
     "create": "Create “{{label}}”"
   },
   "itemRow": {
-    "actions": "Actions for {{label}}",
     "check": "Tick off",
     "uncheck": "Put back on the list",
     "edit": "Edit product",

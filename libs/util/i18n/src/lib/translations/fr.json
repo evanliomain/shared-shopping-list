@@ -77,7 +77,6 @@
     "create": "Créer « {{label}} »"
   },
   "itemRow": {
-    "actions": "Actions pour {{label}}",
     "check": "Cocher",
     "uncheck": "Renvoyer dans la liste",
     "edit": "Modifier le produit",

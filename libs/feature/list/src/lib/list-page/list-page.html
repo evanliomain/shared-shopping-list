@@ -69,16 +69,14 @@
     <span aria-hidden="true">{{ group.emoji }}</span>
     {{ 'aisles.' + group.aisle | transloco }}
   </h2>
-  <ul class="card" [class.menu-open]="hasOpenMenu(group.items)">
+  <ul class="card">
     @for (item of group.items; track item.id) {
     <li>
       <sl-item-row
         [item]="item"
-        [menuOpen]="ui.openMenuFor() === item.id"
         [imageUrl]="images.urlFor(item.imageRef)"
         (toggled)="toggle(item, $event)"
         (removed)="remove(item)"
-        (menuToggled)="ui.toggleMenu(item.id)"
       />
     </li>
     }
@@ -104,16 +102,14 @@
     </div>
 
     @if (ui.showChecked()) {
-    <ul class="card" [class.menu-open]="hasOpenMenu(checkedItems())">
+    <ul class="card">
       @for (item of checkedItems(); track item.id) {
       <li>
         <sl-item-row
           [item]="item"
-          [menuOpen]="ui.openMenuFor() === item.id"
           [imageUrl]="images.urlFor(item.imageRef)"
           (toggled)="toggle(item, $event)"
           (removed)="remove(item)"
-          (menuToggled)="ui.toggleMenu(item.id)"
         />
       </li>
       }

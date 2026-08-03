@@ -30,10 +30,9 @@ describe('ItemRow', () => {
 
   // Plusieurs rendus par test : la configuration du module ne peut être faite
   // qu'une fois, avant toute instanciation.
-  async function render(item: Partial<ItemView> = {}, menuOpen = false) {
+  async function render(item: Partial<ItemView> = {}) {
     const fixture = TestBed.createComponent(ItemRow);
     fixture.componentRef.setInput('item', { ...BASE, ...item });
-    fixture.componentRef.setInput('menuOpen', menuOpen);
     await fixture.whenStable();
 
     return fixture;
@@ -84,46 +83,49 @@ describe('ItemRow', () => {
     expect(emitted).toBe(true);
   });
 
-  it('ne montre le menu que lorsqu’il est ouvert', async () => {
-    const closed = await render({}, false);
-    expect(closed.nativeElement.querySelector('.menu')).toBeNull();
+  it('n’a plus de menu contextuel', async () => {
+    // Il ne portait que deux entrées, dont l'une — retirer — a son glissé ; et
+    // son popover, prisonnier du calque que crée la ligne pour glisser,
+    // passait sous la ligne suivante.
+    const { nativeElement } = await render();
 
-    const open = await render({}, true);
-    expect(open.nativeElement.querySelector('.menu')).not.toBeNull();
+    expect(nativeElement.querySelector('.menu')).toBeNull();
+    expect(nativeElement.querySelector('[aria-expanded]')).toBeNull();
   });
 
   it('pointe vers la fiche du produit, pas vers la ligne', async () => {
     // La fiche modifie le catalogue : c'est l'identifiant du produit qui
     // compte, pas celui de la ligne de liste.
-    const { nativeElement } = await render({}, true);
+    const { nativeElement } = await render();
 
-    expect(nativeElement.querySelector('.menu a').getAttribute('href')).toBe(
+    expect(nativeElement.querySelector('.edit').getAttribute('href')).toBe(
       '/produit/product-1',
     );
   });
 
-  it('émet la suppression depuis le menu', async () => {
-    const fixture = await render({}, true);
-    let removed = false;
-    fixture.componentInstance.removed.subscribe(() => (removed = true));
-
-    fixture.nativeElement.querySelector('.menu button').click();
-
-    expect(removed).toBe(true);
-  });
-
-  describe('boutons du bureau', () => {
-    it('offre les trois entrées du menu, dépliées', async () => {
-      // Au-delà de 1040 px il y a la place : un menu qui ne cache rien d'utile
-      // ne justifie pas le geste qu'il coûte. C'est le CSS qui choisit lequel
-      // des deux s'affiche.
+  describe('boutons d’action', () => {
+    it('dit ce que fait chaque bouton, à l’oreille et à la souris', async () => {
+      // Un glyphe seul ne dit rien à personne : `aria-label` pour la lecture
+      // d'écran, `title` pour l'infobulle, et les deux disent la même chose.
       const { nativeElement } = await render();
 
-      expect(nativeElement.querySelector('.desk-check')).not.toBeNull();
-      expect(
-        nativeElement.querySelector('.desk-edit').getAttribute('href'),
-      ).toBe('/produit/product-1');
-      expect(nativeElement.querySelector('.desk-remove')).not.toBeNull();
+      for (const [selector, label] of [
+        ['.check', 'Cocher'],
+        ['.edit', 'Modifier le produit'],
+        ['.remove', 'Retirer de la liste'],
+      ]) {
+        const button = nativeElement.querySelector(selector);
+        expect(button.getAttribute('aria-label')).toBe(label);
+        expect(button.getAttribute('title')).toBe(label);
+      }
+    });
+
+    it('dit « renvoyer » plutôt que « cocher » sur un article coché', async () => {
+      const { nativeElement } = await render({ checked: true });
+
+      expect(nativeElement.querySelector('.check').getAttribute('title')).toBe(
+        'Renvoyer dans la liste',
+      );
     });
 
     it('coche par le bouton ✓, renvoie dans la liste par le ↩', async () => {
@@ -131,19 +133,19 @@ describe('ItemRow', () => {
       let emitted: boolean | undefined;
       pending.componentInstance.toggled.subscribe((v) => (emitted = v));
       expect(
-        pending.nativeElement.querySelector('.desk-check').textContent,
+        pending.nativeElement.querySelector('.check').textContent,
       ).toContain('✓');
 
-      pending.nativeElement.querySelector('.desk-check').click();
+      pending.nativeElement.querySelector('.check').click();
       expect(emitted).toBe(true);
 
       const checked = await render({ checked: true });
       checked.componentInstance.toggled.subscribe((v) => (emitted = v));
       expect(
-        checked.nativeElement.querySelector('.desk-check').textContent,
+        checked.nativeElement.querySelector('.check').textContent,
       ).toContain('↩');
 
-      checked.nativeElement.querySelector('.desk-check').click();
+      checked.nativeElement.querySelector('.check').click();
       expect(emitted).toBe(false);
     });
 
@@ -152,7 +154,7 @@ describe('ItemRow', () => {
       let removed = false;
       fixture.componentInstance.removed.subscribe(() => (removed = true));
 
-      fixture.nativeElement.querySelector('.desk-remove').click();
+      fixture.nativeElement.querySelector('.remove').click();
 
       expect(removed).toBe(true);
     });
@@ -342,7 +344,7 @@ describe('ItemRow', () => {
         [-20, 0],
         [-100, 0],
       ]);
-      fixture.nativeElement.querySelector('.desk-remove').click();
+      fixture.nativeElement.querySelector('.remove').click();
 
       expect(removed).toBe(1);
     });
