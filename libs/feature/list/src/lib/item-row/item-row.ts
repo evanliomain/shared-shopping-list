@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { translateSignal, TranslocoPipe } from '@jsverse/transloco';
+import { translateSignal } from '@jsverse/transloco';
 import { ItemView } from '@shopping-list/data-access/shopping';
 import { ProductAvatar } from '@shopping-list/ui';
 
@@ -31,19 +31,22 @@ type Swipe = 'none' | 'check' | 'remove';
  * une case à cocher de 20 px avec un caddie dans l'autre main ne marche pas.
  *
  * Sur téléphone, les deux gestes du pouce remplacent la case et le menu :
- * **glisser à droite** coche, **glisser à gauche** retire de la liste. Aucun
- * des deux n'est le seul chemin — le tap et le menu ⋯ font toujours le même
- * travail, pour le clavier, la souris et l'assistance vocale.
+ * **glisser à droite** coche, **glisser à gauche** retire de la liste. Le tap
+ * sur la ligne coche aussi, pour le clavier et l'assistance vocale.
  *
- * Au-delà de 1040 px, le menu ⋯ cède la place à trois boutons toujours
- * visibles (cocher, modifier, retirer) : il y a la place, et la souris n'a ni
- * le glissé ni la ligne entière comme cible évidente. Un menu qui ne cache
- * rien d'utile ne justifie pas le geste qu'il coûte.
+ * Il n'y a **plus de menu ⋯** sur la ligne. Il ne portait que deux entrées,
+ * dont l'une — retirer — a son glissé ; et son popover, prisonnier du calque
+ * que crée la ligne pour glisser, passait sous la ligne suivante. Reste
+ * l'édition, qui n'a pas de geste : elle est un bouton, ici comme au bureau.
+ *
+ * Au-delà de 1040 px, deux boutons de plus l'encadrent — cocher et retirer :
+ * il y a la place, et la souris n'a ni le glissé ni la ligne entière comme
+ * cible évidente.
  */
 @Component({
   selector: 'sl-item-row',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProductAvatar, RouterLink, TranslocoPipe],
+  imports: [ProductAvatar, RouterLink],
   template: `
     <!-- Sous la ligne : ce que le glissé va faire. Décoratif, le geste double
          des commandes qui restent atteignables autrement. -->
@@ -83,62 +86,42 @@ type Swipe = 'none' | 'check' | 'remove';
         }
       </button>
 
+      <!-- Chaque bouton porte deux fois son intention : en aria-label pour la
+           lecture d'écran, en title pour l'infobulle. Un glyphe seul ne dit
+           rien à personne, et à la souris on veut savoir avant de cliquer. -->
       <div class="actions">
-        <!-- Au-delà de 1040 px : les trois entrées du menu, dépliées. -->
-        <span class="desk">
-          <button
-            type="button"
-            class="desk-check"
-            [attr.aria-label]="
-              (item().checked ? 'itemRow.uncheck' : 'itemRow.check') | transloco
-            "
-            (click)="onTap()"
-          >
-            {{ item().checked ? '↩' : '✓' }}
-          </button>
-          <a
-            class="desk-edit"
-            [routerLink]="['/produit', item().productId]"
-            [attr.aria-label]="'itemRow.edit' | transloco"
-          >
-            ✏️
-          </a>
-          <button
-            type="button"
-            class="desk-remove"
-            [attr.aria-label]="'itemRow.remove' | transloco"
-            (click)="onRemoveTap()"
-          >
-            ✕
-          </button>
-        </span>
+        <!-- Cocher et retirer ne sont des boutons qu'au-delà de 1040 px : sur
+             téléphone, ce sont les deux gestes du pouce, et 80 px de plus se
+             prendraient sur un libellé qui en manque déjà. -->
+        <button
+          type="button"
+          class="action check"
+          [attr.aria-label]="checkLabel()"
+          [attr.title]="checkLabel()"
+          (click)="onTap()"
+        >
+          {{ item().checked ? '↩' : '✓' }}
+        </button>
+
+        <!-- L'édition, elle, n'a aucun geste : son bouton est partout. -->
+        <a
+          class="action edit"
+          [routerLink]="['/produit', item().productId]"
+          [attr.aria-label]="editLabel()"
+          [attr.title]="editLabel()"
+        >
+          ✏️
+        </a>
 
         <button
           type="button"
-          class="menu-toggle"
-          [attr.aria-label]="
-            'itemRow.actions' | transloco: { label: displayLabel() }
-          "
-          [attr.aria-expanded]="menuOpen()"
-          (click)="onMenuTap()"
+          class="action remove"
+          [attr.aria-label]="removeLabel()"
+          [attr.title]="removeLabel()"
+          (click)="onRemoveTap()"
         >
-          ⋯
+          ✕
         </button>
-
-        @if (menuOpen()) {
-          <div class="menu" role="menu">
-            <a
-              role="menuitem"
-              [routerLink]="['/produit', item().productId]"
-              (click)="menuToggled.emit()"
-            >
-              {{ 'itemRow.edit' | transloco }}
-            </a>
-            <button type="button" role="menuitem" (click)="removed.emit()">
-              {{ 'itemRow.remove' | transloco }}
-            </button>
-          </div>
-        }
       </div>
     </div>
   `,
@@ -325,19 +308,12 @@ type Swipe = 'none' | 'check' | 'remove';
     }
 
     .actions {
-      position: relative;
+      display: flex;
       flex: none;
-    }
-
-    /* Les trois boutons ne servent qu'au bureau : sur téléphone, ils prendraient
-       120 px sur un libellé qui en manque déjà, pour doubler deux gestes du
-       pouce. C'est le menu ⋯ qui tient ce rôle là-bas. */
-    .desk {
-      display: none;
       gap: 0.125rem;
     }
 
-    .desk > * {
+    .action {
       display: grid;
       place-items: center;
       inline-size: 2.5rem;
@@ -349,98 +325,51 @@ type Swipe = 'none' | 'check' | 'remove';
       text-decoration: none;
     }
 
-    .desk > *:hover {
+    .action:hover {
       background: var(--sl-surface-sunken);
     }
 
     /* Cocher est l'action de l'écran : seule des trois à porter la marque. */
-    .desk-check {
+    .check {
       background: var(--sl-brand-soft);
       color: var(--sl-brand-ink);
       font-weight: 700;
     }
 
-    .desk-check:hover {
+    .check:hover {
       background: var(--sl-brand);
       color: var(--sl-text-on-brand);
     }
 
-    .desk-edit {
+    /* La cible tactile va chercher les 44 px exigés : au bureau, la souris se
+       contente des 40 px de la vignette. */
+    .edit {
+      block-size: var(--sl-tap-target);
       color: var(--sl-text-muted);
     }
 
-    .desk-remove {
+    .remove {
       color: var(--sl-danger);
       font-weight: 700;
     }
 
+    /* Cocher et retirer ont leur geste sur téléphone : la ligne entière pour
+       l'un, le glissé pour l'autre. Ils ne redeviennent des boutons que là où
+       la souris n'a ni l'un ni l'autre comme cible évidente. */
+    .check,
+    .remove {
+      display: none;
+    }
+
     @media (min-width: 65rem) {
-      .desk {
-        display: flex;
+      .check,
+      .remove {
+        display: grid;
       }
 
-      .menu-toggle {
-        display: none;
+      .edit {
+        block-size: 2.5rem;
       }
-    }
-
-    .menu-toggle {
-      inline-size: 2.5rem;
-      min-block-size: var(--sl-tap-target);
-      border: none;
-      border-radius: var(--sl-radius-sm);
-      background: transparent;
-      color: var(--sl-text-muted);
-      font-size: 1.125rem;
-      line-height: 1;
-    }
-
-    /* Le bouton ouvert se teinte : avec plusieurs lignes à l'écran, la seule
-       position du popover ne dit pas toujours de laquelle il est parti. */
-    .menu-toggle[aria-expanded='true'] {
-      background: var(--sl-surface-sunken);
-      color: var(--sl-text);
-    }
-
-    .menu {
-      position: absolute;
-      inset-block-start: calc(100% - 0.375rem);
-      inset-inline-end: 0;
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      min-inline-size: 13.5rem;
-      overflow: hidden;
-      border: 1px solid var(--sl-border);
-      border-radius: var(--sl-radius);
-      background: var(--sl-surface);
-      box-shadow: var(--sl-shadow-lg);
-    }
-
-    .menu > * {
-      min-block-size: 3rem;
-      display: flex;
-      align-items: center;
-      padding-inline: var(--sl-space-4);
-      border: none;
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      font-size: 0.9375rem;
-      text-align: start;
-      text-decoration: none;
-    }
-
-    .menu > * + * {
-      border-block-start: 1px solid var(--sl-border);
-    }
-
-    .menu > *:active {
-      background: var(--sl-surface-sunken);
-    }
-
-    .menu > button {
-      color: var(--sl-danger);
     }
   `,
   host: {
@@ -459,17 +388,26 @@ type Swipe = 'none' | 'check' | 'remove';
 })
 export class ItemRow {
   readonly item = input.required<ItemView>();
-  readonly menuOpen = input(false);
   /** Photo du produit, si elle est déjà disponible localement. */
   readonly imageUrl = input<string | null>(null);
 
   readonly toggled = output<boolean>();
   readonly removed = output<void>();
-  readonly menuToggled = output<void>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   private readonly unknownLabel = translateSignal('list.unknownItem');
+
+  /**
+   * Les intentions des trois boutons, traduites une fois pour deux emplois :
+   * le nom accessible et l'infobulle disent la même chose, il n'y a aucune
+   * raison de les faire diverger.
+   */
+  protected readonly checkLabel = translateSignal(
+    computed(() => (this.item().checked ? 'itemRow.uncheck' : 'itemRow.check')),
+  );
+  protected readonly editLabel = translateSignal('itemRow.edit');
+  protected readonly removeLabel = translateSignal('itemRow.remove');
 
   /**
    * Le produit peut manquer : un delta qui ajoute la ligne peut arriver avant
@@ -592,14 +530,6 @@ export class ItemRow {
     }
 
     this.toggled.emit(!this.item().checked);
-  }
-
-  protected onMenuTap(): void {
-    if (this.consumeSwipeFallout()) {
-      return;
-    }
-
-    this.menuToggled.emit();
   }
 
   /**

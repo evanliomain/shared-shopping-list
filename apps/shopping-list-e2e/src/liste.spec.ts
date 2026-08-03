@@ -42,16 +42,10 @@ async function createArticle(page: Page, label: string): Promise<void> {
   await page.getByRole('button', { name: `Créer « ${label} »` }).click();
 }
 
-async function openMenu(page: Page, label: string): Promise<void> {
-  await row(page, label)
-    .getByRole('button', { name: `Actions pour ${label}` })
-    .click();
-}
-
 /**
- * Retire un article. Au-delà de 1040 px la ligne porte ses trois boutons ; en
- * dessous, c'est le menu ⋯ qui les tient. Le parcours passe par ce qui est
- * réellement à l'écran.
+ * Retire un article. Au-delà de 1040 px la ligne porte son ✕ ; en dessous,
+ * c'est le glissé vers la gauche qui fait le travail. Le parcours passe par ce
+ * qui est réellement à disposition.
  */
 async function removeArticle(page: Page, label: string): Promise<void> {
   const button = row(page, label).getByRole('button', {
@@ -62,22 +56,14 @@ async function removeArticle(page: Page, label: string): Promise<void> {
     return;
   }
 
-  await openMenu(page, label);
-  await page.getByRole('menuitem', { name: 'Retirer de la liste' }).click();
+  await swipe(page, label, -120);
 }
 
-/** Même partage : le ✏️ de la ligne au bureau, le menu ⋯ sur téléphone. */
+/** Le ✏️ de la ligne, présent à toutes les largeurs : l'édition n'a pas de geste. */
 async function editArticle(page: Page, label: string): Promise<void> {
-  const link = row(page, label).getByRole('link', {
-    name: 'Modifier le produit',
-  });
-  if (await link.isVisible()) {
-    await link.click();
-    return;
-  }
-
-  await openMenu(page, label);
-  await page.getByRole('menuitem', { name: 'Modifier le produit' }).click();
+  await row(page, label)
+    .getByRole('link', { name: 'Modifier le produit' })
+    .click();
 }
 
 /**

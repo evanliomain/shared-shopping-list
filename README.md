@@ -77,31 +77,32 @@ docs/architecture.md      le document de référence
 
 Sur téléphone, la liste se mène au pouce, une main sur le caddie :
 
-| Geste                | Effet                          |
-| -------------------- | ------------------------------ |
-| Taper la ligne       | Cocher / décocher              |
-| **Glisser à droite** | Cocher (ou renvoyer du panier) |
-| **Glisser à gauche** | Retirer de la liste            |
-| Menu ⋯ de la ligne   | Modifier le produit, retirer   |
-| Menu ⋯ de l'en-tête  | Vider la liste                 |
-
-À la souris, au-delà de 1040 px, ce menu ⋯ devient trois boutons sur la ligne —
-voir plus bas.
+| Geste                 | Effet                          |
+| --------------------- | ------------------------------ |
+| Taper la ligne        | Cocher / décocher              |
+| **Glisser à droite**  | Cocher (ou renvoyer du panier) |
+| **Glisser à gauche**  | Retirer de la liste            |
+| Bouton ✏️ de la ligne | Modifier le produit            |
+| Menu ⋯ de l'en-tête   | Vider la liste                 |
 
 La voie découverte par le glissé se teinte doucement, puis se sature au
 franchissement du seuil : le point de bascule se voit au lieu de se deviner.
-Aucun geste n'est le seul chemin — tout reste atteignable au tap, au clavier et
-à l'assistance vocale.
 
 Il n'y a **plus de case à cocher** : la ligne entière coche, le glissé fait le
 même travail, et un article coché part dans le panier, barré et marqué d'un ✓
 vert. Le barré et le rangement disent l'état mieux qu'un cercle de 26 px, qui
 n'était qu'une cible de plus à viser.
 
-**Au-delà de 1040 px, le menu ⋯ de la ligne cède la place à trois boutons
-toujours visibles** — ✓ cocher, ✏️ modifier, ✕ retirer. Il y a la place, et la
-souris n'a ni le glissé ni la ligne entière comme cible évidente : un menu qui
-ne cache rien d'utile ne justifie pas le geste qu'il coûte.
+Il n'y a **plus de menu ⋯ sur la ligne** non plus. Il ne portait que deux
+entrées, dont l'une — retirer — a son glissé ; et son popover, prisonnier du
+calque que la ligne crée pour glisser, passait sous la ligne suivante :
+inatteignable au doigt autant qu'à l'œil. Reste l'édition, qui n'a pas de
+geste, et qui est donc un bouton — à toutes les largeurs.
+
+**Au-delà de 1040 px, deux boutons de plus encadrent le ✏️** — ✓ cocher,
+✕ retirer. Il y a la place, et la souris n'a ni le glissé ni la ligne entière
+comme cible évidente. Les trois portent un `aria-label` **et** un `title` : un
+glyphe seul ne dit rien à personne, et on veut savoir avant de cliquer.
 
 « Vider la liste » ne touche pas au catalogue — c'est toute la différence avec
 l'historique, et ce qui permet de refaire les courses suivantes sans rien

@@ -238,12 +238,6 @@ export class ListPage {
     this.ui.clearQuery();
   }
 
-  /** Une carte de rayon laisse dépasser son popover si le menu y est ouvert. */
-  protected hasOpenMenu(items: readonly ItemView[]): boolean {
-    const open = this.ui.openMenuFor();
-    return null !== open && items.some((item) => item.id === open);
-  }
-
   protected toggle(item: ItemView, checked: boolean): void {
     this.store.dispatch(listActions.articleCoché({ itemId: item.id, checked }));
 
@@ -270,7 +264,6 @@ export class ListPage {
   }
 
   protected remove(item: ItemView): void {
-    this.ui.closeMenu();
     this.store.dispatch(listActions.articleRetiré({ itemId: item.id }));
   }
 

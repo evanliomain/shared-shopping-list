@@ -114,10 +114,10 @@ describe('rendu des traductions', () => {
     // Un libellé de produit part dans un paramètre : accolades et apostrophes
     // doivent ressortir telles quelles.
     expect(
-      serviceFor('fr').translate('itemRow.actions', {
+      serviceFor('fr').translate('catalog.add', {
         label: "Lait {bio} d'ici",
       }),
-    ).toBe("Actions pour Lait {bio} d'ici");
+    ).toBe("Ajouter Lait {bio} d'ici à la liste");
   });
 
   it('rend les libellés de rayon dans les deux langues', () => {
