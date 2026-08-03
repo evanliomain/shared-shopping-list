@@ -22,7 +22,7 @@
         ],
         "styles": ["apps/shopping-list/src/styles.scss"],
         "serviceWorker": "apps/shopping-list/ngsw-config.json",
-        "allowedCommonJsDependencies": ["qrcode"]
+        "allowedCommonJsDependencies": ["qrcode", "fuzzysort"]
       },
       "configurations": {
         "production": {

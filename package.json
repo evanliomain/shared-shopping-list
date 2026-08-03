@@ -67,6 +67,7 @@
     "@ngrx/operators": "^21.1.1",
     "@ngrx/signals": "^21.1.1",
     "@ngrx/store": "^21.1.1",
+    "fuzzysort": "^3.1.0",
     "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",
     "taninsam": "^1.17.0",

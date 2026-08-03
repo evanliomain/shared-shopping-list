@@ -58,9 +58,13 @@
         />
 
         <span class="text">
-          <span class="label">{{ entry.label }}</span>
+          <span class="label">
+            <sl-matched-text [text]="entry.label" [query]="query()" />
+          </span>
           @if ('' !== entry.description) {
-          <span class="description">{{ entry.description }}</span>
+          <span class="description">
+            <sl-matched-text [text]="entry.description" [query]="query()" />
+          </span>
           }
           <span class="meta">
             {{ 'aisles.' + entry.aisle | transloco }} · {{ 'catalog.usage' |
@@ -100,9 +104,13 @@
         />
 
         <span class="text">
-          <span class="label">{{ entry.label }}</span>
+          <span class="label">
+            <sl-matched-text [text]="entry.label" [query]="query()" />
+          </span>
           @if ('' !== entry.description) {
-          <span class="description">{{ entry.description }}</span>
+          <span class="description">
+            <sl-matched-text [text]="entry.description" [query]="query()" />
+          </span>
           }
           <span class="meta">
             {{ 'aisles.' + entry.aisle | transloco }} · {{ 'catalog.usage' |

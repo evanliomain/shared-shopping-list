@@ -14,7 +14,7 @@ import {
   ProductImages,
   SuggestionView,
 } from '@shopping-list/data-access/shopping';
-import { ProductAvatar } from '@shopping-list/ui';
+import { MatchedText, ProductAvatar } from '@shopping-list/ui';
 import { PluralPipe } from '@shopping-list/util/i18n';
 
 /**
@@ -34,7 +34,7 @@ import { PluralPipe } from '@shopping-list/util/i18n';
 @Component({
   selector: 'sl-add-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PluralPipe, ProductAvatar, TranslocoPipe],
+  imports: [MatchedText, PluralPipe, ProductAvatar, TranslocoPipe],
   template: `
     @if (picking()) {
       <div class="grip" aria-hidden="true"><span></span></div>
@@ -90,10 +90,18 @@ import { PluralPipe } from '@shopping-list/util/i18n';
                   [imageUrl]="images.urlFor(suggestion.imageRef)"
                 />
                 <span class="text">
-                  <span class="label">{{ suggestion.label }}</span>
+                  <span class="label">
+                    <sl-matched-text
+                      [text]="suggestion.label"
+                      [query]="query()"
+                    />
+                  </span>
                   <span class="second">
                     @if ('' !== suggestion.description) {
-                      {{ suggestion.description }}
+                      <sl-matched-text
+                        [text]="suggestion.description"
+                        [query]="query()"
+                      />
                     } @else {
                       {{ 'aisles.' + suggestion.aisle | transloco }} ·
                       {{ 'catalog.usage' | plural: suggestion.usage }}

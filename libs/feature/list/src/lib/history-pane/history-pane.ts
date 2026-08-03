@@ -15,7 +15,7 @@ import {
   selectSuggestions,
   SuggestionView,
 } from '@shopping-list/data-access/shopping';
-import { EmptyState, ProductAvatar } from '@shopping-list/ui';
+import { EmptyState, MatchedText, ProductAvatar } from '@shopping-list/ui';
 import { PluralPipe } from '@shopping-list/util/i18n';
 
 /**
@@ -34,7 +34,7 @@ import { PluralPipe } from '@shopping-list/util/i18n';
 @Component({
   selector: 'sl-history-pane',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EmptyState, PluralPipe, ProductAvatar, TranslocoPipe],
+  imports: [EmptyState, MatchedText, PluralPipe, ProductAvatar, TranslocoPipe],
   template: `
     <div class="head">
       <h2>{{ 'catalog.title' | transloco }}</h2>
@@ -66,7 +66,17 @@ import { PluralPipe } from '@shopping-list/util/i18n';
                 [imageUrl]="images.urlFor(entry.imageRef)"
               />
               <span class="text">
-                <span class="label">{{ entry.label }}</span>
+                <span class="label">
+                  <sl-matched-text [text]="entry.label" [query]="query()" />
+                </span>
+                @if ('' !== entry.description) {
+                  <span class="description">
+                    <sl-matched-text
+                      [text]="entry.description"
+                      [query]="query()"
+                    />
+                  </span>
+                }
                 <span class="meta">
                   {{ 'aisles.' + entry.aisle | transloco }} ·
                   {{ 'catalog.usage' | plural: entry.usage }}
@@ -188,6 +198,7 @@ import { PluralPipe } from '@shopping-list/util/i18n';
     }
 
     .label,
+    .description,
     .meta {
       overflow: hidden;
       text-overflow: ellipsis;
@@ -199,6 +210,10 @@ import { PluralPipe } from '@shopping-list/util/i18n';
       font-weight: 550;
     }
 
+    /* Affichée seulement ici quand elle existe : c'est souvent sur elle que la
+       recherche a répondu (« vanille » pour « Yaourt »), et un surlignage sur
+       un texte absent de l'écran ne se voit pas. */
+    .description,
     .meta {
       color: var(--sl-text-muted);
       font-size: var(--sl-font-xs);
