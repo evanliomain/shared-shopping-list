@@ -14,9 +14,14 @@ export const AISLES = [
   'boissons',
   'surgeles',
   'hygiene',
+  'pharmacie',
   'entretien',
   'bebe',
   'animaux',
+  // Le non-alimentaire ferme la marche : dans un hypermarché, la culture et
+  // le multimédia sont du côté des caisses, pas du côté des rayons frais.
+  'librairie',
+  'multimedia',
   'divers',
 ] as const;
 
@@ -43,9 +48,12 @@ export const AISLE_EMOJI: Readonly<Record<Aisle, string>> = {
   boissons: '🧃',
   surgeles: '🧊',
   hygiene: '🧴',
+  pharmacie: '💊',
   entretien: '🧽',
   bebe: '🍼',
   animaux: '🐾',
+  librairie: '📚',
+  multimedia: '🎧',
   divers: '🛒',
 };
 
