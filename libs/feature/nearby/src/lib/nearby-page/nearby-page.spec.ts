@@ -156,40 +156,6 @@ function otherPhone(labels: readonly string[]): Y.Doc {
   return doc;
 }
 
-/**
- * Un téléphone déjà vécu.
- *
- * Yjs tire un `clientID` neuf à chaque chargement de l'application : le
- * vecteur d'état grossit d'environ six octets par ouverture, indéfiniment.
- * C'est ce qui faisait passer le tout premier code de l'échange de quelques
- * modules à une centaine — jusqu'à devenir illisible en silence.
- */
-function agedPhone(sessions: number): Y.Doc {
-  const doc = otherPhone(['Lait']);
-
-  for (let i = 0; i < sessions; i++) {
-    const session = new Y.Doc();
-    Y.applyUpdate(session, Y.encodeStateAsUpdate(doc));
-    createProduct(
-      session,
-      {
-        label: `Article numéro ${i}`,
-        description: '',
-        defaultQty: '1',
-        category: 'épicerie',
-        imageRef: 'emoji:🥕',
-      },
-      1_700_000_000_000 + i,
-    );
-    Y.applyUpdate(
-      doc,
-      Y.encodeStateAsUpdate(session, Y.encodeStateVector(doc)),
-    );
-  }
-
-  return doc;
-}
-
 function labelsOf(doc: Y.Doc): string[] {
   return [...doc.getMap('catalog').values()]
     .map((node) => (node as Y.Map<unknown>).get('label') as string)
@@ -289,29 +255,63 @@ describe('NearbyPage', () => {
   });
 
   it('assemble un message de plusieurs écrans sans rouvrir la caméra', async () => {
-    // La régression : un vecteur d'état de document vécu ne tient pas en un
-    // seul QR. Chaque trame rouvrait la caméra, ce qui laissait passer la
-    // boucle d'en face et l'assemblage n'aboutissait jamais.
+    // Un premier échange avec un catalogue déjà fourni ne tient pas en un seul
+    // code. Chaque trame rouvrait la caméra, ce qui laissait passer la boucle
+    // d'en face et l'assemblage n'aboutissait jamais.
     const { scanner } = setup();
     const fixture = await render();
-    const theirs = agedPhone(80);
+    const mine = TestBed.inject(YDocService).doc;
+    const theirs = otherPhone(
+      Array.from({ length: 40 }, (_, i) => `Article numéro ${i}`),
+    );
+
+    button(fixture, 'Je commence')?.click();
+    await settle(fixture);
 
     const { frames } = await encodeFrames(
-      encodeMessage(announce(theirs)),
-      's1',
+      encodeMessage(respond(theirs, announce(mine))),
+      's2',
     );
     expect(frames.length).toBeGreaterThan(1);
 
     // On rate la première trame ; elle revient au tour suivant.
     scanner.show([...frames.slice(1), ...frames]);
 
-    button(fixture, "L'autre commence")?.click();
+    button(fixture, "C'est scanné")?.click();
     await settle(fixture);
 
     expect(scanner.sessions).toBe(1);
-    expect(fixture.nativeElement.textContent).toContain(
-      "Faites scanner ce code par l'autre téléphone, puis attendez le sien.",
+    expect(labelsOf(mine)).toHaveLength(40);
+  });
+
+  it('fait défiler les écrans d’un message qui n’en tient pas un seul', async () => {
+    // Le défilement ne fait plus que changer d'image — tout est rendu à
+    // l'avance. Il doit continuer de tourner.
+    const { scanner } = setup();
+    const fixture = await render();
+    const mine = TestBed.inject(YDocService).doc;
+
+    // Cette liste-ci est fournie, l'autre téléphone part de rien : ce qu'on
+    // doit lui montrer ne tient pas sur un seul écran.
+    Y.applyUpdate(
+      mine,
+      Y.encodeStateAsUpdate(
+        otherPhone(Array.from({ length: 40 }, (_, i) => `Article numéro ${i}`)),
+      ),
     );
+
+    scanner.show(
+      (await encodeFrames(encodeMessage(announce(new Y.Doc())), 's1')).frames,
+    );
+    button(fixture, "L'autre commence")?.click();
+    await settle(fixture);
+
+    expect(fixture.nativeElement.textContent).toContain('Écran 1 sur');
+
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.textContent).toContain('Écran 2 sur');
   });
 
   it('n’annonce « ce dernier code » qu’une fois le différentiel appliqué', async () => {
@@ -320,11 +320,7 @@ describe('NearbyPage', () => {
     const { scanner } = setup();
     const fixture = await render();
     const mine = TestBed.inject(YDocService).doc;
-    const theirs = agedPhone(80);
-
-    // Les deux partent du même état ; l'autre a fait trois courses de plus.
-    Y.applyUpdate(mine, Y.encodeStateAsUpdate(theirs));
-    addProducts(theirs, ['Lait', 'Pain', 'Café']);
+    const theirs = otherPhone(['Lait', 'Pain', 'Café']);
 
     button(fixture, 'Je commence')?.click();
     await settle(fixture);
@@ -335,14 +331,11 @@ describe('NearbyPage', () => {
 
     // [2] l'autre répond ; on applique et on affiche le dernier code.
     const reply = respond(theirs, announce(mine));
-    const { frames } = await encodeFrames(encodeMessage(reply), 's2');
-    expect(frames.length).toBeGreaterThan(1);
-
-    scanner.show(frames);
+    scanner.show((await encodeFrames(encodeMessage(reply), 's2')).frames);
     button(fixture, "C'est scanné")?.click();
     await settle(fixture);
 
-    expect(labelsOf(mine)).toHaveLength(84);
+    expect(labelsOf(mine)).toEqual(['Café', 'Lait', 'Pain']);
     expect(fixture.nativeElement.textContent).toContain(
       "Faites scanner ce dernier code. L'échange sera terminé.",
     );

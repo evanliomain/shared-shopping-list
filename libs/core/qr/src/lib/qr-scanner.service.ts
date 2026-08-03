@@ -201,24 +201,27 @@ export class QrScanner {
       let consecutiveFailures = 0;
 
       /**
-       * Dernier code transmis à l'appelant.
+       * Codes déjà transmis à l'appelant.
        *
-       * Une trame reste dans le cadre pendant des dizaines d'images : sans
-       * cette garde, `accept` serait rappelé à chaque image pour le même code.
+       * Un code reste dans le cadre pendant des dizaines d'images, et les
+       * trames défilent en boucle : sans cette garde, `accept` serait rappelé
+       * en permanence pour des codes déjà assemblés.
        */
-      let last: string | null = null;
+      const seen = new Set<string>();
 
       const tick = async (): Promise<void> => {
         if (settled) {
           return;
         }
 
-        let raw: string | undefined;
+        let found: Array<{ rawValue: string }> = [];
 
         try {
-          const [found] = await detector.detect(video);
+          // Tous les codes de l'image, pas seulement le premier : deux trames
+          // peuvent très bien tenir dans le cadre en même temps, et rien ne
+          // justifie d'en ignorer une.
+          found = await detector.detect(video);
           consecutiveFailures = 0;
-          raw = found?.rawValue;
         } catch {
           consecutiveFailures++;
 
@@ -232,11 +235,14 @@ export class QrScanner {
           }
         }
 
-        if (undefined !== raw && raw !== last) {
-          last = raw;
+        for (const { rawValue } of found) {
+          if (seen.has(rawValue)) {
+            continue;
+          }
+          seen.add(rawValue);
 
           try {
-            if (accept(raw)) {
+            if (accept(rawValue)) {
               finish(resolve);
               return;
             }
