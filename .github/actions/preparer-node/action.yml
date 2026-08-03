@@ -1,0 +1,39 @@
+name: Préparer Node
+description: >-
+  Installe Node et met `node_modules` à disposition du job. Le pipeline est
+  éclaté en jobs parallèles, et chaque job démarre sur une machine vierge :
+  sans ce cache, chacun repaierait son `npm ci`.
+
+inputs:
+  node-modules:
+    description: >-
+      Restaure `node_modules`. Un job qui n'a besoin que de Node — le rapport
+      de couverture, par exemple — peut s'en passer.
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+
+    # Le job d'installation pose ce cache, les autres le retrouvent.
+    #
+    # La clé tient aux deux fichiers, pas au seul verrou : `npm ci` refuse de
+    # tourner quand `package.json` et `package-lock.json` divergent, et c'est la
+    # CI qui attrapait cette divergence. Une clé sur le seul verrou servirait le
+    # cache sans relancer `npm ci` — la dépendance déclarée mais non verrouillée
+    # passerait, et personne ne le verrait avant une installation propre.
+    - id: cache
+      if: inputs.node-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'package.json') }}
+
+    # Filet de sécurité : le cache a pu être évincé entre l'installation et ici.
+    - if: inputs.node-modules == 'true' && steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm ci

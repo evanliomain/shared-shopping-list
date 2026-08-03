@@ -245,12 +245,29 @@ Les pluriels s'écrivent en formes nommées et sont accordés par
 
 ## Intégration continue et déploiement
 
-[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) enchaîne lint, tests unitaires, e2e et
-build avec `baseHref=/shared-shopping-list/`.
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) découpe le pipeline en jobs, un par
+étape, pour qu'un coup d'œil suffise à voir laquelle a cassé :
 
-Une pull request vers `main` fait tourner ces mêmes vérifications sur la branche, et s'arrête là : la
-branche est validée avant la fusion, sans écraser le site en ligne. Un push sur `main` va au bout et
-publie sur GitHub Pages.
+```
+installation ─┬─ lint ─────────────────────────────┐
+              ├─ tests-unitaires ─┬─ couverture ───┤
+              ├─ tests-e2e ───────┘                ├─ deploy
+              └─ build ────────────────────────────┘
+```
+
+`installation` paie le `npm ci` une fois et met `node_modules` en cache ; les quatre vérifications
+partent ensuite ensemble au lieu de s'enchaîner. Chacune tournant sur une machine vierge, elles
+retrouvent les dépendances par [`.github/actions/preparer-node`](.github/actions/preparer-node/action.yml),
+qui restaure ce cache — et retombe sur `npm ci` s'il a été évincé.
+
+Les tests unitaires et e2e relèvent chacun leur couverture de leur côté : elles ne se rejoignent que
+dans `couverture`, qui récupère les deux artefacts pour n'en faire qu'un tableau. `build` compile avec
+`baseHref=/shared-shopping-list/`.
+
+Une pull request vers `main` fait tourner ces mêmes vérifications sur la branche, et s'arrête avant
+`deploy` : la branche est validée avant la fusion, sans écraser le site en ligne. Un push sur `main`
+va au bout et publie sur GitHub Pages — le déploiement attend toutes les vérifications, pas seulement
+le build.
 
 Le workflow copie `index.html` en `404.html` — GitHub Pages ne connaît pas les routes profondes
 comme `/shared-shopping-list/liste` et renvoie `404.html`, qu'on fait pointer sur l'app pour que le routeur
