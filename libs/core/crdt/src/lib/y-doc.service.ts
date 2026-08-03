@@ -47,6 +47,11 @@ export class YDocService {
     (subscriber) => {
       const notify = (): void => subscriber.next();
       this.doc.on('update', notify);
+      // Ce nettoyage ne s'exécute jamais tel que le flux est câblé :
+      // `shareReplay({ refCount: false })` garde l'abonnement à la source pour
+      // toute la vie de l'application. On le garde quand même pour que
+      // l'observable reste correcte si ce réglage change.
+      /* v8 ignore next -- désabonnement inatteignable, voir ci-dessus */
       return () => this.doc.off('update', notify);
     },
   ).pipe(

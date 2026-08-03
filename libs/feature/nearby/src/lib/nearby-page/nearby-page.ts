@@ -119,7 +119,10 @@ export class NearbyPage {
 
   protected readonly scanPercent = computed(() => {
     const { received, total } = this.scanProgress();
-    return 0 === total ? 0 : (received / total) * 100;
+    return 0 === total
+      ? /* v8 ignore next -- la barre n'est rendue qu'à partir de la première
+           trame lue : ce zéro ne garde que de la division par zéro. */ 0
+      : (received / total) * 100;
   });
 
   /**
@@ -253,6 +256,8 @@ export class NearbyPage {
 
   private paint(): void {
     const image = this.frameImages[this.frameIndex()];
+    /* v8 ignore else -- `advance` prend l'index modulo la longueur et `show`
+       le remet à zéro : l'absence d'image ne survient pas. */
     if (undefined !== image) {
       this.frameImage.set(image);
     }
@@ -266,6 +271,9 @@ export class NearbyPage {
     this.scanProgress.set({ received: 0, total: 0 });
 
     const video = this.videoRef()?.nativeElement;
+    /* v8 ignore next -- le <video> est projeté hors du `@switch` et reste
+       monté en permanence (voir ScanOverlay) : cette garde protège d'une
+       régression de gabarit, elle n'est pas atteignable depuis l'écran. */
     if (undefined === video) {
       this.fail(new TranslatableError('errors.camera.unavailable'));
       return;
