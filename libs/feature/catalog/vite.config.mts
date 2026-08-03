@@ -23,6 +23,14 @@ export default defineConfig(() => ({
     coverage: {
       reportsDirectory: '../../../coverage/libs/feature/catalog',
       provider: 'v8' as const,
-    }
+      // `json-summary` alimente tools/rapport-couverture.mjs, `lcovonly`
+      // l'artefact téléchargeable, `text-summary` la sortie du terminal.
+      reporter: ['text-summary', 'json-summary', 'lcovonly'],
+      // Vitest 4 n'exclut plus rien par défaut, et ne compte que les fichiers
+      // chargés par un test : sans `include`, une lib non testée n'apparaît
+      // pas du tout au lieu d'apparaître à 0 %.
+      include: ['src/**/*.ts'],
+      exclude: ['src/test-setup.ts', '**/*.spec.ts', 'src/**/testing/**'],
+    },
   },
 }));

@@ -773,6 +773,36 @@ lourde pour le bénéfice le plus faible.
 Deux contextes navigateur, un provider de synchro factice en mémoire : A ajoute → B voit ; B coche
 → A voit ; A passe hors ligne, les deux modifient, A revient → convergence.
 
+### Couverture
+
+Les deux suites rendent un chiffre, et les deux chiffres se lisent différemment.
+
+L'**unitaire** vient du provider V8 de Vitest, projet par projet. `include: ['src/**/*.ts']` est
+délibéré : sans lui, Vitest ne compte que les fichiers qu'un test a chargés, et une lib entièrement
+non testée disparaîtrait du rapport au lieu d'y figurer à 0 %. Un trou doit se voir.
+
+Chaque projet ne compte que ses propres fichiers, l'application comprise — ses specs traversent les
+bibliothèques, et sans ce cadrage leurs lignes seraient comptées deux fois dans le total du dépôt.
+
+L'**end-to-end** ne peut pas s'instrumenter à la source : le navigateur exécute le bundle du serveur
+de développement, pas nos `.ts`. On prend donc le chemin inverse — V8 dit quelles portions du bundle
+ont tourné, les _source maps_ les ramènent aux fichiers d'origine, et Monocart agrège le tout au
+format istanbul, celui de Vitest. C'est ce qui permet de mettre les deux couvertures dans le même
+tableau.
+
+Deux limites assumées :
+
+- **Chromium seulement.** `page.coverage` passe par le protocole Chrome DevTools ; WebKit ne l'expose
+  pas. Les parcours Mobile Safari tournent sans relevé — ils valident le rendu iOS, pas le chiffre.
+- **Traversé n'est pas testé.** Un parcours qui ouvre un écran marque tout son code comme couvert
+  sans rien affirmer sur son comportement. La couverture e2e dit où l'application passe ; ce sont les
+  assertions qui disent si elle a raison.
+
+Les relevés sont éteints par défaut et s'allument par `--coverage` (unitaire) et `E2E_COVERAGE=true`
+(e2e) : la CI les allume, `npm run coverage` aussi, et `npm test` reste rapide.
+[`tools/rapport-couverture.mjs`](../tools/rapport-couverture.mjs) rassemble les
+`coverage-summary.json` épars en un tableau Markdown, publié en commentaire de la pull request.
+
 ### Validation manuelle
 
 1. Installer sur les deux téléphones depuis l'URL GitHub Pages.

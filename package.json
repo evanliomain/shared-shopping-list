@@ -7,6 +7,9 @@
     "start": "nx serve shopping-list",
     "build": "nx build shopping-list",
     "test": "nx run-many -t test",
+    "test:coverage": "nx run-many -t test --coverage",
+    "e2e:coverage": "E2E_COVERAGE=true nx e2e shopping-list-e2e",
+    "coverage": "npm run test:coverage && npm run e2e:coverage && node tools/rapport-couverture.mjs",
     "lint": "nx run-many -t lint"
   },
   "devDependencies": {
@@ -36,11 +39,13 @@
     "@swc/helpers": "~0.5.18",
     "@types/qrcode": "^1.5.6",
     "@typescript-eslint/utils": "^8.40.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "angular-eslint": "^21.2.0",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-playwright": "^1.6.2",
     "jsdom": "^27.1.0",
+    "monocart-coverage-reports": "^2.12.12",
     "nx": "22.7.8",
     "prettier": "~3.6.2",
     "tslib": "^2.3.0",

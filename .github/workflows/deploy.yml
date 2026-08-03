@@ -20,6 +20,10 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # `pull-requests: write` sert au commentaire de couverture, et à rien d'autre.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -34,13 +38,41 @@ jobs:
         run: npx nx run-many -t lint --parallel
 
       - name: Tests unitaires
-        run: npx nx run-many -t test --parallel
+        run: npx nx run-many -t test --parallel --coverage
 
       - name: Navigateurs Playwright
         run: npx playwright install chromium webkit --with-deps
 
       - name: Tests end-to-end
         run: npx nx e2e shopping-list-e2e
+        env:
+          # Relève la couverture des parcours, sur les projets Chromium.
+          E2E_COVERAGE: 'true'
+
+      - name: Rapport de couverture
+        run: |
+          node tools/rapport-couverture.mjs \
+            | tee "$RUNNER_TEMP/couverture.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # Un seul commentaire, réécrit à chaque push : on veut lire la couverture
+      # de la branche, pas l'historique de ses allers-retours. Un fork n'a qu'un
+      # jeton en lecture, donc pas de commentaire — le résumé du job reste.
+      - name: Commenter la pull request
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body-file "$RUNNER_TEMP/couverture.md" --edit-last --create-if-none
+
+      - name: Archiver les rapports de couverture
+        uses: actions/upload-artifact@v4
+        with:
+          name: couverture
+          path: coverage
+          if-no-files-found: error
 
       - name: Build
         run: npx nx build shopping-list --configuration=github-pages

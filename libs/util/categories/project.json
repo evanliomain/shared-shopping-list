@@ -9,7 +9,7 @@
     "test": {
       "executor": "@nx/vitest:test",
       "options": {
-        "reportsDirectory": "../../../coverage/libs/util/categories"
+        "reportsDirectory": "coverage/libs/util/categories"
       }
     },
     "lint": {

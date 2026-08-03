@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 /**
  * La langue vient du navigateur, et de rien d'autre : ni réglage dans

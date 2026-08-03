@@ -16,6 +16,10 @@ const baseURL = process.env['BASE_URL'] || 'http://localhost:4200';
  */
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
+  // Couverture des parcours : le cache est purgé avant, le rapport écrit après.
+  // Les deux crochets ne font rien sans `E2E_COVERAGE=true`.
+  globalSetup: require.resolve('./src/support/global-setup'),
+  globalTeardown: require.resolve('./src/support/global-teardown'),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     baseURL,

@@ -14,6 +14,12 @@
  *     On retire la clé pour retomber sur le `targetDefaults` de nx.json, qui
  *     utilise `{workspaceRoot}/coverage/{projectRoot}`.
  *
+ *  3. `reportsDirectory` — le générateur l'écrit relatif à la lib
+ *     (`../../../coverage/libs/util/i18n`), alors que l'exécuteur le résout
+ *     depuis la racine du workspace : la couverture atterrissait dans
+ *     `/Users/coverage`, hors du dépôt, avec un `EACCES` à la clé. On le
+ *     réécrit relatif à la racine.
+ *
  *   node tools/normalize-libs.mjs
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -66,10 +72,23 @@ for (const projectDir of findProjects(LIBS)) {
 
   const projectPath = join(projectDir, 'project.json');
   const project = JSON.parse(readFileSync(projectPath, 'utf8'));
+  let rewriteProject = false;
+
   if (project.targets?.test?.outputs) {
     delete project.targets.test.outputs;
-    writeFileSync(projectPath, `${JSON.stringify(project, null, 2)}\n`);
+    rewriteProject = true;
     changes.push('outputs de couverture');
+  }
+
+  const reportsDirectory = project.targets?.test?.options?.reportsDirectory;
+  if (reportsDirectory?.startsWith('../')) {
+    project.targets.test.options.reportsDirectory = join('coverage', relative);
+    rewriteProject = true;
+    changes.push('reportsDirectory depuis la racine');
+  }
+
+  if (rewriteProject) {
+    writeFileSync(projectPath, `${JSON.stringify(project, null, 2)}\n`);
   }
 
   if (changes.length > 0) {

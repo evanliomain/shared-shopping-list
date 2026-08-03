@@ -1,4 +1,6 @@
-import { expect, Page, test } from '@playwright/test';
+import { Page } from '@playwright/test';
+
+import { expect, test } from './support/fixtures';
 
 /**
  * Parcours réels de la liste de courses.
