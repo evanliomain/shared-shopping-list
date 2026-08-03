@@ -8,8 +8,13 @@ import {
   createProduct,
   ensureList,
   removeItem,
+  renameList,
   restoreItem,
   setItemChecked,
+  setItemNote,
+  setItemQty,
+  setProductImage,
+  unarchiveProduct,
   updateProduct,
 } from './operations';
 import { readSnapshot } from './snapshot';
@@ -38,6 +43,27 @@ describe('opérations sur le CRDT', () => {
       const lists = readSnapshot(doc).lists;
       expect(Object.keys(lists)).toEqual([LIST]);
       expect(lists[LIST].name).toBe('Maison');
+    });
+  });
+
+  describe('renameList', () => {
+    it('renomme sans toucher à la date ni aux articles', () => {
+      const doc = freshDoc();
+      const productId = createProduct(doc, { label: 'Lait' }, NOW);
+      addItem(doc, {
+        listId: LIST,
+        productId,
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW,
+      });
+
+      renameList(doc, LIST, 'Chez les parents');
+
+      const list = readSnapshot(doc).lists[LIST];
+      expect(list.name).toBe('Chez les parents');
+      expect(list.createdAt).toBe(NOW);
+      expect(Object.values(list.items)).toHaveLength(1);
     });
   });
 
@@ -142,6 +168,79 @@ describe('opérations sur le CRDT', () => {
       expect(itemsOf(doc)).toHaveLength(2);
     });
 
+    it('remplace la quantité et la note de la ligne réutilisée', () => {
+      const doc = freshDoc();
+      const productId = createProduct(doc, { label: 'Lait' }, NOW);
+      const first = addItem(doc, {
+        listId: LIST,
+        productId,
+        qty: '1 L',
+        note: 'entier',
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW,
+      });
+
+      const second = addItem(doc, {
+        listId: LIST,
+        productId,
+        qty: '2 L',
+        note: 'demi-écrémé',
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW + 1000,
+      });
+
+      expect(second).toBe(first);
+      expect(itemsOf(doc)[0].qty).toBe('2 L');
+      expect(itemsOf(doc)[0].note).toBe('demi-écrémé');
+    });
+
+    it('préserve la quantité saisie quand on ne fournit rien', () => {
+      // Remettre un produit depuis les suggestions ne doit pas effacer ce qui
+      // avait été précisé sur la ligne.
+      const doc = freshDoc();
+      const productId = createProduct(doc, { label: 'Lait' }, NOW);
+      addItem(doc, {
+        listId: LIST,
+        productId,
+        qty: '1 L',
+        note: 'entier',
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW,
+      });
+
+      addItem(doc, {
+        listId: LIST,
+        productId,
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW + 1000,
+      });
+
+      expect(itemsOf(doc)[0].qty).toBe('1 L');
+      expect(itemsOf(doc)[0].note).toBe('entier');
+    });
+
+    it('crée la ligne même si le produit n’est pas encore au catalogue', () => {
+      // Les deltas n'arrivent pas forcément dans l'ordre : refuser ici
+      // perdrait l'article au lieu d'attendre son produit.
+      const doc = freshDoc();
+
+      const itemId = addItem(doc, {
+        listId: LIST,
+        productId: 'pas-encore-arrive',
+        addedBy: 'Épouse',
+        deviceId: 'device-B',
+        now: NOW,
+      });
+
+      expect(itemsOf(doc)).toHaveLength(1);
+      expect(itemsOf(doc)[0].id).toBe(itemId);
+      expect(readSnapshot(doc).catalog).toEqual({});
+    });
+
     it('refuse une liste inconnue', () => {
       const doc = freshDoc();
       const productId = createProduct(doc, { label: 'Lait' }, NOW);
@@ -155,6 +254,41 @@ describe('opérations sur le CRDT', () => {
           now: NOW,
         }),
       ).toThrow(/inconnue/);
+    });
+  });
+
+  describe('champs ponctuels d’une ligne', () => {
+    it('enregistre puis efface la note', () => {
+      const doc = freshDoc();
+      const productId = createProduct(doc, { label: 'Pain' }, NOW);
+      const itemId = addItem(doc, {
+        listId: LIST,
+        productId,
+        addedBy: 'Evan',
+        deviceId: 'device-A',
+        now: NOW,
+      });
+
+      setItemNote(doc, LIST, itemId, 'bien cuit');
+      expect(itemsOf(doc)[0].note).toBe('bien cuit');
+
+      setItemNote(doc, LIST, itemId, null);
+      expect(itemsOf(doc)[0].note).toBeNull();
+    });
+
+    it('laisse le document intact pour un identifiant périmé', () => {
+      // Une ligne purgée sur un autre appareil : l'action arrive trop tard et
+      // ne doit surtout pas recréer d'entrée fantôme.
+      const doc = freshDoc();
+      const before = readSnapshot(doc);
+
+      setItemChecked(doc, LIST, 'disparue', true);
+      setItemQty(doc, LIST, 'disparue', '2 L');
+      setItemNote(doc, LIST, 'disparue', 'bien cuit');
+      removeItem(doc, LIST, 'disparue', NOW + 1);
+      restoreItem(doc, LIST, 'disparue');
+
+      expect(readSnapshot(doc)).toEqual(before);
     });
   });
 
@@ -305,15 +439,65 @@ describe('opérations sur le CRDT', () => {
       expect(product.defaultQty).toBe('x4');
     });
 
-    it('archive sans supprimer', () => {
+    it('n’écrase pas un champ absent du brouillon', () => {
+      // Un formulaire partiel envoie `{ description: undefined }` : écrire la
+      // clé produirait un delta à synchroniser pour ne rien changer.
+      const doc = freshDoc();
+      const productId = createProduct(
+        doc,
+        { label: 'Yaourt', description: 'vanille' },
+        NOW,
+      );
+
+      updateProduct(doc, productId, {
+        description: undefined,
+        defaultQty: 'x4',
+      });
+
+      const product = readSnapshot(doc).catalog[productId];
+      expect(product.description).toBe('vanille');
+      expect(product.defaultQty).toBe('x4');
+    });
+
+    it('ignore les modifications d’un produit inconnu', () => {
+      const doc = freshDoc();
+
+      updateProduct(doc, 'jamais-cree', { label: 'Lait' });
+      setProductImage(doc, 'jamais-cree', 'emoji:🥛');
+      archiveProduct(doc, 'jamais-cree', NOW + 1);
+      unarchiveProduct(doc, 'jamais-cree');
+
+      expect(readSnapshot(doc).catalog).toEqual({});
+    });
+
+    it('archive sans supprimer, et sait revenir en arrière', () => {
       const doc = freshDoc();
       const productId = createProduct(doc, { label: 'Bougie' }, NOW);
 
       archiveProduct(doc, productId, NOW + 1);
 
-      const product = readSnapshot(doc).catalog[productId];
-      expect(product.archivedAt).toBe(NOW + 1);
-      expect(product.label).toBe('Bougie');
+      const archived = readSnapshot(doc).catalog[productId];
+      expect(archived.archivedAt).toBe(NOW + 1);
+      expect(archived.label).toBe('Bougie');
+
+      unarchiveProduct(doc, productId);
+
+      expect(readSnapshot(doc).catalog[productId].archivedAt).toBeNull();
+    });
+
+    it('remplace puis retire la référence d’image', () => {
+      const doc = freshDoc();
+      const productId = createProduct(
+        doc,
+        { label: 'Glace', imageRef: 'emoji:🍦' },
+        NOW,
+      );
+
+      setProductImage(doc, productId, 'blob:a3f9c2');
+      expect(readSnapshot(doc).catalog[productId].imageRef).toBe('blob:a3f9c2');
+
+      setProductImage(doc, productId, null);
+      expect(readSnapshot(doc).catalog[productId].imageRef).toBeNull();
     });
   });
 });

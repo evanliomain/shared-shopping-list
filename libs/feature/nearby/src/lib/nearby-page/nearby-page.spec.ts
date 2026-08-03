@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -37,6 +38,17 @@ class FakeScanner {
   /** Une par étape de l'échange, jamais une par trame. */
   sessions = 0;
 
+  /** Ce que la caméra oppose à l'ouverture : refus, panne, ou rien. */
+  failWith: Error | null = null;
+
+  /**
+   * Rend la main dès la file épuisée, au lieu de rester ouverte.
+   *
+   * C'est une caméra qui s'arrête avant que l'assemblage soit complet — ce que
+   * voit l'utilisateur quand l'autre téléphone est rangé en cours d'échange.
+   */
+  stopsEarly = false;
+
   private queue: string[] = [];
 
   isSupported(): boolean {
@@ -57,6 +69,10 @@ class FakeScanner {
   ): Promise<void> {
     this.sessions++;
 
+    if (null !== this.failWith) {
+      throw this.failWith;
+    }
+
     const codes = this.queue;
     this.queue = [];
 
@@ -69,9 +85,19 @@ class FakeScanner {
       }
     }
 
+    if (this.stopsEarly) {
+      return;
+    }
+
     // Plus rien à lire : on reste ouverte, comme une caméra qui ne trouve
-    // rien, plutôt que de résoudre sur un assemblage incomplet.
-    return new Promise<void>(() => undefined);
+    // rien, plutôt que de résoudre sur un assemblage incomplet. Seule
+    // l'annulation la referme, et elle le fait comme le vrai lecteur : en
+    // rejetant.
+    return new Promise<void>((_resolve, reject) => {
+      signal.addEventListener('abort', () =>
+        reject(new ScanError('aborted', 'errors.scan.aborted')),
+      );
+    });
   }
 
   async scanOnce(): Promise<string> {
@@ -124,6 +150,20 @@ function button(
   );
 }
 
+/** Le message d'erreur tel que l'écran le donne à lire, ou rien. */
+function alertText(fixture: { nativeElement: HTMLElement }): string {
+  return (
+    fixture.nativeElement.querySelector('[role="alert"]')?.textContent ?? ''
+  );
+}
+
+/** Les quatre segments de la jauge d'étape, dans l'ordre. */
+function gauge(fixture: { nativeElement: HTMLElement }): (string | null)[] {
+  return [...fixture.nativeElement.querySelectorAll('header .gauge span')].map(
+    (segment) => segment.getAttribute('data-state'),
+  );
+}
+
 /** Des courses ajoutées sur un téléphone, produit et ligne de liste. */
 function addProducts(doc: Y.Doc, labels: readonly string[]): void {
   for (const label of labels) {
@@ -156,6 +196,22 @@ function otherPhone(labels: readonly string[]): Y.Doc {
   return doc;
 }
 
+/**
+ * Un libellé que la compression ne sait pas réduire.
+ *
+ * Le dépassement se juge au **volume** : soixante « Article n » fondraient à
+ * quelques centaines d'octets et tiendraient sur un seul écran.
+ */
+function noise(seed: number): string {
+  let value = seed | 0;
+  let text = '';
+  while (text.length < 80) {
+    value = (Math.imul(value, 1_103_515_245) + 12_345) >>> 0;
+    text += value.toString(36);
+  }
+  return text;
+}
+
 function labelsOf(doc: Y.Doc): string[] {
   return [...doc.getMap('catalog').values()]
     .map((node) => (node as Y.Map<unknown>).get('label') as string)
@@ -172,6 +228,7 @@ describe('NearbyPage', () => {
     );
     expect(button(fixture, 'Je commence')).toBeDefined();
     expect(button(fixture, "L'autre commence")).toBeDefined();
+    expect(gauge(fixture)).toEqual(['on', 'off', 'off', 'off']);
   });
 
   it('propose quand même de montrer un code sans caméra', async () => {
@@ -208,11 +265,14 @@ describe('NearbyPage', () => {
     await fixture.whenStable();
 
     button(fixture, 'Annuler')?.click();
-    await fixture.whenStable();
+    await settle(fixture);
 
     expect(fixture.nativeElement.textContent).toContain(
       'Trois codes, deux scans',
     );
+    // Renoncer n'est pas un échec : la lecture interrompue que rejette le
+    // lecteur ne doit pas ressortir en message d'erreur.
+    expect(alertText(fixture)).toBe('');
   });
 
   it('applique ce que l’autre téléphone a modifié hors ligne', async () => {
@@ -346,5 +406,140 @@ describe('NearbyPage', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'Les deux listes sont à jour.',
     );
+    expect(gauge(fixture)).toEqual(['on', 'on', 'on', 'on']);
+  });
+
+  it('nomme le refus de la caméra au lieu d’attendre en silence', async () => {
+    const { scanner } = setup();
+    scanner.failWith = new ScanError(
+      'permission-denied',
+      'errors.camera.denied',
+    );
+    const fixture = await render();
+
+    button(fixture, "L'autre commence")?.click();
+    await settle(fixture);
+
+    expect(alertText(fixture)).toContain("L'accès à la caméra a été refusé");
+    // L'échange s'arrête au deuxième temps : la jauge doit le montrer.
+    expect(gauge(fixture)).toEqual(['on', 'on', 'error', 'off']);
+  });
+
+  it('rapporte tel quel un incident que personne n’a nommé', async () => {
+    // Une panne de la plateforme n'a pas de clé de traduction. Afficher son
+    // message brut reste préférable à un écran qui ne dit rien.
+    const { scanner } = setup();
+    scanner.failWith = new Error('Le flux vidéo a été coupé');
+    const fixture = await render();
+
+    button(fixture, "L'autre commence")?.click();
+    await settle(fixture);
+
+    expect(alertText(fixture)).toContain('Le flux vidéo a été coupé');
+  });
+
+  it('refuse un code qui ne correspond pas à l’étape en cours', async () => {
+    // Les deux ont appuyé sur « Je commence » : ce qui est en face est une
+    // annonce d'ouverture, pas la réponse attendue.
+    const { scanner } = setup();
+    const fixture = await render();
+    const theirs = otherPhone(['Lait']);
+
+    button(fixture, 'Je commence')?.click();
+    await settle(fixture);
+
+    scanner.show(
+      (await encodeFrames(encodeMessage(announce(theirs)), 's1')).frames,
+    );
+    button(fixture, "C'est scanné")?.click();
+    await settle(fixture);
+
+    expect(alertText(fixture)).toContain(
+      "Ce code ne correspond pas à cette étape de l'échange.",
+    );
+  });
+
+  it('renonce quand ce qu’il faudrait montrer ne tient pas en douze écrans', async () => {
+    // Un premier échange avec un catalogue déjà fourni demanderait une minute
+    // de scan à bout de bras : autant le dire.
+    const { scanner } = setup();
+    const fixture = await render();
+    const mine = TestBed.inject(YDocService).doc;
+
+    Y.applyUpdate(
+      mine,
+      Y.encodeStateAsUpdate(
+        otherPhone(Array.from({ length: 60 }, (_, index) => noise(index))),
+      ),
+    );
+
+    scanner.show(
+      (await encodeFrames(encodeMessage(announce(new Y.Doc())), 's1')).frames,
+    );
+    button(fixture, "L'autre commence")?.click();
+    await settle(fixture);
+
+    expect(alertText(fixture)).toContain(
+      'Trop de données pour un échange par QR',
+    );
+  });
+
+  it('promet que rien n’a bougé quand un écran n’a pas été lu', async () => {
+    const { scanner } = setup();
+    scanner.stopsEarly = true;
+    const fixture = await render();
+    const mine = TestBed.inject(YDocService).doc;
+    const theirs = otherPhone(
+      Array.from({ length: 40 }, (_, index) => `Article numéro ${index}`),
+    );
+
+    button(fixture, 'Je commence')?.click();
+    await settle(fixture);
+
+    const { frames } = await encodeFrames(
+      encodeMessage(respond(theirs, announce(mine))),
+      's2',
+    );
+    expect(frames.length).toBeGreaterThan(1);
+
+    // Tout sauf le dernier écran : un différentiel tronqué ne s'applique pas
+    // à moitié, il ne s'applique pas du tout.
+    scanner.show(frames.slice(0, -1));
+
+    button(fixture, "C'est scanné")?.click();
+    await settle(fixture);
+
+    expect(alertText(fixture)).toContain("L'échange s'est interrompu");
+    expect(labelsOf(mine)).toEqual([]);
+  });
+
+  it('permet de tout reprendre depuis le choix du rôle après un échec', async () => {
+    const { scanner } = setup();
+    scanner.stopsEarly = true;
+    const fixture = await render();
+
+    button(fixture, "L'autre commence")?.click();
+    await settle(fixture);
+    expect(alertText(fixture)).not.toBe('');
+
+    button(fixture, 'Recommencer')?.click();
+    await settle(fixture);
+
+    expect(alertText(fixture)).toBe('');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Trois codes, deux scans',
+    );
+    expect(gauge(fixture)).toEqual(['on', 'off', 'off', 'off']);
+  });
+
+  it('revient à l’écran précédent quand on quitte l’échange', async () => {
+    setup();
+    const fixture = await render();
+    const back = vi.spyOn(TestBed.inject(Location), 'back');
+
+    button(fixture, 'Retour')?.click();
+    await fixture.whenStable();
+
+    expect(back).toHaveBeenCalledTimes(1);
   });
 });

@@ -7,7 +7,9 @@ interface Detected {
 }
 
 /** Installe un faux `BarcodeDetector` ; rend une fonction de démontage. */
-function stubDetector(results: () => Detected[]): () => void {
+function stubDetector(
+  results: () => Detected[] | Promise<Detected[]>,
+): () => void {
   const holder = globalThis as unknown as Record<string, unknown>;
   const previous = holder['BarcodeDetector'];
 
@@ -25,7 +27,9 @@ function stubDetector(results: () => Detected[]): () => void {
 /** Contraintes demandées à chaque ouverture, dans l'ordre. */
 const requested: MediaStreamConstraints[] = [];
 
-function stubCamera(behaviour: 'ok' | 'denied' | 'missing'): () => void {
+function stubCamera(
+  behaviour: 'ok' | 'denied' | 'insecure' | 'missing' | 'opaque',
+): () => void {
   const previous = navigator.mediaDevices;
 
   const tracks = [{ stop: () => undefined }];
@@ -41,10 +45,19 @@ function stubCamera(behaviour: 'ok' | 'denied' | 'missing'): () => void {
             name: 'NotAllowedError',
           });
         }
+        if ('insecure' === behaviour) {
+          throw Object.assign(new Error('contexte non sécurisé'), {
+            name: 'SecurityError',
+          });
+        }
         if ('missing' === behaviour) {
           throw Object.assign(new Error('absente'), {
             name: 'NotFoundError',
           });
+        }
+        // Certains navigateurs rejettent avec autre chose qu'une `Error`.
+        if ('opaque' === behaviour) {
+          throw 'échec caméra';
         }
         return stream;
       },
@@ -136,6 +149,39 @@ describe('QrScanner', () => {
       await expect(
         scanner().scanOnce(fakeVideo(), new AbortController().signal),
       ).rejects.toMatchObject({ reason: 'permission-denied' });
+    });
+
+    it('signale une caméra absente comme telle', async () => {
+      // Rien à réautoriser dans ce cas : proposer les réglages du navigateur
+      // enverrait l'utilisateur chercher un bouton qui n'existe pas.
+      restore.push(stubDetector(() => []));
+      restore.push(stubCamera('missing'));
+
+      await expect(
+        scanner().scanOnce(fakeVideo(), new AbortController().signal),
+      ).rejects.toMatchObject({ reason: 'no-camera' });
+    });
+
+    it('traite un contexte non sécurisé comme un refus de permission', async () => {
+      // Page servie en clair ou iframe sans `allow="camera"` : la caméra existe
+      // bel et bien, c'est l'autorisation qui manque.
+      restore.push(stubDetector(() => []));
+      restore.push(stubCamera('insecure'));
+
+      await expect(
+        scanner().scanOnce(fakeVideo(), new AbortController().signal),
+      ).rejects.toMatchObject({ reason: 'permission-denied' });
+    });
+
+    it('se rabat sur « pas de caméra » devant un rejet sans nom', async () => {
+      // Tous les navigateurs ne rejettent pas avec une `Error` nommée : sans ce
+      // repli, l'écran resterait muet.
+      restore.push(stubDetector(() => []));
+      restore.push(stubCamera('opaque'));
+
+      await expect(
+        scanner().scanOnce(fakeVideo(), new AbortController().signal),
+      ).rejects.toMatchObject({ reason: 'no-camera' });
     });
 
     it('demande une caméra assez définie pour lire un code dense', async () => {
@@ -260,6 +306,40 @@ describe('QrScanner', () => {
       await expect(scanning).rejects.toBeInstanceOf(ScanError);
 
       expect(calls).toBe(1);
+    });
+
+    it('n’analyse plus rien après une annulation', async () => {
+      // L'annulation tombe pendant qu'une image est en cours d'analyse : quand
+      // celle-ci revient, la caméra est déjà éteinte et il ne faut surtout pas
+      // redemander une image de plus.
+      let analyses = 0;
+      let livre = (): void => undefined;
+      const image = new Promise<Detected[]>((resolve) => {
+        livre = () => resolve([]);
+      });
+      restore.push(
+        stubDetector(() => {
+          analyses++;
+          return image;
+        }),
+      );
+      restore.push(stubCamera('ok'));
+
+      const controller = new AbortController();
+      const scanning = scanner().scanMany(
+        fakeVideo(),
+        controller.signal,
+        () => true,
+      );
+      await vi.waitFor(() => expect(analyses).toBe(1));
+
+      controller.abort();
+      await expect(scanning).rejects.toBeInstanceOf(ScanError);
+
+      livre();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(analyses).toBe(1);
     });
 
     it('remonte une lecture corrompue plutôt que de tourner sans fin', async () => {

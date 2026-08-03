@@ -48,6 +48,15 @@ describe('fuzzyScore', () => {
     expect(fuzzyScore('vanille', 'Yaourt')).toBeNull();
   });
 
+  it('retient le meilleur quel que soit l’ordre des textes', () => {
+    // Le premier texte qui répond ne gagne pas d'office : sinon le score du
+    // candidat dépendrait de l'ordre de sa fiche, et le classement avec.
+    const franche = fuzzyScore('pomme', 'Pommes');
+
+    expect(fuzzyScore('pomme', 'Pommes', 'Pommes de terre')).toBe(franche);
+    expect(fuzzyScore('pomme', 'Pommes de terre', 'Pommes')).toBe(franche);
+  });
+
   it('laisse tout passer sur une saisie vide', () => {
     // Les appelants n'ont donc pas à traiter le cas à part, et le tri stable
     // conserve l'ordre d'usage qu'ils avaient déjà établi.

@@ -42,6 +42,12 @@ describe('SyncBadge', () => {
     expect(await textFor('live', 2)).toContain('Envoi…');
   });
 
+  it('dit que la liaison s’établit, sans annoncer de panne', async () => {
+    // Le temps de la poignée de main, ni « synchronisé » ni « hors ligne » ne
+    // seraient vrais : c'est la puce qui pulse et le libellé qui fait patienter.
+    expect(await textFor('connecting')).toBe('Connexion…');
+  });
+
   it('distingue une panne d’un simple hors-ligne', async () => {
     expect(await textFor('error')).toBe('Synchro en panne');
   });

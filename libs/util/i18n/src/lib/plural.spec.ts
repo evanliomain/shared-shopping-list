@@ -1,7 +1,8 @@
-import { TestBed } from '@angular/core/testing';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AppLang } from './langs';
-import { Plural } from './plural';
+import { Plural, PluralPipe } from './plural';
 import { provideI18nWithoutDocument } from './provide-i18n';
 
 function pluralFor(lang: AppLang): Plural {
@@ -11,6 +12,19 @@ function pluralFor(lang: AppLang): Plural {
   });
 
   return TestBed.inject(Plural);
+}
+
+@Component({
+  selector: 'sl-hote-plural',
+  imports: [PluralPipe],
+  template: `
+    <p id="usage">{{ 'catalog.usage' | plural: count() }}</p>
+    <p id="ajout">{{ 'catalog.add' | plural: count() : { label: 'Lait' } }}</p>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class HotePlural {
+  readonly count = signal(0);
 }
 
 describe('Plural', () => {
@@ -46,5 +60,59 @@ describe('Plural', () => {
     expect(pluralFor('fr').translate('list.basket', 3)).toBe(
       'Dans le panier (3)',
     );
+  });
+
+  it('retombe sur « other » quand la catégorie n’a pas de libellé', () => {
+    // Le français range les millions dans « many », que les traductions
+    // n'écrivent pas : sans ce dernier recours, la clé nue s'afficherait.
+    expect(pluralFor('fr').translate('catalog.usage', 1_000_000)).toBe(
+      '1000000 achats',
+    );
+  });
+});
+
+describe('PluralPipe', () => {
+  async function rendu(lang: AppLang): Promise<ComponentFixture<HotePlural>> {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [provideI18nWithoutDocument(lang)],
+    });
+
+    const fixture = TestBed.createComponent(HotePlural);
+    await fixture.whenStable();
+
+    return fixture;
+  }
+
+  function texte(fixture: ComponentFixture<HotePlural>, id: string): string {
+    return (
+      (fixture.nativeElement as HTMLElement).querySelector(`#${id}`)
+        ?.textContent ?? ''
+    );
+  }
+
+  it('accorde le libellé rendu dans le template', async () => {
+    const fr = await rendu('fr');
+    const en = await rendu('en');
+
+    expect(texte(fr, 'usage')).toBe('0 achat');
+    expect(texte(en, 'usage')).toBe('0 purchases');
+  });
+
+  it('suit le compte qui change sans réabonnement', async () => {
+    // Le pipe est pur : c'est `count` qui fait réévaluer l'expression, pas un
+    // abonnement à la langue.
+    const fixture = await rendu('fr');
+
+    fixture.componentInstance.count.set(4);
+    await fixture.whenStable();
+
+    expect(texte(fixture, 'usage')).toBe('4 achats');
+  });
+
+  it('transmet les autres paramètres du libellé', async () => {
+    const fixture = await rendu('fr');
+
+    expect(texte(fixture, 'ajout')).toBe('Ajouter Lait à la liste');
   });
 });
