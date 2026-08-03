@@ -32,6 +32,9 @@
       "@shopping-list/util/i18n": [
         "./libs/util/i18n/src/index.ts"
       ],
+      "@shopping-list/util/search": [
+        "./libs/util/search/src/index.ts"
+      ],
       "@shopping-list/util/i18n/testing": [
         "./libs/util/i18n/src/testing.ts"
       ],

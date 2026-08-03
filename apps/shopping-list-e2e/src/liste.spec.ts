@@ -261,6 +261,19 @@ test('un glissé trop court ne fait rien', async ({ page }) => {
   await expect(row(page, 'Lait')).toBeVisible();
 });
 
+test('la recherche pardonne les lettres manquantes', async ({ page }) => {
+  // La feuille reste ouverte entre deux ajouts : on enchaîne, puis on cherche.
+  await createArticle(page, 'Chocolat');
+  await createArticle(page, 'Lait');
+  await input(page).fill('lat');
+
+  // « lat » n'est une sous-chaîne d'aucun des deux : c'est le fuzzy match qui
+  // les sort, et le surlignage qui explique pourquoi.
+  const suggestions = page.locator('sl-add-bar .suggestion');
+  await expect(suggestions).toHaveCount(2);
+  await expect(suggestions.first().locator('mark').first()).toBeVisible();
+});
+
 test('vider la liste garde l’historique', async ({ page }) => {
   await createArticle(page, 'Lait');
   await createArticle(page, 'Pain');

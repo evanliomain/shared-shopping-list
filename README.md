@@ -137,6 +137,42 @@ création des articles depuis l'ouverture de la feuille. Une pile tenue à part
 mentirait dès qu'un article en sortirait autrement — retiré d'un glissé, ou
 emporté par un delta reçu de l'autre téléphone.
 
+## Chercher
+
+Toutes les recherches — les suggestions d'ajout, la colonne historique, l'écran
+de gestion du catalogue — sont **approximatives**, par
+[fuzzysort](https://github.com/farzher/fuzzysort). « lat » sort « Lait »,
+« ptl » sort « Papier toilette », « crss » sort « Croissants ».
+
+C'est l'exigence d'exactitude qui était mal placée : elle pesait sur la personne
+qui tape d'un pouce, en marchant, avec un caddie dans l'autre main. Une
+sous-chaîne exacte demandait de savoir écrire ce qu'on cherche avant de l'avoir
+trouvé.
+
+Deux conséquences, tenues ensemble :
+
+- **le classement fait le travail du filtre.** Il n'y a pas de score plancher —
+  « lat » ne vaut que 0,36 contre « Lait », et l'écarter reviendrait à refuser
+  la faute de frappe qui justifie tout ceci. C'est le score qui ordonne, et la
+  meilleure correspondance est en tête ;
+- **ce qui a répondu est surligné.** Les lettres trouvées peuvent être
+  éparpillées : sans mise en évidence, une liste de résultats flous paraît
+  arbitraire. `sl-matched-text` découpe le texte et marque les lettres
+  atteintes, en gras **et** en couleur — la teinte ne porte jamais
+  l'information toute seule.
+
+La recherche porte sur le libellé, la description, et les deux mis bout à bout :
+sans quoi « yaourt vanille » ne trouverait rien, la moitié des lettres étant
+dans l'un et l'autre moitié dans l'autre.
+
+Les accents sont repliés sans décaler les index — « cafe » trouve « Café », et
+c'est bien « **Café** » qui se surligne. Le repli se fait caractère par
+caractère et garde une table des origines : c'est ce qui permet de surligner le
+texte d'origine à partir d'index calculés sur sa forme repliée.
+
+Tout cela vit dans [`libs/util/search/`](libs/util/search/src/lib/), une
+fonction pure et un découpage — aucune connaissance du domaine.
+
 ## Contrastes
 
 Les jetons de couleur passent les **4,5:1** exigés par le RGAA et le WCAG AA

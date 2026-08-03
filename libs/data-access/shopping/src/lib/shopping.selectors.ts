@@ -6,6 +6,7 @@ import {
   emojiForAisle,
   normalize,
 } from '@shopping-list/util/categories';
+import { fuzzyScore } from '@shopping-list/util/search';
 import { chain, filter, length, map, partition, sortBy } from 'taninsam';
 
 import { selectCatalog, selectItems, selectLoaded } from './shopping.feature';
@@ -177,34 +178,66 @@ export const selectSuggestions = createSelector(
 );
 
 /**
- * Filtre les suggestions sur une saisie libre.
+ * Filtre et reclasse les suggestions sur une saisie libre.
  *
  * Volontairement une fonction pure et non un selector : la requête change à
  * chaque frappe, ce qui invaliderait la mémoïsation à chaque caractère.
  *
- * La recherche porte sur le libellé **et** la description, sinon taper
- * « vanille » ne retrouverait pas « Yaourt / à la vanille » — précisément le
- * cas qui motive la description.
+ * La recherche est **approximative** : « lat » sort « Lait », « choc » sort
+ * « Chocolat noir ». Une sous-chaîne exacte était une exigence d'exactitude
+ * posée à la mauvaise personne — celle qui tape d'un pouce, en marchant.
+ *
+ * Elle porte sur le libellé **et** la description, sinon taper « vanille » ne
+ * retrouverait pas « Yaourt / à la vanille » — précisément le cas qui motive
+ * la description.
+ *
+ * Pas de score plancher : « lat » ne vaut que 0,36 contre « Lait », et
+ * l'écarter reviendrait à refuser la faute de frappe qui justifie tout ceci.
+ * C'est le classement qui trie, pas un seuil.
+ *
+ * Les produits déjà dans la liste restent derrière les autres, comme sans
+ * saisie : ils sont là pour dire « tu l'as déjà », pas pour être ajoutés.
  */
 export function filterSuggestions(
   suggestions: readonly SuggestionView[],
   query: string,
 ): readonly SuggestionView[] {
-  const needle = normalize(query);
-  if ('' === needle) {
-    return suggestions;
-  }
+  return (
+    chain([...suggestions])
+      .chain(
+        map((s: SuggestionView) => ({
+          suggestion: s,
+          score: fuzzyScore(query, ...haystacks(s)),
+        })),
+      )
+      .chain(filter((scored) => null !== scored.score))
+      // Un tri stable : à score égal — le cas de toute la liste quand la saisie
+      // est vide — l'ordre d'usage et de récence reçu est conservé.
+      .chain(
+        sortBy(
+          (scored) => (scored.suggestion.alreadyInList ? 1 : 0),
+          (scored) => -(scored.score ?? 0),
+        ),
+      )
+      .chain(map((scored) => scored.suggestion))
+      .value() as SuggestionView[]
+  );
+}
 
-  const terms = needle.split(' ');
+/**
+ * Les textes qu'une saisie peut atteindre sur un produit.
+ *
+ * Les deux champs séparément — c'est là que le score est le plus franc, et
+ * c'est ce qu'affiche l'écran — mais aussi leur concaténation, sans laquelle
+ * « yaourt vanille » ne trouverait rien : la moitié des lettres est dans le
+ * libellé, l'autre dans la description.
+ */
+function haystacks(suggestion: SuggestionView): readonly string[] {
+  const { label, description } = suggestion;
 
-  return chain([...suggestions])
-    .chain(
-      filter((s: SuggestionView) => {
-        const haystack = normalize(`${s.label} ${s.description}`);
-        return terms.every((term) => haystack.includes(term));
-      }),
-    )
-    .value();
+  return '' === description
+    ? [label]
+    : [label, description, `${label} ${description}`];
 }
 
 /**

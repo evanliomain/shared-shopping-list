@@ -18,7 +18,7 @@ import {
   selectCatalogEntries,
   SuggestionView,
 } from '@shopping-list/data-access/shopping';
-import { EmptyState, ProductAvatar } from '@shopping-list/ui';
+import { EmptyState, MatchedText, ProductAvatar } from '@shopping-list/ui';
 import { PluralPipe } from '@shopping-list/util/i18n';
 
 /**
@@ -36,7 +36,7 @@ import { PluralPipe } from '@shopping-list/util/i18n';
 @Component({
   selector: 'sl-catalog-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EmptyState, PluralPipe, ProductAvatar, TranslocoPipe],
+  imports: [EmptyState, MatchedText, PluralPipe, ProductAvatar, TranslocoPipe],
   templateUrl: './catalog-page.html',
   styleUrl: './catalog-page.scss',
 })

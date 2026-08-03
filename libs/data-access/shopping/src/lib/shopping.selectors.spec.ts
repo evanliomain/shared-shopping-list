@@ -277,8 +277,42 @@ describe('filterSuggestions', () => {
     expect(filterSuggestions(pool(), 'a la vanille')).toHaveLength(1);
   });
 
-  it('exige tous les termes saisis', () => {
+  it('cherche à cheval sur le libellé et la description', () => {
+    // La moitié des lettres est dans l'un, l'autre moitié dans l'autre.
     expect(filterSuggestions(pool(), 'yaourt firen')).toHaveLength(1);
     expect(filterSuggestions(pool(), 'yaourt introuvable')).toHaveLength(0);
+  });
+
+  it('pardonne les lettres manquantes', () => {
+    // Ce à quoi sert tout ceci : on tape d'un pouce, en marchant. « lat »
+    // n'est une sous-chaîne de rien, et doit pourtant sortir « Lait ».
+    const found = filterSuggestions(pool(), 'lat');
+
+    expect(found[0].label).toBe('Lait');
+  });
+
+  it('classe la meilleure correspondance en tête', () => {
+    // Avec une recherche approximative, tout ou presque finit par répondre :
+    // c'est le classement qui fait le travail, pas le filtre.
+    const found = filterSuggestions(pool(), 'vanille');
+
+    expect(found[0].description).toBe('à la vanille');
+  });
+
+  it('laisse derrière ce qui est déjà dans la liste', () => {
+    // Un produit déjà pris est là pour dire « tu l'as déjà », pas pour être
+    // ajouté : même une correspondance parfaite ne le fait pas remonter.
+    const state = new Scenario()
+      .product('lait', { label: 'Lait' })
+      .product('laitue', { label: 'Laitue' })
+      .add('lait')
+      .state();
+
+    const found = filterSuggestions(
+      selectSuggestions.projector(state.catalog, Object.values(state.items)),
+      'lait',
+    );
+
+    expect(found.map((s) => s.label)).toEqual(['Laitue', 'Lait']);
   });
 });
