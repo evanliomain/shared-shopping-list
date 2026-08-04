@@ -57,6 +57,7 @@ describe('projection du Y.Doc en objets ordinaires', () => {
           id: LIST,
           name: 'Maison',
           createdAt: NOW,
+          aisleOrder: [],
           items: {
             [itemId]: {
               id: itemId,

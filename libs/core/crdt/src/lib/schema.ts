@@ -53,6 +53,7 @@ const IMAGE_CREDITS = 'imageCredits';
 const ITEMS_ROOT = 'items:';
 const NAME_KEY = 'name:';
 const CREATED_AT_KEY = 'createdAt:';
+const AISLE_ORDER_KEY = 'aisleOrder:';
 const USAGE = 'usage';
 
 /**
@@ -132,6 +133,32 @@ export function writeListCreatedAt(
   createdAt: number,
 ): void {
   listMetaMap(doc).set(`${CREATED_AT_KEY}${listId}`, createdAt);
+}
+
+/**
+ * L'ordre de parcours des rayons, propre à cette liste.
+ *
+ * Stocké en une **clé plate scalaire** — une chaîne de clés de rayon séparées
+ * par des virgules — et non en `Y.Array` : réordonner est un geste rare et
+ * délibéré, deux réordonnancements concurrents sont donc un simple
+ * dernier-écrivain-gagne, sans perte de contenu (les rayons eux-mêmes vivent
+ * dans le code, pas dans le document). Une clé de rayon est un slug sans
+ * virgule, la découpe est donc sans ambiguïté.
+ *
+ * Vide — clé absente ou chaîne vide — veut dire « ordre par défaut » : c'est à
+ * la couche métier de retomber sur l'ordre du parcours codé en dur.
+ */
+export function readAisleOrder(doc: Y.Doc, listId: ListId): string[] {
+  const raw = listMetaMap(doc).get(`${AISLE_ORDER_KEY}${listId}`);
+  return 'string' === typeof raw && '' !== raw ? raw.split(',') : [];
+}
+
+export function writeAisleOrder(
+  doc: Y.Doc,
+  listId: ListId,
+  order: readonly string[],
+): void {
+  listMetaMap(doc).set(`${AISLE_ORDER_KEY}${listId}`, order.join(','));
 }
 
 export function productNode(doc: Y.Doc, id: ProductId): YNode | undefined {

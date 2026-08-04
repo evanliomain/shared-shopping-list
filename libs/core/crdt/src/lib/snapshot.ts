@@ -9,6 +9,7 @@ import {
   imageCreditsMap,
   itemsMap,
   listIds,
+  readAisleOrder,
   readListCreatedAt,
   readListName,
   YNode,
@@ -127,6 +128,7 @@ function readList(doc: Y.Doc, id: ListId): ShoppingList {
     id,
     name: readListName(doc, id),
     createdAt: readListCreatedAt(doc, id),
+    aisleOrder: readAisleOrder(doc, id),
     items: chain([...itemsMap(doc, id).entries()])
       .chain(map(([itemId, node]: [ItemId, YNode]) => readItem(itemId, node)))
       .chain(

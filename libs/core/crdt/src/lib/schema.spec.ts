@@ -45,11 +45,12 @@ describe('accesseurs structurels du Y.Doc', () => {
   });
 
   it('ne prend pour listes que les clés de nom', () => {
-    // `createdAt:` partage la même Y.Map plate : le confondre avec un nom
-    // ferait apparaître chaque liste deux fois.
+    // `createdAt:` et `aisleOrder:` partagent la même Y.Map plate : les
+    // confondre avec un nom ferait apparaître chaque liste plusieurs fois.
     const doc = new Y.Doc({ gc: true });
     listMetaMap(doc).set(`name:${LIST}`, 'Maison');
     listMetaMap(doc).set(`createdAt:${LIST}`, NOW);
+    listMetaMap(doc).set(`aisleOrder:${LIST}`, 'cave,boulangerie');
 
     expect(listIds(doc)).toEqual([LIST]);
   });
