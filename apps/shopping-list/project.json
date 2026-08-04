@@ -67,6 +67,9 @@
     "serve": {
       "continuous": true,
       "executor": "@angular/build:dev-server",
+      "options": {
+        "port": 4244
+      },
       "configurations": {
         "production": {
           "buildTarget": "shopping-list:build:production"
@@ -101,7 +104,7 @@
       "executor": "@nx/web:file-server",
       "options": {
         "buildTarget": "shopping-list:build",
-        "port": 4200,
+        "port": 4244,
         "staticFilePath": "dist/apps/shopping-list/browser",
         "spa": true
       }

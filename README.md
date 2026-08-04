@@ -28,7 +28,7 @@ source de vérité.
 
 ```bash
 npm ci
-npm start              # http://localhost:4200
+npm start              # http://localhost:4244
 ```
 
 ## Commandes
