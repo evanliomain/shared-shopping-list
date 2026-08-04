@@ -107,9 +107,20 @@
     "photoHint": "Réduite à 160 px et encodée en WebP : quelques kilo-octets, synchronisés à part de la liste.",
     "emoji": "Emoji",
     "chooseEmoji": "Choisir {{emoji}}",
-    "photoWins": "La photo est utilisée à la place de l'emoji.",
+    "photoWins": "Une image est utilisée à la place de l'emoji.",
     "archive": "Archiver",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "imageBank": "Banque d'images",
+    "bankSearch": "Chercher une image",
+    "bankSearching": "Recherche…",
+    "bankPlaceholder": "avocat, papier toilette…",
+    "bankNoResult": "Aucune image trouvée. Essayez un mot plus courant, ou plus précis.",
+    "bankHint": "Photos libres de droit d'Open Food Facts, Wikimedia Commons et Openverse. Choisie, l'image est réduite et gardée sur l'appareil : elle reste visible hors ligne.",
+    "chooseBankImage": "Choisir l’image {{title}}",
+    "removeBankImage": "Retirer l'image",
+    "restoreBankImage": "Remettre l'image",
+    "bankUntitled": "Sans titre",
+    "bankSource": "source"
   },
   "catalog": {
     "title": "Historique",
@@ -247,7 +258,8 @@
     },
     "imageBank": {
       "providerFailed": "{{provider}} n'a pas répondu (HTTP {{status}}).",
-      "noProvider": "Aucune banque d'images n'a répondu. Réessayez plus tard."
+      "noProvider": "Aucune banque d'images n'a répondu. Réessayez plus tard.",
+      "thumbnailFailed": "Cette image n'a pas pu être téléchargée."
     }
   }
 }

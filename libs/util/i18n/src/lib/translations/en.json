@@ -107,9 +107,20 @@
     "photoHint": "Shrunk to 160 px and encoded as WebP: a few kilobytes, synced separately from the list.",
     "emoji": "Emoji",
     "chooseEmoji": "Choose {{emoji}}",
-    "photoWins": "The photo is used instead of the emoji.",
+    "photoWins": "An image is used instead of the emoji.",
     "archive": "Archive",
-    "save": "Save"
+    "save": "Save",
+    "imageBank": "Image bank",
+    "bankSearch": "Search for an image",
+    "bankSearching": "Searching…",
+    "bankPlaceholder": "avocado, toilet paper…",
+    "bankNoResult": "No image found. Try a more common, or more specific, word.",
+    "bankHint": "Royalty-free photos from Open Food Facts, Wikimedia Commons and Openverse. Once chosen, the image is shrunk and kept on the device: it stays visible offline.",
+    "chooseBankImage": "Choose the image {{title}}",
+    "removeBankImage": "Remove the image",
+    "restoreBankImage": "Put the image back",
+    "bankUntitled": "Untitled",
+    "bankSource": "source"
   },
   "catalog": {
     "title": "History",
@@ -247,7 +258,8 @@
     },
     "imageBank": {
       "providerFailed": "{{provider}} did not answer (HTTP {{status}}).",
-      "noProvider": "No image bank answered. Try again later."
+      "noProvider": "No image bank answered. Try again later.",
+      "thumbnailFailed": "That image could not be downloaded."
     }
   }
 }

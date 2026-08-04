@@ -17,7 +17,7 @@
 } @else {
 <main>
   <div class="preview">
-    <sl-product-avatar [emoji]="emoji()" [imageUrl]="photoUrl()" size="lg" />
+    <sl-product-avatar [emoji]="emoji()" [imageUrl]="shownUrl()" size="lg" />
     <div>
       <p class="preview-label">
         {{ label() || ('product.unnamed' | transloco) }}
@@ -106,7 +106,85 @@
     <small>{{ 'product.photoHint' | transloco }}</small>
   </fieldset>
 
-  <fieldset [class.dimmed]="null !== photoRef()">
+  <fieldset>
+    <legend>{{ 'product.imageBank' | transloco }}</legend>
+
+    @if (null !== bankRef()) {
+    <div class="bank-current">
+      @if (bankShown()) {
+      <button type="button" class="bank-toggle" (click)="hideBankImage()">
+        {{ 'product.removeBankImage' | transloco }}
+      </button>
+      } @else {
+      <button type="button" class="bank-toggle" (click)="showBankImage()">
+        {{ 'product.restoreBankImage' | transloco }}
+      </button>
+      }
+      <!-- Le crédit est une obligation des licences Creative Commons, pas une
+           décoration : il reste affiché même quand l'image est retirée, car
+           elle est toujours là et prête à revenir. -->
+      @if (bankCredit(); as credit) {
+      <small class="bank-credit">
+        {{ credit.title || ('product.bankUntitled' | transloco) }} — {{
+        credit.author }} ({{ credit.license }}) @if ('' !== credit.sourceUrl) {
+        <a [href]="credit.sourceUrl" target="_blank" rel="noopener noreferrer"
+          >{{ 'product.bankSource' | transloco }}</a
+        >
+        }
+      </small>
+      }
+    </div>
+    }
+
+    <div class="bank-search">
+      <input
+        type="search"
+        name="bankQuery"
+        autocomplete="off"
+        [placeholder]="'product.bankPlaceholder' | transloco"
+        [ngModel]="bankQuery()"
+        (ngModelChange)="bankQuery.set($event)"
+        (keyup.enter)="searchBank()"
+      />
+      <button
+        type="button"
+        class="bank-go"
+        [disabled]="bankBusy()"
+        (click)="openBank()"
+      >
+        {{ (bankBusy() ? 'product.bankSearching' : 'product.bankSearch') |
+        transloco }}
+      </button>
+    </div>
+
+    @if (null !== bankError()) {
+    <p class="bank-error" role="alert">{{ bankError() }}</p>
+    } @if (0 < bankResults().length) {
+    <div class="bank-grid">
+      @for (image of bankResults(); track image.id) {
+      <button
+        type="button"
+        class="bank-choice"
+        [class.selected]="image.id === pickedBankId()"
+        [attr.aria-label]="
+          'product.chooseBankImage' | transloco: { title: image.credit.title }
+        "
+        [title]="image.credit.title + ' — ' + image.credit.author"
+        (click)="chooseBankImage(image)"
+      >
+        <img [src]="image.thumbUrl" alt="" loading="lazy" />
+        <span class="bank-provider">{{ image.provider }}</span>
+      </button>
+      }
+    </div>
+    } @else if (bankSearched() && !bankBusy() && null === bankError()) {
+    <small>{{ 'product.bankNoResult' | transloco }}</small>
+    }
+
+    <small>{{ 'product.bankHint' | transloco }}</small>
+  </fieldset>
+
+  <fieldset [class.dimmed]="null !== shownRef()">
     <legend>{{ 'product.emoji' | transloco }}</legend>
     <div class="emoji-grid">
       @for (choice of emojiChoices; track choice) {
@@ -122,7 +200,7 @@
       </button>
       }
     </div>
-    @if (null !== photoRef()) {
+    @if (null !== shownRef()) {
     <small>{{ 'product.photoWins' | transloco }}</small>
     }
   </fieldset>

@@ -9,16 +9,22 @@ import {
   ImageRef,
   ProductId,
   readSnapshot,
+  setProductBankImage,
+  writeImageCredit,
 } from '@shopping-list/core/crdt';
 import {
   GithubConfig,
   GithubConfigService,
 } from '@shopping-list/core/sync-github';
 import {
+  AdoptedImage,
   crdtActions,
   DEFAULT_LIST_ID,
+  ProductBankImages,
   shoppingFeature,
 } from '@shopping-list/data-access/shopping';
+import { BankImage } from '@shopping-list/core/image-bank';
+import { TranslatableError } from '@shopping-list/util/i18n';
 import { signal } from '@angular/core';
 import * as Y from 'yjs';
 import { provideTestI18n } from '@shopping-list/util/i18n/testing';
@@ -32,6 +38,25 @@ const PHOTO_REF: ImageRef = `blob:${PHOTO_HASH}`;
 /** Une URL objet plausible : `blob:` est le seul schéma qu'Angular laisse passer
  * dans un `src` sans le préfixer d'`unsafe:`. */
 const PHOTO_URL = `blob:http://localhost/${PHOTO_HASH}`;
+const BANK_HASH = 'b7e401aa22cc9930';
+const BANK_REF: ImageRef = `blob:${BANK_HASH}`;
+const BANK_URL = `blob:http://localhost/${BANK_HASH}`;
+
+const CREDIT = {
+  title: 'Avocado Hass',
+  author: 'Ivar Leidus',
+  license: 'CC BY-SA 4.0',
+  licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0',
+  sourceUrl: 'https://commons.wikimedia.org/wiki/File:Avocado_Hass.jpg',
+};
+
+const RÉSULTAT: BankImage = {
+  id: 'commons-114747058',
+  provider: 'wikimedia',
+  thumbUrl: 'https://upload.wikimedia.org/thumb/320px-Avocado_Hass.jpg',
+  credit: CREDIT,
+};
+
 const CONFIG: GithubConfig = {
   owner: 'evanliomain',
   repo: 'shopping-list-data',
@@ -47,7 +72,7 @@ const CONFIG: GithubConfig = {
 class FauxBlobs {
   /** Ce qui a été rangé, pour vérifier qu'on n'attend pas l'enregistrement. */
   readonly rangées: Blob[] = [];
-  /** Empreintes dont on a réclamé les octets, donc offertes au dépôt. */
+  /** Empreintes dont on a réclamé les octets, donc candidates à la publication. */
   readonly relues: string[] = [];
   /** Quand `true`, `store` reste en attente jusqu'à `termine()`. */
   lent = false;
@@ -70,9 +95,6 @@ class FauxBlobs {
     return `blob:http://localhost/${hash}`;
   }
 
-  /** Empreintes dont on a réclamé les octets, donc candidates à la publication. */
-  readonly relues: string[] = [];
-
   async bytesOf(hash: string): Promise<Uint8Array | null> {
     this.relues.push(hash);
     // `null` arrête la publication avant tout appel réseau, qui ne regarde pas
@@ -85,6 +107,43 @@ class FauxBlobs {
   }
 }
 
+/**
+ * Doublure des banques d'images : aucun appel réseau dans un test de composant.
+ *
+ * `résultats` et `adoptée` décident de ce que rendent la recherche et
+ * l'adoption ; une `Error` à la place fait échouer l'appel, ce qui arrive
+ * souvent en vrai — les fournisseurs tombent.
+ */
+class FausseBanque {
+  readonly recherches: string[] = [];
+  readonly adoptions: BankImage[] = [];
+  résultats: readonly BankImage[] | Error = [RÉSULTAT];
+  adoptée: AdoptedImage | null = { imageRef: BANK_REF, credit: CREDIT };
+  /** Quand `true`, `search` reste en attente jusqu'à `termine()`. */
+  lent = false;
+  private libère: (() => void) | null = null;
+
+  async search(query: string): Promise<readonly BankImage[]> {
+    this.recherches.push(query);
+    if (this.lent) {
+      await new Promise<void>((resolve) => (this.libère = resolve));
+    }
+    if (this.résultats instanceof Error) {
+      throw this.résultats;
+    }
+    return this.résultats;
+  }
+
+  termine(): void {
+    this.libère?.();
+  }
+
+  async adopt(image: BankImage): Promise<AdoptedImage | null> {
+    this.adoptions.push(image);
+    return this.adoptée;
+  }
+}
+
 function providers() {
   return [
     provideRouter([]),
@@ -92,6 +151,7 @@ function providers() {
     provideTestI18n(),
     provideStore({ [shoppingFeature.name]: shoppingFeature.reducer }),
     { provide: BlobService, useClass: FauxBlobs },
+    { provide: ProductBankImages, useClass: FausseBanque },
     {
       provide: GithubConfigService,
       useValue: { config: signal(CONFIG), loaded: signal(true) },
@@ -122,8 +182,27 @@ async function render(seed: (doc: Y.Doc) => ProductId) {
   await fixture.whenStable();
 
   const blobs = TestBed.inject(BlobService) as unknown as FauxBlobs;
+  const banque = TestBed.inject(ProductBankImages) as unknown as FausseBanque;
 
-  return { fixture, productId, dispatched, blobs };
+  return { fixture, productId, dispatched, blobs, banque };
+}
+
+/**
+ * Un produit tel qu'il arrive du CRDT avec une image de banque déjà mémorisée :
+ * `imageRef` et `bankImageRef` désignent la même image.
+ */
+function avecImageDeBanque(
+  doc: Y.Doc,
+  label: string,
+  category: string,
+): ProductId {
+  const productId = createProduct(
+    doc,
+    { label, category, imageRef: BANK_REF },
+    NOW,
+  );
+  setProductBankImage(doc, productId, BANK_REF);
+  return productId;
 }
 
 function click(fixture: { nativeElement: HTMLElement }, label: string): void {
@@ -316,7 +395,7 @@ describe('ProductPage', () => {
       );
 
       expect(fixture.nativeElement.textContent).toContain(
-        "La photo est utilisée à la place de l'emoji.",
+        "Une image est utilisée à la place de l'emoji.",
       );
     });
 
@@ -450,6 +529,338 @@ describe('ProductPage', () => {
         productId,
         imageRef: 'emoji:🧀',
       });
+    });
+  });
+
+  describe('banque d’images', () => {
+    /** Les vignettes de la grille de résultats. */
+    function vignettes(fixture: { nativeElement: HTMLElement }): HTMLElement[] {
+      return [...fixture.nativeElement.querySelectorAll('.bank-choice')];
+    }
+
+    function cherche(fixture: { nativeElement: HTMLElement }): void {
+      click(fixture, 'Chercher une image');
+    }
+
+    it('cherche avec le libellé du produit, sans le faire retaper', async () => {
+      const { fixture, banque } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+
+      cherche(fixture);
+      await fixture.whenStable();
+
+      expect(banque.recherches).toEqual(['Avocat']);
+      expect(vignettes(fixture)).toHaveLength(1);
+    });
+
+    it('laisse affiner la recherche à la main', async () => {
+      // Le rattrapage le plus utile quand la proposition d'office tombe à côté :
+      // chercher « avocat fruit » plutôt qu'« avocat ».
+      const { fixture, banque } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+
+      const champ = fixture.nativeElement.querySelector<HTMLInputElement>(
+        'input[type="search"]',
+      );
+      champ.value = 'avocat fruit';
+      champ.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+
+      cherche(fixture);
+      await fixture.whenStable();
+
+      expect(banque.recherches).toEqual(['avocat fruit']);
+    });
+
+    it('dit d’où vient chaque vignette', async () => {
+      // Les trois fournisseurs ne se valent pas, et un packshot exact ne se
+      // distingue pas d'une photo d'auteur au premier coup d'œil.
+      const { fixture } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+
+      cherche(fixture);
+      await fixture.whenStable();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('.bank-provider')
+          .textContent.trim(),
+      ).toBe('wikimedia');
+    });
+
+    it('affiche l’image choisie et son crédit', async () => {
+      // Créditer n'est pas décoratif : les licences Creative Commons l'exigent.
+      const { fixture } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+      cherche(fixture);
+      await fixture.whenStable();
+
+      vignettes(fixture)[0].click();
+
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(photoSrc(fixture)).toBe(BANK_URL);
+      });
+      expect(fixture.nativeElement.textContent).toContain('Avocado Hass');
+      expect(fixture.nativeElement.textContent).toContain('Ivar Leidus');
+      expect(fixture.nativeElement.textContent).toContain('CC BY-SA 4.0');
+    });
+
+    it('mémorise l’image et son crédit à l’enregistrement', async () => {
+      const { fixture, productId, dispatched } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat', imageRef: 'emoji:🛒' }, NOW),
+      );
+      cherche(fixture);
+      await fixture.whenStable();
+      vignettes(fixture)[0].click();
+      await fixture.whenStable();
+
+      click(fixture, 'Enregistrer');
+
+      expect(dispatched).toContainEqual({
+        type: '[Catalogue] Image de banque choisie',
+        productId,
+        imageRef: BANK_REF,
+        credit: CREDIT,
+      });
+      expect(dispatched).toContainEqual({
+        type: '[Catalogue] Image modifiée',
+        productId,
+        imageRef: BANK_REF,
+      });
+    });
+
+    it('retire l’image de l’affichage sans l’oublier', async () => {
+      // Le cœur de la demande : retirer doit rester réversible, donc l'image
+      // reste mémorisée et seul l'affichage change.
+      const { fixture, productId, dispatched } = await render((doc) =>
+        avecImageDeBanque(doc, 'Avocat', 'fruits-legumes'),
+      );
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(photoSrc(fixture)).toBe(BANK_URL);
+      });
+
+      click(fixture, "Retirer l'image");
+      await fixture.whenStable();
+
+      expect(photoSrc(fixture)).toBeNull();
+      click(fixture, 'Enregistrer');
+
+      expect(dispatched).toContainEqual({
+        type: '[Catalogue] Image modifiée',
+        productId,
+        imageRef: 'emoji:🥕',
+      });
+      // Rien n'a été oublié : aucune action n'efface l'image mémorisée.
+      expect(dispatched).not.toContainEqual(
+        expect.objectContaining({ bankImageRef: null }),
+      );
+    });
+
+    it('remet l’image retirée sans rien redemander au réseau', async () => {
+      const { fixture, productId, dispatched, banque } = await render((doc) =>
+        avecImageDeBanque(doc, 'Avocat', 'fruits-legumes'),
+      );
+      await fixture.whenStable();
+
+      click(fixture, "Retirer l'image");
+      await fixture.whenStable();
+      click(fixture, "Remettre l'image");
+      await fixture.whenStable();
+
+      click(fixture, 'Enregistrer');
+
+      expect(dispatched).toContainEqual({
+        type: '[Catalogue] Image modifiée',
+        productId,
+        imageRef: BANK_REF,
+      });
+      // Aucune recherche : l'image n'a jamais quitté l'appareil.
+      expect(banque.recherches).toEqual([]);
+      expect(banque.adoptions).toEqual([]);
+    });
+
+    it('garde le crédit affiché même quand l’image est retirée', async () => {
+      // Elle est toujours là et prête à revenir : la masquer masquerait aussi
+      // le bouton qui la ramène.
+      const { fixture } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+      cherche(fixture);
+      await fixture.whenStable();
+      vignettes(fixture)[0].click();
+      await fixture.whenStable();
+
+      click(fixture, "Retirer l'image");
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.textContent).toContain('Ivar Leidus');
+      expect(fixture.nativeElement.textContent).toContain("Remettre l'image");
+    });
+
+    it('fait gagner l’image choisie sur la photo déjà prise', async () => {
+      // Sans ça, choisir une image n'aurait aucun effet visible et paraîtrait
+      // ignoré.
+      const { fixture } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+      choisitPhoto(fixture, [new File(['pixels'], 'photo.jpg')]);
+      await fixture.whenStable();
+      cherche(fixture);
+      await fixture.whenStable();
+
+      vignettes(fixture)[0].click();
+
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(photoSrc(fixture)).toBe(BANK_URL);
+      });
+    });
+
+    it('dit qu’elle cherche, et se protège du double clic', async () => {
+      const { fixture, banque } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+      banque.lent = true;
+
+      cherche(fixture);
+      await fixture.whenStable();
+      expect(
+        fixture.nativeElement.querySelector('.bank-go').textContent.trim(),
+      ).toBe('Recherche…');
+
+      banque.termine();
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(vignettes(fixture)).toHaveLength(1);
+      });
+      expect(banque.recherches).toHaveLength(1);
+    });
+
+    it('annonce qu’aucune banque n’a répondu', async () => {
+      // Contrairement à la recherche d'office, quelqu'un attend ici une réponse
+      // et mérite de savoir qu'il n'y en aura pas.
+      const { fixture, banque } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+      banque.résultats = new TranslatableError('errors.imageBank.noProvider');
+
+      cherche(fixture);
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(
+          fixture.nativeElement.querySelector('.bank-error'),
+        ).not.toBeNull();
+      });
+
+      expect(fixture.nativeElement.textContent).toContain(
+        "Aucune banque d'images n'a répondu",
+      );
+    });
+
+    it('distingue « rien trouvé » de « pas encore cherché »', async () => {
+      const { fixture, banque } = await render((doc) =>
+        createProduct(doc, { label: 'Xyzzy' }, NOW),
+      );
+      banque.résultats = [];
+
+      expect(fixture.nativeElement.textContent).not.toContain(
+        'Aucune image trouvée',
+      );
+
+      cherche(fixture);
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(fixture.nativeElement.textContent).toContain(
+          'Aucune image trouvée',
+        );
+      });
+    });
+
+    it('signale une vignette qui ne se télécharge pas', async () => {
+      // Le fournisseur a répondu mais son hébergeur d'images est tombé : mieux
+      // vaut le dire que laisser un choix sans effet.
+      const { fixture, banque } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+      banque.adoptée = null;
+      cherche(fixture);
+      await fixture.whenStable();
+
+      vignettes(fixture)[0].click();
+      await vi.waitFor(async () => {
+        await fixture.whenStable();
+        expect(fixture.nativeElement.textContent).toContain(
+          "Cette image n'a pas pu être téléchargée",
+        );
+      });
+
+      expect(photoSrc(fixture)).toBeNull();
+    });
+
+    it('ne cherche rien avec un champ vide', async () => {
+      const { fixture, banque } = await render((doc) =>
+        createProduct(doc, { label: '   ' }, NOW),
+      );
+
+      cherche(fixture);
+      await fixture.whenStable();
+
+      expect(banque.recherches).toEqual([]);
+    });
+
+    it('crédite une image reçue de l’autre appareil', async () => {
+      // Le crédit voyage dans le CRDT justement pour ce cas : cet appareil n'a
+      // jamais fait la recherche et ne pourrait pas retrouver l'auteur.
+      const { fixture } = await render((doc) => {
+        const productId = avecImageDeBanque(doc, 'Avocat', 'fruits-legumes');
+        writeImageCredit(doc, BANK_HASH, CREDIT);
+        return productId;
+      });
+
+      expect(fixture.nativeElement.textContent).toContain('Ivar Leidus');
+      expect(
+        fixture.nativeElement
+          .querySelector('.bank-credit a')
+          ?.getAttribute('href'),
+      ).toBe(CREDIT.sourceUrl);
+    });
+
+    it('ne télécharge pas deux fois sur un double appui', async () => {
+      // Les vignettes sont petites et collées : un doigt en touche deux, ou la
+      // même deux fois. Sans la garde, deux téléchargements pour une image.
+      const { fixture, banque } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+      cherche(fixture);
+      await fixture.whenStable();
+
+      // Deux appuis avant que la première adoption ait rendu la main.
+      vignettes(fixture)[0].click();
+      vignettes(fixture)[0].click();
+      await fixture.whenStable();
+
+      expect(banque.adoptions).toHaveLength(1);
+    });
+
+    it('confie l’image de banque au dépôt une fois enregistrée', async () => {
+      // Sans quoi l'autre téléphone recevrait la référence sans les pixels.
+      const { fixture, blobs } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat', imageRef: 'emoji:🛒' }, NOW),
+      );
+      cherche(fixture);
+      await fixture.whenStable();
+      vignettes(fixture)[0].click();
+      await fixture.whenStable();
+
+      click(fixture, 'Enregistrer');
+
+      await vi.waitFor(() => expect(blobs.relues).toEqual([BANK_HASH]));
     });
   });
 });
