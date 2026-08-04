@@ -84,6 +84,13 @@ export const KEYWORDS_EN: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['turkey', 'boucherie', '🍗'],
   ['poultry', 'boucherie', '🍗'],
 
+  // Deli
+  ['deli', 'traiteur', '🥡'],
+  ['charcuterie', 'traiteur', '🥓'],
+  ['sushi', 'traiteur', '🍣'],
+  ['quiche', 'traiteur', '🥧'],
+  ['coleslaw', 'traiteur', '🥗'],
+
   // Fishmonger
   ['fish', 'poissonnerie', '🐟'],
   ['salmon', 'poissonnerie', '🐟'],
@@ -164,13 +171,18 @@ export const KEYWORDS_EN: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['juice', 'boissons', '🧃'],
   ['squash drink', 'boissons', '🧃'],
   ['lemonade', 'boissons', '🥤'],
-  ['beer', 'boissons', '🍺'],
-  ['wine', 'boissons', '🍷'],
-  ['cider', 'boissons', '🍺'],
   ['coffee', 'boissons', '☕'],
   ['tea', 'boissons', '🍵'],
   ['herbal tea', 'boissons', '🍵'],
   ['cocoa', 'boissons', '🍫'],
+
+  // Wine & spirits
+  ['wine', 'cave', '🍷'],
+  ['champagne', 'cave', '🍾'],
+  ['beer', 'cave', '🍺'],
+  ['cider', 'cave', '🍺'],
+  ['whisky', 'cave', '🥃'],
+  ['rum', 'cave', '🥃'],
 
   // Frozen
   ['frozen', 'surgeles', '🧊'],
@@ -256,30 +268,93 @@ export const KEYWORDS_EN: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['dog food', 'animaux', '🐶'],
   ['pet food', 'animaux', '🐾'],
 
+  // School supplies — back-to-school has its own aisle, apart from the books.
+  ['schoolbag', 'fournitures', '🎒'],
+  ['notebook', 'fournitures', '📓'],
+  ['folder', 'fournitures', '🗂️'],
+  ['pencil case', 'fournitures', '✏️'],
+  ['pen', 'fournitures', '🖊️'],
+  ['pencil', 'fournitures', '✏️'],
+  ['marker', 'fournitures', '🖍️'],
+  ['highlighter', 'fournitures', '🖍️'],
+  ['eraser', 'fournitures', '✏️'],
+  ['ruler', 'fournitures', '📏'],
+  ['scissors', 'fournitures', '✂️'],
+  ['glue', 'fournitures', '🖇️'],
+  ['calculator', 'fournitures', '🧮'],
+
   // Books & stationery
   ['book', 'librairie', '📚'],
   ['novel', 'librairie', '📚'],
   ['comic', 'librairie', '📚'],
   ['magazine', 'librairie', '📰'],
   ['newspaper', 'librairie', '📰'],
-  ['notebook', 'librairie', '📓'],
   ['diary', 'librairie', '📓'],
-  ['folder', 'librairie', '🗂️'],
-  ['pen', 'librairie', '🖊️'],
-  ['pencil', 'librairie', '✏️'],
-  ['marker', 'librairie', '🖍️'],
-  ['highlighter', 'librairie', '🖍️'],
-  ['eraser', 'librairie', '✏️'],
-  ['ruler', 'librairie', '📏'],
-  ['scissors', 'librairie', '✂️'],
-  ['glue', 'librairie', '🖇️'],
-  ['pencil case', 'librairie', '✏️'],
-  ['calculator', 'librairie', '🧮'],
   ['envelope', 'librairie', '✉️'],
   ['stamp', 'librairie', '📮'],
   ['postcard', 'librairie', '📮'],
   ['wrapping paper', 'librairie', '🎁'],
   ['ink cartridge', 'librairie', '🖨️'],
+
+  // Home & décor
+  ['plate', 'maison', '🍽️'],
+  ['cutlery', 'maison', '🍴'],
+  ['saucepan', 'maison', '🍳'],
+  ['frying pan', 'maison', '🍳'],
+  ['coat hanger', 'maison', '🧷'],
+
+  // Appliances
+  ['vacuum cleaner', 'electromenager', '🔌'],
+  ['kettle', 'electromenager', '🫖'],
+  ['coffee machine', 'electromenager', '☕'],
+  ['toaster', 'electromenager', '🍞'],
+  ['microwave', 'electromenager', '🔌'],
+  ['blender', 'electromenager', '🔌'],
+
+  // DIY
+  ['drill', 'bricolage', '🔧'],
+  ['screwdriver', 'bricolage', '🪛'],
+  ['hammer', 'bricolage', '🔨'],
+  ['screw', 'bricolage', '🔩'],
+  ['paint', 'bricolage', '🎨'],
+
+  // Garden
+  ['plant', 'jardin', '🪴'],
+  ['potting soil', 'jardin', '🪴'],
+  ['fertiliser', 'jardin', '🌱'],
+  ['watering can', 'jardin', '🚿'],
+  ['lawnmower', 'jardin', '🌱'],
+  ['barbecue', 'jardin', '🔥'],
+
+  // Clothing
+  ['t shirt', 'textile', '👕'],
+  ['trousers', 'textile', '👖'],
+  ['sock', 'textile', '🧦'],
+  ['jumper', 'textile', '🧥'],
+  ['shoe', 'textile', '👟'],
+  ['dress', 'textile', '👗'],
+
+  // Sport & leisure
+  ['football', 'sport', '⚽'],
+  ['bicycle', 'sport', '🚲'],
+  ['tennis racket', 'sport', '🎾'],
+  ['dumbbell', 'sport', '🏋️'],
+  ['swimsuit', 'sport', '🩱'],
+
+  // Toys & games
+  ['toy', 'jouets', '🧸'],
+  ['doll', 'jouets', '🧸'],
+  ['puzzle', 'jouets', '🧩'],
+  ['teddy', 'jouets', '🧸'],
+  ['board game', 'jouets', '🎲'],
+  ['lego', 'jouets', '🧱'],
+
+  // Car & moto
+  ['tyre', 'auto', '🚗'],
+  ['windscreen wiper', 'auto', '🚗'],
+  ['engine oil', 'auto', '🛢️'],
+  ['antifreeze', 'auto', '🌡️'],
+  ['screenwash', 'auto', '🚗'],
 
   // Multimedia
   ['cable', 'multimedia', '🔌'],

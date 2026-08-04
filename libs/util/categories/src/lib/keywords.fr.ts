@@ -84,6 +84,13 @@ export const KEYWORDS_FR: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['pate', 'boucherie', '🍖'],
   ['rillette', 'boucherie', '🍖'],
 
+  // Traiteur
+  ['traiteur', 'traiteur', '🥡'],
+  ['charcuterie', 'traiteur', '🥓'],
+  ['sushi', 'traiteur', '🍣'],
+  ['quiche', 'traiteur', '🥧'],
+  ['taboule', 'traiteur', '🥗'],
+
   // Poissonnerie
   ['poisson', 'poissonnerie', '🐟'],
   ['saumon', 'poissonnerie', '🐟'],
@@ -191,15 +198,21 @@ export const KEYWORDS_FR: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['coca', 'boissons', '🥤'],
   ['limonade', 'boissons', '🥤'],
   ['sirop', 'boissons', '🧃'],
-  ['biere', 'boissons', '🍺'],
-  ['vin', 'boissons', '🍷'],
-  ['champagne', 'boissons', '🍾'],
-  ['cidre', 'boissons', '🍺'],
   ['cafe', 'boissons', '☕'],
   ['the', 'boissons', '🍵'],
   ['infusion', 'boissons', '🍵'],
   ['tisane', 'boissons', '🍵'],
   ['chocolat en poudre', 'boissons', '🍫'],
+
+  // Cave — les alcools ont leur propre rayon chez Leclerc, distinct des
+  // boissons du quotidien.
+  ['vin', 'cave', '🍷'],
+  ['champagne', 'cave', '🍾'],
+  ['biere', 'cave', '🍺'],
+  ['cidre', 'cave', '🍺'],
+  ['whisky', 'cave', '🥃'],
+  ['rhum', 'cave', '🥃'],
+  ['pastis', 'cave', '🥃'],
 
   // Surgelés
   ['surgele', 'surgeles', '🧊'],
@@ -277,6 +290,22 @@ export const KEYWORDS_FR: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['chat', 'animaux', '🐱'],
   ['chien', 'animaux', '🐶'],
 
+  // Fournitures scolaires — la rentrée a son rayon à part, séparé des livres.
+  ['cartable', 'fournitures', '🎒'],
+  ['cahier', 'fournitures', '📓'],
+  ['carnet', 'fournitures', '📓'],
+  ['classeur', 'fournitures', '🗂️'],
+  ['trousse', 'fournitures', '✏️'],
+  ['stylo', 'fournitures', '🖊️'],
+  ['crayon', 'fournitures', '✏️'],
+  ['feutre', 'fournitures', '🖍️'],
+  ['surligneur', 'fournitures', '🖍️'],
+  ['gomme', 'fournitures', '✏️'],
+  ['regle', 'fournitures', '📏'],
+  ['ciseaux', 'fournitures', '✂️'],
+  ['colle', 'fournitures', '🖇️'],
+  ['calculatrice', 'fournitures', '🧮'],
+
   // Librairie & papeterie
   ['livre', 'librairie', '📚'],
   ['roman', 'librairie', '📚'],
@@ -284,25 +313,72 @@ export const KEYWORDS_FR: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['bande dessinee', 'librairie', '📚'],
   ['magazine', 'librairie', '📰'],
   ['journal', 'librairie', '📰'],
-  ['cahier', 'librairie', '📓'],
-  ['carnet', 'librairie', '📓'],
   ['agenda', 'librairie', '📓'],
-  ['classeur', 'librairie', '🗂️'],
-  ['stylo', 'librairie', '🖊️'],
-  ['crayon', 'librairie', '✏️'],
-  ['feutre', 'librairie', '🖍️'],
-  ['surligneur', 'librairie', '🖍️'],
-  ['gomme', 'librairie', '✏️'],
-  ['regle', 'librairie', '📏'],
-  ['ciseaux', 'librairie', '✂️'],
-  ['colle', 'librairie', '🖇️'],
-  ['trousse', 'librairie', '✏️'],
-  ['calculatrice', 'librairie', '🧮'],
   ['enveloppe', 'librairie', '✉️'],
   ['timbre', 'librairie', '📮'],
   ['carte postale', 'librairie', '📮'],
   ['papier cadeau', 'librairie', '🎁'],
   ['cartouche d encre', 'librairie', '🖨️'],
+
+  // Maison & déco
+  ['assiette', 'maison', '🍽️'],
+  ['couvert', 'maison', '🍴'],
+  ['casserole', 'maison', '🍳'],
+  ['poele', 'maison', '🍳'],
+  ['cintre', 'maison', '🧷'],
+
+  // Électroménager
+  ['aspirateur', 'electromenager', '🔌'],
+  ['bouilloire', 'electromenager', '🫖'],
+  ['cafetiere', 'electromenager', '☕'],
+  ['grille pain', 'electromenager', '🍞'],
+  ['micro onde', 'electromenager', '🔌'],
+  ['mixeur', 'electromenager', '🔌'],
+
+  // Bricolage
+  ['perceuse', 'bricolage', '🔧'],
+  ['tournevis', 'bricolage', '🪛'],
+  ['marteau', 'bricolage', '🔨'],
+  ['vis', 'bricolage', '🔩'],
+  ['peinture', 'bricolage', '🎨'],
+
+  // Jardin
+  ['plante', 'jardin', '🪴'],
+  ['terreau', 'jardin', '🪴'],
+  ['engrais', 'jardin', '🌱'],
+  ['arrosoir', 'jardin', '🚿'],
+  ['tondeuse', 'jardin', '🌱'],
+  ['barbecue', 'jardin', '🔥'],
+
+  // Textile
+  ['tee shirt', 'textile', '👕'],
+  ['pantalon', 'textile', '👖'],
+  ['chaussette', 'textile', '🧦'],
+  ['pull', 'textile', '🧥'],
+  ['chaussure', 'textile', '👟'],
+  ['robe', 'textile', '👗'],
+
+  // Sport & loisirs
+  ['ballon', 'sport', '⚽'],
+  ['velo', 'sport', '🚲'],
+  ['raquette', 'sport', '🎾'],
+  ['haltere', 'sport', '🏋️'],
+  ['maillot de bain', 'sport', '🩱'],
+
+  // Jeux & jouets
+  ['jouet', 'jouets', '🧸'],
+  ['poupee', 'jouets', '🧸'],
+  ['puzzle', 'jouets', '🧩'],
+  ['peluche', 'jouets', '🧸'],
+  ['jeu de societe', 'jouets', '🎲'],
+  ['lego', 'jouets', '🧱'],
+
+  // Auto & moto
+  ['pneu', 'auto', '🚗'],
+  ['essuie glace', 'auto', '🚗'],
+  ['huile moteur', 'auto', '🛢️'],
+  ['antigel', 'auto', '🌡️'],
+  ['lave glace', 'auto', '🚗'],
 
   // Multimédia
   ['cable', 'multimedia', '🔌'],

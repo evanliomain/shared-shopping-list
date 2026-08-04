@@ -6,22 +6,35 @@
 export const AISLES = [
   'fruits-legumes',
   'boucherie',
+  'traiteur',
   'poissonnerie',
   'cremerie',
   'boulangerie',
   'epicerie-salee',
   'epicerie-sucree',
   'boissons',
+  'cave',
   'surgeles',
   'hygiene',
   'pharmacie',
   'entretien',
   'bebe',
   'animaux',
-  // Le non-alimentaire ferme la marche : dans un hypermarché, la culture et
-  // le multimédia sont du côté des caisses, pas du côté des rayons frais.
+  // Le non-alimentaire ferme la marche : dans un hypermarché, le bazar, le
+  // textile et la culture sont du côté des caisses, pas des rayons frais. On
+  // garde ce bloc dans l'ordre où un grand Leclerc l'aligne — maison et
+  // électroménager d'abord, l'auto tout au bout près des sorties.
+  'maison',
+  'electromenager',
+  'bricolage',
+  'jardin',
+  'textile',
+  'sport',
+  'jouets',
+  'fournitures',
   'librairie',
   'multimedia',
+  'auto',
   'divers',
 ] as const;
 
@@ -40,20 +53,31 @@ export type Aisle = (typeof AISLES)[number];
 export const AISLE_EMOJI: Readonly<Record<Aisle, string>> = {
   'fruits-legumes': '🥕',
   boucherie: '🥩',
+  traiteur: '🥓',
   poissonnerie: '🐟',
   cremerie: '🧀',
   boulangerie: '🥖',
   'epicerie-salee': '🥫',
   'epicerie-sucree': '🍪',
   boissons: '🧃',
+  cave: '🍷',
   surgeles: '🧊',
   hygiene: '🧴',
   pharmacie: '💊',
   entretien: '🧽',
   bebe: '🍼',
   animaux: '🐾',
+  maison: '🏠',
+  electromenager: '🔌',
+  bricolage: '🔧',
+  jardin: '🌱',
+  textile: '👕',
+  sport: '⚽',
+  jouets: '🧸',
+  fournitures: '🎒',
   librairie: '📚',
   multimedia: '🎧',
+  auto: '🚗',
   divers: '🛒',
 };
 

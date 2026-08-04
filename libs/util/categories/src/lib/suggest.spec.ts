@@ -19,6 +19,14 @@ describe('suggestCategory', () => {
     ['Lessive liquide', 'entretien'],
     ['Couches taille 4', 'bebe'],
     ['Croquettes pour le chat', 'animaux'],
+    // Rayons Leclerc ajoutés : les alcools quittent « boissons » pour « cave »,
+    // la rentrée a son rayon, et le non-alimentaire est couvert.
+    ['Vin rouge', 'cave'],
+    ['Plateau de charcuterie', 'traiteur'],
+    ['Cahier grand format', 'fournitures'],
+    ['Terreau universel', 'jardin'],
+    ['Perceuse sans fil', 'bricolage'],
+    ['Ballon de foot', 'sport'],
   ])('range « %s » au rayon %s', (label, aisle) => {
     expect(suggestCategory(label).aisle).toBe(aisle);
   });
@@ -32,6 +40,10 @@ describe('suggestCategory', () => {
     ['Laundry detergent', 'entretien'],
     ['Nappies size 4', 'bebe'],
     ['Cat food', 'animaux'],
+    ['Red wine', 'cave'],
+    ['School notebook', 'fournitures'],
+    ['Cordless drill', 'bricolage'],
+    ['Football', 'sport'],
   ])('range « %s » au rayon %s', (label, aisle) => {
     // Le dictionnaire n'est pas traduit, il est fusionné : ce qu'on tape ne
     // suit pas la langue de l'interface.
@@ -48,6 +60,11 @@ describe('suggestCategory', () => {
     // le légume.
     expect(suggestCategory('Bell peppers').aisle).toBe('fruits-legumes');
     expect(suggestCategory('Black pepper').aisle).toBe('epicerie-salee');
+
+    // Les rayons ajoutés en profitent aussi : « grille-pain » l'appareil ne
+    // doit pas être capté par « pain », ni « huile moteur » par « huile ».
+    expect(suggestCategory('Grille-pain').aisle).toBe('electromenager');
+    expect(suggestCategory('Huile moteur').aisle).toBe('auto');
   });
 
   it('reconnaît les pluriels', () => {
