@@ -43,16 +43,42 @@ async function createArticle(page: Page, label: string): Promise<void> {
 }
 
 /**
+ * Seuil au-delà duquel la ligne montre ses boutons Cocher et Retirer ; en
+ * dessous, ces deux actions sont les gestes du pouce. On tranche sur la largeur,
+ * comme le fait le média-query de la ligne : sous ce seuil les boutons restent
+ * dans le DOM, mais effacés à l'œil, si bien que `isVisible()` les croit là.
+ */
+const DESK_MIN_PX = 1040;
+
+function showsRowButtons(page: Page): boolean {
+  const viewport = page.viewportSize();
+  return null !== viewport && DESK_MIN_PX <= viewport.width;
+}
+
+/**
+ * Coche un article. Au-delà de 1040 px par le bouton ✓ ; en dessous, par le
+ * glissé vers la droite. La ligne elle-même n'est plus une cible : la lire du
+ * doigt la cochait par accident.
+ */
+async function checkArticle(page: Page, label: string): Promise<void> {
+  if (showsRowButtons(page)) {
+    await row(page, label).getByRole('button', { name: 'Cocher' }).click();
+    return;
+  }
+
+  await swipe(page, label, 120);
+}
+
+/**
  * Retire un article. Au-delà de 1040 px la ligne porte son ✕ ; en dessous,
  * c'est le glissé vers la gauche qui fait le travail. Le parcours passe par ce
  * qui est réellement à disposition.
  */
 async function removeArticle(page: Page, label: string): Promise<void> {
-  const button = row(page, label).getByRole('button', {
-    name: 'Retirer de la liste',
-  });
-  if (await button.isVisible()) {
-    await button.click();
+  if (showsRowButtons(page)) {
+    await row(page, label)
+      .getByRole('button', { name: 'Retirer de la liste' })
+      .click();
     return;
   }
 
@@ -166,7 +192,7 @@ test('cocher déplace l’article dans le panier', async ({ page }) => {
   await createArticle(page, 'Pain');
   await closeAdd(page);
 
-  await row(page, 'Pain').getByRole('checkbox').click();
+  await checkArticle(page, 'Pain');
 
   await expect(page.getByText('Tout est dans le panier')).toBeVisible();
 
@@ -224,7 +250,7 @@ test('vider le panier retire les articles cochés et garde les autres', async ({
   await createArticle(page, 'Pain');
   await closeAdd(page);
 
-  await row(page, 'Lait').getByRole('checkbox').click();
+  await checkArticle(page, 'Lait');
   await page.getByRole('button', { name: 'Vider' }).click();
 
   await expect(row(page, 'Lait')).toHaveCount(0);
