@@ -656,10 +656,11 @@ describe('ProductPage', () => {
         productId,
         imageRef: 'emoji:🥕',
       });
-      // Rien n'a été oublié : aucune action n'efface l'image mémorisée.
-      expect(dispatched).not.toContainEqual(
-        expect.objectContaining({ bankImageRef: null }),
-      );
+      // Rien n'a été oublié : l'enregistrement ne dit que ce qui s'affiche, et
+      // n'émet aucune action qui réécrirait l'image mémorisée.
+      expect(
+        (dispatched as { type: string }[]).map((action) => action.type),
+      ).toEqual(['[Catalogue] Produit modifié', '[Catalogue] Image modifiée']);
     });
 
     it('remet l’image retirée sans rien redemander au réseau', async () => {

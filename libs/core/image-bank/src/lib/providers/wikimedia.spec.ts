@@ -3,9 +3,21 @@ import { TranslatableError } from '@shopping-list/util/i18n';
 import { fauxFetch } from '../testing/faux-fetch';
 import { wikimediaProvider } from './wikimedia';
 
-function page(overrides: Record<string, unknown> = {}): unknown {
+/**
+ * Une page de résultat.
+ *
+ * `overrides` porte sur l'`imageinfo`, où vivent la vignette et les
+ * métadonnées ; `pageOverrides` sur la page elle-même, où vit le rang de
+ * pertinence. Les deux niveaux sont distincts dans la réponse de l'API, et les
+ * confondre ferait passer un test d'ordre pour vert sans qu'il éprouve rien.
+ */
+function page(
+  overrides: Record<string, unknown> = {},
+  pageOverrides: Record<string, unknown> = {},
+): unknown {
   return {
     title: 'File:Avocado Hass.jpg',
+    index: 1,
     imageinfo: [
       {
         thumburl: 'https://upload.wikimedia.org/thumb/320px-Avocado_Hass.jpg',
@@ -25,6 +37,7 @@ function page(overrides: Record<string, unknown> = {}): unknown {
         ...overrides,
       },
     ],
+    ...pageOverrides,
   };
 }
 
@@ -65,6 +78,45 @@ describe('fournisseur Wikimedia Commons', () => {
 
     expect(appels[0].url).toContain('origin=*');
     expect(appels[0].url).toContain('filetype%3Abitmap');
+  });
+
+  it('rend les résultats par pertinence, non par identifiant', async () => {
+    // Les identifiants et les rangs sont ceux d'une vraie recherche « avocat ».
+    // L'API rend les pages dans un objet indexé par `pageid`, et JavaScript
+    // énumère les clés entières par ordre numérique croissant : parcourir cet
+    // objet trie par ancienneté d'import. Le premier résultat décide de l'image
+    // choisie d'office — c'est donc la pertinence qui doit gagner.
+    const { fetchImpl } = fauxFetch(() => ({
+      query: {
+        pages: {
+          '164475152': page({}, { index: 3 }),
+          '164475160': page({}, { index: 2 }),
+          '4877156': page({}, { index: 1 }),
+        },
+      },
+    }));
+
+    expect((await cherche(fetchImpl)).map((i) => i.id)).toEqual([
+      '4877156',
+      '164475160',
+      '164475152',
+    ]);
+  });
+
+  it('garde les résultats même sans rang de pertinence', async () => {
+    // `index` accompagne toujours `generator=search` aujourd'hui. S'il venait à
+    // manquer, le tri ne doit pas faire disparaître des résultats parfaitement
+    // affichables — mieux vaut un ordre quelconque qu'une grille vide.
+    const { fetchImpl } = fauxFetch(() => ({
+      query: {
+        pages: {
+          '1': page({}, { index: undefined }),
+          '2': page({}, { index: undefined }),
+        },
+      },
+    }));
+
+    expect(await cherche(fetchImpl)).toHaveLength(2);
   });
 
   it('écarte une image dont l’auteur est inconnu', async () => {
