@@ -246,7 +246,8 @@
       "processingFailed": "Impossible de préparer l'image."
     },
     "imageBank": {
-      "unreachable": "Banque d'images inaccessible (HTTP {{status}})."
+      "providerFailed": "{{provider}} n'a pas répondu (HTTP {{status}}).",
+      "noProvider": "Aucune banque d'images n'a répondu. Réessayez plus tard."
     }
   }
 }

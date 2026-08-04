@@ -246,7 +246,8 @@
       "processingFailed": "Could not prepare the image."
     },
     "imageBank": {
-      "unreachable": "Image bank unreachable (HTTP {{status}})."
+      "providerFailed": "{{provider}} did not answer (HTTP {{status}}).",
+      "noProvider": "No image bank answered. Try again later."
     }
   }
 }

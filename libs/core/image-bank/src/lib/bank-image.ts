@@ -24,6 +24,13 @@ export interface BankImageCredit {
 export interface BankImage {
   readonly id: string;
   /**
+   * Qui l'a fournie, pour le dire dans la grille de résultats.
+   *
+   * N'est pas conservé dans le CRDT : `sourceUrl` suffit à remonter à l'origine,
+   * et le crédit doit rester le plus petit possible puisqu'il se synchronise.
+   */
+  readonly provider: string;
+  /**
    * La vignette servie par la banque elle-même.
    *
    * Et non l'original chez l'hébergeur : c'est ce qui rend la fonctionnalité
@@ -55,3 +62,42 @@ export function formatLicense(code: string, version: string): string {
   const name = 'cc0' === code ? 'CC0' : `CC ${code.toUpperCase()}`;
   return '' === version ? name : `${name} ${version}`;
 }
+
+/**
+ * Réduit un fragment HTML à son texte.
+ *
+ * Wikimedia Commons rend l'auteur en HTML — un lien vers sa page utilisateur,
+ * parfois emballé dans du gras. Or ce nom finit dans un nœud de texte du CRDT :
+ * y laisser des balises afficherait le balisage, et l'y interpréter serait pire.
+ */
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Un fournisseur d'images.
+ *
+ * Le contrat est volontairement minuscule — une requête, des images — pour que
+ * brancher une banque de plus reste un fichier et une ligne de registre. Il n'y
+ * a pas de pagination : la grille montre une poignée de résultats et le champ de
+ * recherche est là pour affiner, ce qui est plus rapide que de faire défiler.
+ */
+export interface BankProvider {
+  readonly id: string;
+  readonly search: (
+    query: string,
+    fetchImpl: typeof fetch,
+  ) => Promise<readonly BankImage[]>;
+}
+
+/** Combien chaque fournisseur en rend au plus, avant l'entrelacement. */
+export const PER_PROVIDER = 8;
