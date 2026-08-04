@@ -5,11 +5,17 @@ import {
   aisleOf,
   emojiForAisle,
   normalize,
+  orderedAisles,
 } from '@shopping-list/util/categories';
 import { fuzzyScore } from '@shopping-list/util/search';
 import { chain, filter, length, map, partition, sortBy } from 'taninsam';
 
-import { selectCatalog, selectItems, selectLoaded } from './shopping.feature';
+import {
+  selectCatalog,
+  selectItems,
+  selectLoaded,
+  shoppingFeature,
+} from './shopping.feature';
 import {
   AisleGroup,
   ItemView,
@@ -26,17 +32,29 @@ import {
  * recalculés uniquement quand la tranche change.
  */
 
-/** Rang d'un rayon dans le parcours du magasin. */
-const AISLE_RANK: Readonly<Record<string, number>> = Object.fromEntries(
-  AISLES.map((aisle, index) => [aisle, index]),
+/**
+ * Tous les rayons, dans l'ordre de parcours effectif de la liste.
+ *
+ * Le réglage stocké dans le CRDT est possiblement partiel ; `orderedAisles` le
+ * complète avec l'ordre par défaut. C'est la source unique du classement, et la
+ * liste que l'écran de réglage affiche.
+ */
+export const selectOrderedAisles = createSelector(
+  shoppingFeature.selectAisleOrder,
+  orderedAisles,
 );
 
-function rankOf(aisle: string): number {
-  // Le rayon sort toujours d'`aisleOf`, donc d'`AISLES`, et `AISLE_RANK` est
-  // construit depuis cette même liste : le repli est un garde-fou de typage,
-  // pas un cas possible.
+/** Le rang de chaque rayon dans un parcours donné. */
+function ranksOf(ordered: readonly string[]): ReadonlyMap<string, number> {
+  return new Map(ordered.map((aisle, index) => [aisle, index]));
+}
+
+function rankOf(ranks: ReadonlyMap<string, number>, aisle: string): number {
+  // Le rayon sort toujours d'`aisleOf`, donc d'`AISLES`, et `orderedAisles`
+  // range tout rayon connu : le repli est un garde-fou de typage, pas un cas
+  // possible.
   /* v8 ignore next -- repli inatteignable, voir ci-dessus */
-  return AISLE_RANK[aisle] ?? AISLES.length;
+  return ranks.get(aisle) ?? AISLES.length;
 }
 
 /** Les lignes réellement présentes : les tombstones ne s'affichent jamais. */
@@ -49,16 +67,19 @@ export const selectActiveItems = createSelector(selectItems, (items) =>
 export const selectItemViews = createSelector(
   selectActiveItems,
   selectCatalog,
-  (items, catalog) =>
-    chain([...items])
+  selectOrderedAisles,
+  (items, catalog, ordered) => {
+    const ranks = ranksOf(ordered);
+    return chain([...items])
       .chain(map((item: ListItem) => toItemView(item, catalog[item.productId])))
       .chain(
         sortBy<ItemView>(
-          (v) => rankOf(v.aisle),
+          (v) => rankOf(ranks, v.aisle),
           (v) => normalize(v.label),
         ),
       )
-      .value() as ItemView[],
+      .value() as ItemView[];
+  },
 );
 
 function toItemView(item: ListItem, product: Product | undefined): ItemView {
@@ -103,8 +124,10 @@ export const selectCheckedItems = createSelector(selectItemViews, (views) =>
  */
 export const selectPendingByAisle = createSelector(
   selectPendingItems,
-  (items) =>
-    chain([...items])
+  selectOrderedAisles,
+  (items, ordered) => {
+    const ranks = ranksOf(ordered);
+    return chain([...items])
       .chain(partition<ItemView, string>((item) => item.aisle))
       .chain(
         map((group: readonly ItemView[]) => ({
@@ -113,8 +136,9 @@ export const selectPendingByAisle = createSelector(
           items: group,
         })),
       )
-      .chain(sortBy<AisleGroup>((g) => rankOf(g.aisle)))
-      .value() as AisleGroup[],
+      .chain(sortBy<AisleGroup>((g) => rankOf(ranks, g.aisle)))
+      .value() as AisleGroup[];
+  },
 );
 
 export const selectRemainingCount = createSelector(

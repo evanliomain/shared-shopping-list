@@ -2,6 +2,7 @@ import {
   createProduct,
   ensureList,
   readSnapshot,
+  setAisleOrder,
 } from '@shopping-list/core/crdt';
 import * as Y from 'yjs';
 
@@ -34,6 +35,7 @@ describe('reducer de la tranche « courses »', () => {
       items: {},
       credits: {},
       listName: '',
+      aisleOrder: [],
       loaded: false,
     });
   });
@@ -48,6 +50,23 @@ describe('reducer de la tranche « courses »', () => {
     expect(state.listName).toBe(LIST_NAME);
     expect(state.loaded).toBe(true);
     expect(Object.values(state.catalog).map((p) => p.label)).toEqual(['Lait']);
+  });
+
+  it('recopie l’ordre des rayons réglé pour la liste', () => {
+    const doc = new Y.Doc({ gc: true });
+    ensureList(doc, DEFAULT_LIST_ID, LIST_NAME, NOW);
+    setAisleOrder(doc, DEFAULT_LIST_ID, ['cave', 'boulangerie']);
+
+    expect(projected(undefined, doc).aisleOrder).toEqual(['cave', 'boulangerie']);
+  });
+
+  it('revient à un ordre vide quand la liste n’est pas encore là', () => {
+    // Même situation que le nom : le document peut n'avoir que le catalogue. Un
+    // ordre vide dit « parcours par défaut », ce qui est le bon repli.
+    const catalogOnly = new Y.Doc({ gc: true });
+    createProduct(catalogOnly, { label: 'Lait' }, NOW);
+
+    expect(projected(undefined, catalogOnly).aisleOrder).toEqual([]);
   });
 
   it('garde le nom connu tant que la liste n’est pas dans le document', () => {

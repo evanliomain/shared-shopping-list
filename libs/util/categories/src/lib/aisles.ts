@@ -95,3 +95,38 @@ export function aisleOf(category: string): Aisle {
     ? (category as Aisle)
     : DEFAULT_AISLE;
 }
+
+/**
+ * Ordonne **tous** les rayons connus selon une préférence de parcours.
+ *
+ * `stored` est l'ordre choisi pour une liste — possiblement partiel, et venu du
+ * CRDT donc pas forcément à jour. On le respecte d'abord, en écartant ce qui
+ * n'est pas un rayon connu (un rayon retiré d'une version future) et les
+ * doublons ; puis on complète avec les rayons restants dans leur ordre par
+ * défaut. Un rayon que le réglage ne cite pas — parce qu'une mise à jour vient
+ * de l'ajouter — se range donc derrière les rayons cités, sans jamais
+ * disparaître de la liste.
+ *
+ * Le résultat contient toujours chaque rayon exactement une fois : c'est ce qui
+ * en fait à la fois la source du classement et la liste que l'écran de réglage
+ * affiche.
+ */
+export function orderedAisles(stored: readonly string[]): Aisle[] {
+  const known = new Set<string>(AISLES);
+  const seen = new Set<Aisle>();
+  const ordered: Aisle[] = [];
+
+  for (const key of stored) {
+    if (known.has(key) && !seen.has(key as Aisle)) {
+      seen.add(key as Aisle);
+      ordered.push(key as Aisle);
+    }
+  }
+  for (const aisle of AISLES) {
+    if (!seen.has(aisle)) {
+      ordered.push(aisle);
+    }
+  }
+
+  return ordered;
+}

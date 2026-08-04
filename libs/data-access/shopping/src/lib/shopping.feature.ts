@@ -37,6 +37,13 @@ export interface ShoppingState {
    */
   readonly listName: string;
   /**
+   * Ordre de parcours des rayons choisi pour la liste, par clés de rayon.
+   *
+   * Vide tant que rien n'est réglé : les selectors retombent alors sur l'ordre
+   * par défaut. C'est une projection du CRDT, jamais écrite par le store.
+   */
+  readonly aisleOrder: readonly string[];
+  /**
    * Passe à `true` au premier snapshot reçu. Avant ça, une liste vide veut
    * dire « pas encore chargé », pas « rien à acheter » — et l'écran doit le
    * dire différemment.
@@ -49,6 +56,7 @@ const initialState: ShoppingState = {
   items: {},
   credits: {},
   listName: '',
+  aisleOrder: [],
   loaded: false,
 };
 
@@ -72,6 +80,7 @@ export const shoppingFeature = createFeature({
         items: list?.items ?? {},
         credits: snapshot.credits,
         listName: list?.name ?? state.listName,
+        aisleOrder: list?.aisleOrder ?? [],
         loaded: true,
       };
     }),

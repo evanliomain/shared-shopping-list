@@ -6,6 +6,7 @@ import {
   ProductId,
   readSnapshot,
   removeItem,
+  setAisleOrder,
   setItemChecked,
 } from '@shopping-list/core/crdt';
 import * as Y from 'yjs';
@@ -25,6 +26,7 @@ import {
   selectCheckedItems,
   selectIsEmpty,
   selectItemViews,
+  selectOrderedAisles,
   selectPendingByAisle,
   selectPendingItems,
   selectRemainingCount,
@@ -39,9 +41,13 @@ const LIST_NAME = 'Nos courses';
  * Les selectors composés se testent par leur `projector` : on vérifie de la
  * dérivation pure, sans avoir à monter un Store.
  */
+function orderFor(state: ShoppingState): readonly string[] {
+  return selectOrderedAisles.projector(state.aisleOrder);
+}
+
 function viewsOf(state: ShoppingState): readonly ItemView[] {
   const active = selectActiveItems.projector(state.items);
-  return selectItemViews.projector(active, state.catalog);
+  return selectItemViews.projector(active, state.catalog, orderFor(state));
 }
 
 function pendingOf(state: ShoppingState): readonly ItemView[] {
@@ -108,6 +114,11 @@ class Scenario {
 
   archive(key: string): this {
     archiveProduct(this.doc, this.id(key), NOW + 1);
+    return this;
+  }
+
+  reorder(order: readonly string[]): this {
+    setAisleOrder(this.doc, DEFAULT_LIST_ID, order);
     return this;
   }
 
@@ -197,7 +208,7 @@ describe('selectors de la liste', () => {
       .add('lait')
       .state();
 
-    const groups = selectPendingByAisle.projector(pendingOf(state));
+    const groups = selectPendingByAisle.projector(pendingOf(state), orderFor(state));
 
     expect(groups.map((g) => g.aisle)).toEqual([
       'fruits-legumes',
@@ -208,6 +219,31 @@ describe('selectors de la liste', () => {
     // template qui la traduit.
   });
 
+  it('suit l’ordre de parcours réglé pour la liste', () => {
+    // Le même désordre de saisie, mais un parcours choisi : l'entretien
+    // remonte devant les rayons frais, comme dans un magasin où l'on commence
+    // par le bazar.
+    const state = new Scenario()
+      .product('lessive', { label: 'Lessive', category: 'entretien' })
+      .product('carotte', { label: 'Carottes', category: 'fruits-legumes' })
+      .product('lait', { label: 'Lait', category: 'cremerie' })
+      .add('lessive')
+      .add('carotte')
+      .add('lait')
+      .reorder(['entretien', 'cremerie'])
+      .state();
+
+    const groups = selectPendingByAisle.projector(pendingOf(state), orderFor(state));
+
+    // Les deux rayons cités passent devant ; « fruits-legumes », non cité,
+    // retombe à sa place par défaut, donc derrière.
+    expect(groups.map((g) => g.aisle)).toEqual([
+      'entretien',
+      'cremerie',
+      'fruits-legumes',
+    ]);
+  });
+
   it('trie alphabétiquement à l’intérieur d’un rayon', () => {
     const state = new Scenario()
       .product('poireau', { label: 'Poireaux', category: 'fruits-legumes' })
@@ -216,8 +252,22 @@ describe('selectors de la liste', () => {
       .add('avocat')
       .state();
 
-    const [group] = selectPendingByAisle.projector(pendingOf(state));
+    const [group] = selectPendingByAisle.projector(
+      pendingOf(state),
+      orderFor(state),
+    );
     expect(group.items.map((i) => i.label)).toEqual(['Avocats', 'Poireaux']);
+  });
+
+  it('expose tous les rayons dans l’ordre effectif, réglage ou défaut', () => {
+    const defaultOrder = selectOrderedAisles.projector([]);
+    expect(defaultOrder[0]).toBe('fruits-legumes');
+    expect(defaultOrder).toContain('cave');
+
+    // Un réglage partiel remonte ses rayons en tête, sans perdre les autres.
+    const custom = selectOrderedAisles.projector(['auto', 'cave']);
+    expect(custom.slice(0, 2)).toEqual(['auto', 'cave']);
+    expect(custom).toHaveLength(defaultOrder.length);
   });
 
   it('distingue « vide » de « pas encore chargé »', () => {

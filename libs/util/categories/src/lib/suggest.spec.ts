@@ -1,4 +1,4 @@
-import { AISLE_EMOJI, aisleOf, DEFAULT_AISLE } from './aisles';
+import { AISLE_EMOJI, AISLES, aisleOf, DEFAULT_AISLE, orderedAisles } from './aisles';
 import { emojiForAisle, normalize, suggestCategory } from './suggest';
 
 describe('normalize', () => {
@@ -108,5 +108,44 @@ describe('helpers de rayon', () => {
     expect(aisleOf('cremerie')).toBe('cremerie');
     expect(aisleOf('rayon-du-futur')).toBe(DEFAULT_AISLE);
     expect(aisleOf('')).toBe(DEFAULT_AISLE);
+  });
+});
+
+describe('orderedAisles', () => {
+  it('rend l’ordre par défaut faute de préférence', () => {
+    expect(orderedAisles([])).toEqual([...AISLES]);
+  });
+
+  it('respecte un ordre complet tel quel', () => {
+    const reversed = [...AISLES].reverse();
+
+    expect(orderedAisles(reversed)).toEqual(reversed);
+  });
+
+  it('place les rayons cités en tête, les autres derrière par défaut', () => {
+    // Un ordre partiel est le cas courant : on n'épingle que ce qui compte,
+    // le reste garde sa place habituelle.
+    const ordered = orderedAisles(['cave', 'fruits-legumes']);
+
+    expect(ordered.slice(0, 2)).toEqual(['cave', 'fruits-legumes']);
+    expect(ordered.slice(2)).toEqual(
+      AISLES.filter((a) => 'cave' !== a && 'fruits-legumes' !== a),
+    );
+  });
+
+  it('ignore ce qui n’est pas un rayon connu', () => {
+    // Un réglage venu d'une version qui connaissait un rayon depuis retiré ne
+    // doit pas polluer la liste.
+    expect(orderedAisles(['rayon-du-futur', 'cave'])).toEqual([
+      'cave',
+      ...AISLES.filter((a) => 'cave' !== a),
+    ]);
+  });
+
+  it('ne compte jamais deux fois le même rayon', () => {
+    const ordered = orderedAisles(['cave', 'cave', 'boulangerie']);
+
+    expect(ordered.slice(0, 2)).toEqual(['cave', 'boulangerie']);
+    expect(ordered).toHaveLength(AISLES.length);
   });
 });
