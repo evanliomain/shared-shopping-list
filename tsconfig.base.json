@@ -80,6 +80,9 @@
       "@shopping-list/core/blobs": [
         "./libs/core/blobs/src/index.ts"
       ],
+      "@shopping-list/core/image-bank": [
+        "./libs/core/image-bank/src/index.ts"
+      ],
       "@shopping-list/feature/catalog": [
         "./libs/feature/catalog/src/index.ts"
       ]

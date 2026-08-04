@@ -244,6 +244,9 @@
     },
     "image": {
       "processingFailed": "Impossible de préparer l'image."
+    },
+    "imageBank": {
+      "unreachable": "Banque d'images inaccessible (HTTP {{status}})."
     }
   }
 }
