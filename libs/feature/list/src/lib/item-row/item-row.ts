@@ -27,12 +27,14 @@ type Swipe = 'none' | 'check' | 'remove';
  * Une ligne de la liste.
  *
  * Composant muet : il ne connaît ni le store ni le CRDT, il émet des
- * intentions. Toute la ligne est cliquable pour cocher — dans un rayon, viser
- * une case à cocher de 20 px avec un caddie dans l'autre main ne marche pas.
+ * intentions. Cocher et retirer passent par les mêmes deux voies : un geste du
+ * pouce sur téléphone, un bouton au bureau.
  *
  * Sur téléphone, les deux gestes du pouce remplacent la case et le menu :
  * **glisser à droite** coche, **glisser à gauche** retire de la liste. Le tap
- * sur la ligne coche aussi, pour le clavier et l'assistance vocale.
+ * sur la ligne, lui, ne coche plus : viser un article pour le lire le cochait
+ * une fois sur deux, du temps où toute la ligne était une case. La ligne se
+ * borne désormais à exposer son état — cochée ou non — à l'assistance vocale.
  *
  * Il n'y a **plus de menu ⋯** sur la ligne. Il ne portait que deux entrées,
  * dont l'une — retirer — a son glissé ; et son popover, prisonnier du calque
@@ -40,8 +42,8 @@ type Swipe = 'none' | 'check' | 'remove';
  * l'édition, qui n'a pas de geste : elle est un bouton, ici comme au bureau.
  *
  * Au-delà de 1040 px, deux boutons de plus l'encadrent — cocher et retirer :
- * il y a la place, et la souris n'a ni le glissé ni la ligne entière comme
- * cible évidente.
+ * il y a la place, et sans eux la souris n'aurait ni le glissé ni de cible pour
+ * cocher ou retirer.
  */
 @Component({
   selector: 'sl-item-row',
@@ -55,12 +57,15 @@ type Swipe = 'none' | 'check' | 'remove';
     </div>
 
     <div class="content" [style.transform]="slide()">
-      <button
-        type="button"
+      <!-- La ligne n'est plus une cible pour cocher : la lire du doigt la
+           cochait par accident. Elle garde le rôle « case à cocher », mais en
+           lecture seule — elle dit son état à l'assistance vocale sans promettre
+           un geste qu'elle n'a plus. On coche par le glissé ou le bouton ✓. -->
+      <div
         class="toggle"
         role="checkbox"
+        aria-readonly="true"
         [attr.aria-checked]="item().checked"
-        (click)="onTap()"
       >
         <!-- Un article coché part dans le panier, barré. Le ✓ vert n'est plus
              une cible : il dit l'état, là où une case de 26 px invitait à
@@ -84,7 +89,7 @@ type Swipe = 'none' | 'check' | 'remove';
         @if ('' !== item().qty) {
           <span class="qty">{{ item().qty }}</span>
         }
-      </button>
+      </div>
 
       <!-- Chaque bouton porte deux fois son intention : en aria-label pour la
            lecture d'écran, en title pour l'infobulle. Un glyphe seul ne dit
@@ -230,22 +235,12 @@ type Swipe = 'none' | 'check' | 'remove';
       min-inline-size: 0;
       min-block-size: var(--sl-row-height);
       padding: 0.5625rem 0 0.5625rem var(--sl-space-3);
-      border: none;
-      background: transparent;
-      text-align: start;
-    }
-
-    /* L'enfoncé du tap n'a rien à dire pendant un glissé : il donnerait à la
-       ligne une seconde teinte, en travers de la voie qu'elle découvre. */
-    :host([data-swipe='none']) .toggle:active {
-      background: var(--sl-surface-sunken);
     }
 
     /* La case à cocher a disparu de la ligne : elle ne disait rien que la ligne
-       ne dise déjà. Toute la ligne coche, le glissé aussi, le bouton ✓ au
-       bureau — et un article coché part dans le panier, barré et marqué d'un ✓
-       vert. Le barré et le rangement disent l'état mieux qu'un cercle de
-       26 px. */
+       ne dise déjà. On coche par le glissé ou le bouton ✓ du bureau — et un
+       article coché part dans le panier, barré et marqué d'un ✓ vert. Le barré
+       et le rangement disent l'état mieux qu'un cercle de 26 px. */
     .tick {
       flex: none;
       inline-size: 1.125rem;
@@ -353,9 +348,9 @@ type Swipe = 'none' | 'check' | 'remove';
       font-weight: 700;
     }
 
-    /* Cocher et retirer ont leur geste sur téléphone : la ligne entière pour
-       l'un, le glissé pour l'autre. Ils ne redeviennent des boutons que là où
-       la souris n'a ni l'un ni l'autre comme cible évidente. */
+    /* Cocher et retirer ont leur geste sur téléphone — glisser à droite,
+       glisser à gauche. Ils ne redeviennent des boutons que là où la souris n'a
+       pas ces gestes comme cible évidente. */
     .check,
     .remove {
       display: none;
@@ -523,7 +518,10 @@ export class ItemRow {
     }
   }
 
-  /** Toute la ligne coche — sauf quand le clic n'est qu'une fin de glissé. */
+  /**
+   * Le bouton ✓ coche — sauf quand le clic n'est qu'une fin de glissé à la
+   * souris, boutons visibles.
+   */
   protected onTap(): void {
     if (this.consumeSwipeFallout()) {
       return;

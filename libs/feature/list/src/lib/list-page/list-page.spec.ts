@@ -402,7 +402,7 @@ describe('ListPage', () => {
     it('coche un article et laisse cinq secondes pour se reprendre', async () => {
       const { fixture, dispatched } = await render({ seed: courses });
 
-      await click(fixture, `${'sl-item-row'} .toggle`);
+      await click(fixture, `${'sl-item-row'} .check`);
 
       expect(dispatched).toEqual([
         expect.objectContaining({
@@ -417,7 +417,7 @@ describe('ListPage', () => {
 
     it('renvoie l’article dans la liste depuis le bandeau', async () => {
       const { fixture, dispatched } = await render({ seed: courses });
-      await click(fixture, 'sl-item-row .toggle');
+      await click(fixture, 'sl-item-row .check');
 
       await click(fixture, '.undo button');
 
@@ -434,7 +434,7 @@ describe('ListPage', () => {
       // Le bandeau se retire de lui-même : un second appui, sur le bouton pas
       // encore effacé, ne doit pas décocher un autre article.
       const { fixture, dispatched } = await render({ seed: courses });
-      await click(fixture, 'sl-item-row .toggle');
+      await click(fixture, 'sl-item-row .check');
 
       const undo = fixture.nativeElement.querySelector('.undo button');
       undo.click();
@@ -457,7 +457,7 @@ describe('ListPage', () => {
       });
 
       await click(fixture, '.disclosure');
-      await click(fixture, '.basket sl-item-row .toggle');
+      await click(fixture, '.basket sl-item-row .check');
 
       expect(dispatched).toEqual([
         expect.objectContaining({
