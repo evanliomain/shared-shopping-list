@@ -41,9 +41,11 @@ type Swipe = 'none' | 'check' | 'remove';
  * que crée la ligne pour glisser, passait sous la ligne suivante. Reste
  * l'édition, qui n'a pas de geste : elle est un bouton, ici comme au bureau.
  *
- * Au-delà de 1040 px, deux boutons de plus l'encadrent — cocher et retirer :
- * il y a la place, et sans eux la souris n'aurait ni le glissé ni de cible pour
- * cocher ou retirer.
+ * Cocher et retirer ont chacun leur bouton, cachés sous 1040 px et montrés
+ * au-delà : là, il y a la place, et la souris n'a pas le glissé comme cible
+ * évidente. Cachés, mais pas absents — ils restent dans le DOM, seulement
+ * effacés à l'œil, pour que le lecteur d'écran et le clavier, qui n'ont ni le
+ * glissé ni la souris, gardent de quoi cocher et retirer.
  */
 @Component({
   selector: 'sl-item-row',
@@ -348,20 +350,27 @@ type Swipe = 'none' | 'check' | 'remove';
       font-weight: 700;
     }
 
-    /* Cocher et retirer ont leur geste sur téléphone — glisser à droite,
-       glisser à gauche. Ils ne redeviennent des boutons que là où la souris n'a
-       pas ces gestes comme cible évidente. */
-    .check,
-    .remove {
-      display: none;
+    /* Cocher et retirer n'ont pas de bouton visible sur téléphone — ce sont les
+       deux gestes du pouce, et 40 px de plus se prendraient sur un libellé qui
+       en manque déjà. Mais les boutons restent dans le DOM et l'arbre
+       d'accessibilité : le lecteur d'écran et le clavier, qui n'ont ni le glissé
+       ni la souris, gardent ainsi de quoi cocher et retirer. Effacés à l'œil,
+       ils reparaissent au focus, pour que le clavier voie où il se trouve. */
+    @media (max-width: 64.9375rem) {
+      .check:not(:focus-visible),
+      .remove:not(:focus-visible) {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
     }
 
     @media (min-width: 65rem) {
-      .check,
-      .remove {
-        display: grid;
-      }
-
       .edit {
         block-size: 2.5rem;
       }
