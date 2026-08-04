@@ -271,6 +271,32 @@ main button.danger {
   text-decoration: none;
 }
 
+.image-bank {
+  gap: 0.625rem;
+}
+
+.image-bank .lead {
+  font-size: var(--sl-font-md);
+}
+
+/* La case et son libellé forment une seule cible : viser un carré de 16 px au
+   pouce, en marchant, ne marche pas. */
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-block-size: var(--sl-tap-target);
+  font-size: var(--sl-font-md);
+  font-weight: 600;
+}
+
+.switch input {
+  flex: none;
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+  accent-color: var(--sl-brand);
+}
+
 /* Lecteur plein cadre : le cadre noir et la lucarne viennent de
    `sl-scan-overlay`. Reste ici ce qui est projeté, donc rattaché à cette
    feuille de styles. */
