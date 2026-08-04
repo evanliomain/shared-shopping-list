@@ -94,14 +94,16 @@ describe('ItemRow', () => {
     expect(checked.nativeElement.getAttribute('data-checked')).toBe('true');
   });
 
-  it('émet l’état inverse quand on tape la ligne', async () => {
+  it('ne coche pas au clic sur la ligne', async () => {
+    // Trop de faux clics à la lire du doigt : cocher passe par le glissé ou le
+    // bouton ✓, plus par la ligne entière.
     const fixture = await render({ checked: false });
-    let emitted: boolean | undefined;
-    fixture.componentInstance.toggled.subscribe((v) => (emitted = v));
+    let touched = false;
+    fixture.componentInstance.toggled.subscribe(() => (touched = true));
 
     fixture.nativeElement.querySelector('.toggle').click();
 
-    expect(emitted).toBe(true);
+    expect(touched).toBe(false);
   });
 
   it('n’a plus de menu contextuel', async () => {
@@ -409,9 +411,9 @@ describe('ItemRow', () => {
       expect(nativeElement.getAttribute('data-armed')).toBe('true');
     });
 
-    it('n’ajoute pas un tap au geste qu’il vient de terminer', async () => {
-      // Un glissé se termine par un `click` sur la ligne : sans garde, cocher
-      // par glissé décocherait aussitôt.
+    it('n’ajoute pas au geste le clic du bouton où il se termine', async () => {
+      // Le glissé se pratique aussi à la souris, boutons visibles : un geste qui
+      // finit sur le ✓ cocherait deux fois.
       const fixture = await render({ checked: false });
       const emitted: boolean[] = [];
       fixture.componentInstance.toggled.subscribe((v) => emitted.push(v));
@@ -420,7 +422,7 @@ describe('ItemRow', () => {
         [20, 0],
         [100, 0],
       ]);
-      fixture.nativeElement.querySelector('.toggle').click();
+      fixture.nativeElement.querySelector('.check').click();
 
       expect(emitted).toEqual([true]);
     });
@@ -441,7 +443,7 @@ describe('ItemRow', () => {
       expect(removed).toBe(1);
     });
 
-    it('coche toujours au tap, une fois le geste retombé', async () => {
+    it('coche toujours au bouton, une fois le geste retombé', async () => {
       const fixture = await render({ checked: false });
       const emitted: boolean[] = [];
       fixture.componentInstance.toggled.subscribe((v) => emitted.push(v));
@@ -450,8 +452,8 @@ describe('ItemRow', () => {
         [20, 0],
         [100, 0],
       ]);
-      fixture.nativeElement.querySelector('.toggle').click();
-      fixture.nativeElement.querySelector('.toggle').click();
+      fixture.nativeElement.querySelector('.check').click();
+      fixture.nativeElement.querySelector('.check').click();
 
       expect(emitted).toEqual([true, true]);
     });
