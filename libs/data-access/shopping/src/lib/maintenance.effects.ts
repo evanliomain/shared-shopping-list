@@ -43,9 +43,17 @@ export const collectOrphanBlobs = createEffect(
 
         // Le catalogue **brut**, jamais les vues qui masquent les archives :
         // désarchiver un produit doit rétablir sa fiche avec son image.
+        //
+        // Les deux références comptent. `bankImageRef` désigne une image qui
+        // n'est pas affichée en ce moment — c'est tout son intérêt — mais qu'on
+        // doit pouvoir remettre : l'oublier ici la ferait effacer au bout d'une
+        // semaine, et « remettre l'image » se solderait par un cadre vide.
         const reachable = new Set(
           products
-            .map((product) => blobHashOf(product.imageRef))
+            .flatMap((product) => [
+              blobHashOf(product.imageRef),
+              blobHashOf(product.bankImageRef),
+            ])
             .filter((hash): hash is string => null !== hash),
         );
 

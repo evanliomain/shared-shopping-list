@@ -1,5 +1,6 @@
 import {
   CrdtSnapshot,
+  ImageCredit,
   ImageRef,
   ItemId,
   ProductDraft,
@@ -37,6 +38,20 @@ export const listActions = createActionGroup({
     'Produit ajouté': props<{ productId: ProductId }>(),
     /** Crée le produit puis l'ajoute — c'est ce qui alimente l'historique. */
     'Produit créé et ajouté': props<{ draft: ProductDraft }>(),
+    /**
+     * Le produit vient d'être créé. Un constat, pas une intention.
+     *
+     * Il existe pour une seule raison : c'est le seul endroit où l'on connaît à
+     * la fois l'identifiant tout neuf et le fait qu'aucun emoji n'a reconnu le
+     * libellé. Sans lui, la recherche d'image d'office devrait retrouver le
+     * produit à tâtons dans le catalogue, par son libellé — ce qui désignerait
+     * le mauvais dès qu'on ajoute deux fois le même nom.
+     */
+    'Produit créé': props<{
+      productId: ProductId;
+      label: string;
+      emojiFound: boolean;
+    }>(),
     'Article coché': props<{ itemId: ItemId; checked: boolean }>(),
     'Article retiré': props<{ itemId: ItemId }>(),
     'Article restauré': props<{ itemId: ItemId }>(),
@@ -56,9 +71,27 @@ export const catalogActions = createActionGroup({
       productId: ProductId;
       patch: Partial<ProductDraft>;
     }>(),
+    /**
+     * Change l'image affichée, sans toucher à celle que la banque a fournie.
+     *
+     * C'est aussi par elle que passent le retrait d'une image de banque — vers
+     * l'emoji — et sa remise, vers `bankImageRef`. Retirer n'oublie donc rien.
+     */
     'Image modifiée': props<{
       productId: ProductId;
       imageRef: ImageRef | null;
+    }>(),
+    /**
+     * Une image de la banque a été adoptée : elle est déjà stockée localement.
+     *
+     * L'action arrive après les entrées-sorties, jamais avant : le téléchargement
+     * et la réduction en WebP sont faits par `ProductBankImages`, comme la page
+     * produit le fait déjà pour une photo prise sur place.
+     */
+    'Image de banque choisie': props<{
+      productId: ProductId;
+      imageRef: ImageRef;
+      credit: ImageCredit;
     }>(),
     'Produit archivé': props<{ productId: ProductId }>(),
     'Produit désarchivé': props<{ productId: ProductId }>(),

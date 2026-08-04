@@ -32,6 +32,7 @@ describe('reducer de la tranche « courses »', () => {
     expect(shoppingReducer(undefined, { type: '@@init' } as never)).toEqual({
       catalog: {},
       items: {},
+      credits: {},
       listName: '',
       loaded: false,
     });

@@ -1,5 +1,6 @@
 import { createFeature, createReducer, on } from '@ngrx/store';
 import {
+  ImageCredit,
   ItemId,
   ListId,
   ListItem,
@@ -18,6 +19,14 @@ export const DEFAULT_LIST_ID: ListId = 'maison';
 export interface ShoppingState {
   readonly catalog: Readonly<Record<ProductId, Product>>;
   readonly items: Readonly<Record<ItemId, ListItem>>;
+  /**
+   * Crédits des images de la banque, indexés par empreinte de contenu.
+   *
+   * Indexés par image et non par produit, parce que c'est à l'image qu'ils
+   * appartiennent : deux produits qui choisissent la même image partagent les
+   * mêmes octets, donc le même auteur.
+   */
+  readonly credits: Readonly<Record<string, ImageCredit>>;
   /**
    * Nom porté par le CRDT, donc vide tant que rien n'est chargé.
    *
@@ -38,6 +47,7 @@ export interface ShoppingState {
 const initialState: ShoppingState = {
   catalog: {},
   items: {},
+  credits: {},
   listName: '',
   loaded: false,
 };
@@ -60,6 +70,7 @@ export const shoppingFeature = createFeature({
       return {
         catalog: snapshot.catalog,
         items: list?.items ?? {},
+        credits: snapshot.credits,
         listName: list?.name ?? state.listName,
         loaded: true,
       };
@@ -73,6 +84,7 @@ export const {
   selectShoppingState,
   selectCatalog,
   selectItems,
+  selectCredits,
   selectListName,
   selectLoaded,
 } = shoppingFeature;

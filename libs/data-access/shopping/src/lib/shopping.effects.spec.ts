@@ -1,3 +1,4 @@
+import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Actions } from '@ngrx/effects';
 import { Action } from '@ngrx/store';
@@ -6,18 +7,23 @@ import {
   CrdtSnapshot,
   createProduct,
   ensureList,
+  ImageCredit,
   ListItem,
   Product,
   ProductId,
   readSnapshot,
   YDocService,
 } from '@shopping-list/core/crdt';
+import { ImageBankSettings } from '@shopping-list/core/image-bank';
 import { Observable, Subject } from 'rxjs';
 import * as Y from 'yjs';
 
+import { AdoptedImage, ProductBankImages } from './product-bank-images.service';
 import { catalogActions, crdtActions, listActions } from './shopping.actions';
 import {
+  createAndAddProduct,
   projectSnapshot,
+  proposeBankImage,
   writeCatalogIntents,
   writeListIntents,
 } from './shopping.effects';
@@ -27,6 +33,14 @@ const NOW = 1_764_000_000_000;
 const LIST_NAME = 'Nos courses';
 const DEVICE_NAME = 'Téléphone d’Evan';
 const DEVICE_ID = 'device-A';
+
+const CREDIT: ImageCredit = {
+  title: 'Avocado Growing Project',
+  author: 'skyseeker',
+  license: 'CC BY 2.0',
+  licenseUrl: 'https://creativecommons.org/licenses/by/2.0/',
+  sourceUrl: 'https://www.flickr.com/photos/40422902@N00/20207342',
+};
 
 /** Un effect fonctionnel est une fabrique : l'appeler rend son observable. */
 type FunctionalEffect = unknown;
@@ -150,63 +164,6 @@ describe('effects de la tranche « courses »', () => {
       expect(itemFor(lait).removedAt).toBeNull();
     });
 
-    it('crée le produit et l’ajoute d’un seul geste', () => {
-      // C'est ce geste unique qui alimente l'historique réutilisable : sans la
-      // création, rien ne serait proposé la semaine suivante.
-      run(writeListIntents);
-
-      actions.next(
-        listActions.produitCrééEtAjouté({ draft: { label: 'Lait' } }),
-      );
-
-      expect(catalog()).toMatchObject([
-        {
-          label: 'Lait',
-          description: '',
-          category: 'cremerie',
-          imageRef: 'emoji:🥛',
-        },
-      ]);
-      expect(items()).toHaveLength(1);
-      expect(items()[0].productId).toBe(catalog()[0].id);
-    });
-
-    it('devine le rayon sur le libellé et la description réunis', () => {
-      // « Pain » seul proposerait la baguette : c'est la description qui fait
-      // reconnaître le mot-clé complet, donc le bon emoji.
-      run(writeListIntents);
-
-      actions.next(
-        listActions.produitCrééEtAjouté({
-          draft: { label: 'Pain', description: 'au chocolat' },
-        }),
-      );
-
-      expect(catalog()).toMatchObject([
-        { category: 'boulangerie', imageRef: 'emoji:🥐' },
-      ]);
-    });
-
-    it('respecte le rayon et l’image choisis à la main', () => {
-      // La proposition n'est qu'une proposition : un choix explicite l'emporte,
-      // sinon corriger un rangement ne servirait à rien.
-      run(writeListIntents);
-
-      actions.next(
-        listActions.produitCrééEtAjouté({
-          draft: {
-            label: 'Lait',
-            category: 'divers',
-            imageRef: 'emoji:🎁',
-          },
-        }),
-      );
-
-      expect(catalog()).toMatchObject([
-        { category: 'divers', imageRef: 'emoji:🎁' },
-      ]);
-    });
-
     it('coche et décoche un article', () => {
       run(writeListIntents);
       const lait = addToList('Lait');
@@ -285,6 +242,124 @@ describe('effects de la tranche « courses »', () => {
     });
   });
 
+  describe('createAndAddProduct', () => {
+    it('crée le produit et l’ajoute d’un seul geste', () => {
+      // C'est ce geste unique qui alimente l'historique réutilisable : sans la
+      // création, rien ne serait proposé la semaine suivante.
+      run(createAndAddProduct);
+
+      actions.next(
+        listActions.produitCrééEtAjouté({ draft: { label: 'Lait' } }),
+      );
+
+      expect(catalog()).toMatchObject([
+        {
+          label: 'Lait',
+          description: '',
+          category: 'cremerie',
+          imageRef: 'emoji:🥛',
+        },
+      ]);
+      expect(items()).toHaveLength(1);
+      expect(items()[0].productId).toBe(catalog()[0].id);
+    });
+
+    it('devine le rayon sur le libellé et la description réunis', () => {
+      // « Pain » seul proposerait la baguette : c'est la description qui fait
+      // reconnaître le mot-clé complet, donc le bon emoji.
+      run(createAndAddProduct);
+
+      actions.next(
+        listActions.produitCrééEtAjouté({
+          draft: { label: 'Pain', description: 'au chocolat' },
+        }),
+      );
+
+      expect(catalog()).toMatchObject([
+        { category: 'boulangerie', imageRef: 'emoji:🥐' },
+      ]);
+    });
+
+    it('respecte le rayon et l’image choisis à la main', () => {
+      // La proposition n'est qu'une proposition : un choix explicite l'emporte,
+      // sinon corriger un rangement ne servirait à rien.
+      run(createAndAddProduct);
+
+      actions.next(
+        listActions.produitCrééEtAjouté({
+          draft: {
+            label: 'Lait',
+            category: 'divers',
+            imageRef: 'emoji:🎁',
+          },
+        }),
+      );
+
+      expect(catalog()).toMatchObject([
+        { category: 'divers', imageRef: 'emoji:🎁' },
+      ]);
+    });
+
+    it('annonce l’identifiant tout neuf et l’emoji trouvé', () => {
+      // C'est le seul endroit où les deux se tiennent ensemble : plus tard, il
+      // faudrait retrouver le produit par son libellé — donc désigner le mauvais
+      // dès qu'on ajoute deux fois le même nom.
+      const emitted = run(createAndAddProduct);
+
+      actions.next(
+        listActions.produitCrééEtAjouté({ draft: { label: 'Lait' } }),
+      );
+
+      expect(emitted).toEqual([
+        listActions.produitCréé({
+          productId: catalog()[0].id,
+          label: 'Lait',
+          emojiFound: true,
+        }),
+      ]);
+    });
+
+    it('avoue n’avoir reconnu aucun emoji', () => {
+      // C'est ce constat qui déclenchera la recherche dans la banque d'images.
+      const emitted = run(createAndAddProduct);
+
+      actions.next(
+        listActions.produitCrééEtAjouté({
+          draft: { label: 'Cadeau anniversaire mamie' },
+        }),
+      );
+
+      expect(emitted).toMatchObject([{ emojiFound: false }]);
+    });
+
+    it('ne réclame pas d’image quand une a déjà été choisie', () => {
+      // Un choix explicite ne doit pas se faire écraser par une proposition
+      // automatique, même si le libellé n'est pas reconnu.
+      const emitted = run(createAndAddProduct);
+
+      actions.next(
+        listActions.produitCrééEtAjouté({
+          draft: { label: 'Cadeau mamie', imageRef: 'emoji:🎁' },
+        }),
+      );
+
+      expect(emitted).toMatchObject([{ emojiFound: true }]);
+    });
+
+    it('ne réclame pas d’image quand le rayon a été choisi à la main', () => {
+      // Ranger un article soi-même, c'est déjà en avoir décidé l'emoji.
+      const emitted = run(createAndAddProduct);
+
+      actions.next(
+        listActions.produitCrééEtAjouté({
+          draft: { label: 'Cadeau mamie', category: 'divers' },
+        }),
+      );
+
+      expect(emitted).toMatchObject([{ emojiFound: true }]);
+    });
+  });
+
   describe('writeCatalogIntents', () => {
     it('applique une correction de fiche', () => {
       run(writeCatalogIntents);
@@ -313,6 +388,68 @@ describe('effects de la tranche « courses »', () => {
       expect(catalog()[0].imageRef).toBe('blob:aaaa');
     });
 
+    it('attache l’image de banque, la mémorise et la crédite d’un coup', () => {
+      // Les trois ensemble dans la même transaction : un crédit qui arriverait
+      // dans un second delta laisserait l'autre appareil afficher l'image sans
+      // savoir à qui elle est.
+      run(writeCatalogIntents);
+      const productId = createProduct(doc, { label: 'Avocat' }, NOW);
+
+      actions.next(
+        catalogActions.imageDeBanqueChoisie({
+          productId,
+          imageRef: 'blob:a3f9c2',
+          credit: CREDIT,
+        }),
+      );
+
+      expect(catalog()[0]).toMatchObject({
+        imageRef: 'blob:a3f9c2',
+        bankImageRef: 'blob:a3f9c2',
+      });
+      expect(readSnapshot(doc).credits).toEqual({ a3f9c2: CREDIT });
+    });
+
+    it('retire l’image de banque de l’affichage sans l’oublier', () => {
+      // C'est ce qui rend le retrait réversible : l'image reste mémorisée, et
+      // « remettre » n'aura rien à redemander au réseau.
+      run(writeCatalogIntents);
+      const productId = createProduct(doc, { label: 'Avocat' }, NOW);
+      actions.next(
+        catalogActions.imageDeBanqueChoisie({
+          productId,
+          imageRef: 'blob:a3f9c2',
+          credit: CREDIT,
+        }),
+      );
+
+      actions.next(
+        catalogActions.imageModifiée({ productId, imageRef: 'emoji:🛒' }),
+      );
+
+      expect(catalog()[0]).toMatchObject({
+        imageRef: 'emoji:🛒',
+        bankImageRef: 'blob:a3f9c2',
+      });
+    });
+
+    it('n’écrit pas de crédit pour une image qui n’est pas un blob', () => {
+      // Un emoji n'a pas d'empreinte, donc rien à créditer. La garde protège un
+      // invariant, pas un cas d'usage.
+      run(writeCatalogIntents);
+      const productId = createProduct(doc, { label: 'Avocat' }, NOW);
+
+      actions.next(
+        catalogActions.imageDeBanqueChoisie({
+          productId,
+          imageRef: 'emoji:🥑',
+          credit: CREDIT,
+        }),
+      );
+
+      expect(readSnapshot(doc).credits).toEqual({});
+    });
+
     it('archive puis désarchive sans rien perdre de l’usage', () => {
       run(writeCatalogIntents);
       const productId = createProduct(doc, { label: 'Bougie' }, NOW);
@@ -334,6 +471,126 @@ describe('effects de la tranche « courses »', () => {
       actions.next(listActions.produitAjouté({ productId }));
 
       expect(catalog()[0].archivedAt).toBe(NOW);
+    });
+  });
+
+  describe('proposeBankImage', () => {
+    /**
+     * La banque de papier. `réponse` décide de ce que rend `propose` : une image
+     * adoptée, rien du tout, ou une erreur — les trois cas qui arrivent en vrai.
+     */
+    class FausseBanque {
+      demandes: string[] = [];
+      réponse: AdoptedImage | null | Error = {
+        imageRef: 'blob:a3f9c2',
+        credit: CREDIT,
+      };
+
+      propose(label: string): Promise<AdoptedImage | null> {
+        this.demandes.push(label);
+        return this.réponse instanceof Error
+          ? Promise.reject(this.réponse)
+          : Promise.resolve(this.réponse);
+      }
+    }
+
+    let banque: FausseBanque;
+    let auto: WritableSignal<boolean>;
+
+    beforeEach(() => {
+      banque = new FausseBanque();
+      auto = signal(true);
+
+      TestBed.configureTestingModule({
+        providers: [
+          { provide: Actions, useValue: actions },
+          { provide: ProductBankImages, useValue: banque },
+          { provide: ImageBankSettings, useValue: { auto } },
+        ],
+      });
+    });
+
+    const créé = (label: string, emojiFound: boolean) =>
+      listActions.produitCréé({ productId: 'p1', label, emojiFound });
+
+    it('attache l’image trouvée au produit qui n’avait pas d’emoji', async () => {
+      const emitted = run(proposeBankImage);
+
+      actions.next(créé('Cadeau anniversaire mamie', false));
+      await vi.waitFor(() => expect(emitted).toHaveLength(1));
+
+      expect(banque.demandes).toEqual(['Cadeau anniversaire mamie']);
+      expect(emitted[0]).toEqual(
+        catalogActions.imageDeBanqueChoisie({
+          productId: 'p1',
+          imageRef: 'blob:a3f9c2',
+          credit: CREDIT,
+        }),
+      );
+    });
+
+    it('ne cherche rien quand un emoji a reconnu le libellé', async () => {
+      // L'emoji du rayon décrit déjà le produit : aller chercher une image
+      // serait un appel sortant pour rien.
+      const emitted = run(proposeBankImage);
+
+      actions.next(créé('Lait', true));
+      await Promise.resolve();
+
+      expect(banque.demandes).toEqual([]);
+      expect(emitted).toEqual([]);
+    });
+
+    it('se tait quand le réglage d’appareil est éteint', async () => {
+      auto.set(false);
+      const emitted = run(proposeBankImage);
+
+      actions.next(créé('Cadeau mamie', false));
+      await Promise.resolve();
+
+      expect(banque.demandes).toEqual([]);
+      expect(emitted).toEqual([]);
+    });
+
+    it('relit le réglage à chaque article, pas une fois pour toutes', async () => {
+      // Couper l'automatisme au milieu des courses doit prendre effet tout de
+      // suite, sans recharger l'application.
+      const emitted = run(proposeBankImage);
+
+      auto.set(false);
+      actions.next(créé('Cadeau mamie', false));
+      auto.set(true);
+      actions.next(créé('Bougie parfumée', false));
+      await vi.waitFor(() => expect(emitted).toHaveLength(1));
+
+      expect(banque.demandes).toEqual(['Bougie parfumée']);
+    });
+
+    it('n’émet rien quand la banque ne trouve pas d’image', async () => {
+      banque.réponse = null;
+      const emitted = run(proposeBankImage);
+
+      actions.next(créé('Cadeau mamie', false));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(emitted).toEqual([]);
+    });
+
+    it('encaisse une banque en panne sans se désabonner', async () => {
+      // Sans `catchError`, la première coupure réseau tuerait l'effect pour
+      // toute la session : plus aucun article suivant ne recevrait d'image.
+      banque.réponse = new Error('503');
+      const emitted = run(proposeBankImage);
+
+      actions.next(créé('Cadeau mamie', false));
+      await vi.waitFor(() => expect(banque.demandes).toHaveLength(1));
+
+      banque.réponse = { imageRef: 'blob:b7e401', credit: CREDIT };
+      actions.next(créé('Bougie parfumée', false));
+      await vi.waitFor(() => expect(emitted).toHaveLength(1));
+
+      expect(emitted).toMatchObject([{ imageRef: 'blob:b7e401' }]);
     });
   });
 });
