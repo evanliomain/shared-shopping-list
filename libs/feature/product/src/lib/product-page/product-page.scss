@@ -254,3 +254,102 @@ footer button:disabled {
 fieldset.dimmed {
   opacity: 0.45;
 }
+
+.bank-search {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.bank-search input {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.bank-go {
+  flex: none;
+  min-block-size: 3rem;
+  padding-inline: 0.875rem;
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius);
+  background: var(--sl-surface);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.bank-go:disabled {
+  color: var(--sl-text-muted);
+}
+
+/* Trois par ligne sur un téléphone : assez grand pour reconnaître un produit,
+   assez petit pour en comparer plusieurs sans faire défiler. */
+.bank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.375rem;
+}
+
+.bank-choice {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: var(--sl-radius-sm);
+  background: var(--sl-surface);
+}
+
+.bank-choice img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.bank-choice.selected {
+  border-color: var(--sl-brand);
+}
+
+/* Dire d'où vient l'image, à même la vignette : les trois fournisseurs ne se
+   valent pas, et un packshot exact ne se distingue pas d'une photo d'auteur
+   au premier coup d'œil. */
+.bank-provider {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  padding: 0.125rem 0.25rem;
+  background: rgb(0 0 0 / 60%);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 650;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bank-current {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.bank-toggle {
+  align-self: flex-start;
+  min-block-size: var(--sl-tap-target);
+  padding-inline: 0.875rem;
+  border: 1px solid var(--sl-border);
+  border-radius: var(--sl-radius);
+  background: var(--sl-surface);
+  font-size: var(--sl-font-md);
+  font-weight: 600;
+}
+
+.bank-credit a {
+  color: var(--sl-brand);
+}
+
+.bank-error {
+  margin: 0;
+  color: var(--sl-danger);
+  font-size: var(--sl-font-md);
+}
