@@ -240,6 +240,19 @@ describe('effects de la tranche « courses »', () => {
       expect(items().map((item) => item.removedAt)).toEqual([NOW, NOW]);
       expect(catalog()).toHaveLength(2);
     });
+
+    it('enregistre l’ordre des rayons choisi', () => {
+      run(writeListIntents);
+
+      actions.next(
+        listActions.rayonsRéordonnés({ order: ['cave', 'boulangerie'] }),
+      );
+
+      expect(readSnapshot(doc).lists[DEFAULT_LIST_ID].aisleOrder).toEqual([
+        'cave',
+        'boulangerie',
+      ]);
+    });
   });
 
   describe('createAndAddProduct', () => {

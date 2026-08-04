@@ -60,6 +60,11 @@ export const listActions = createActionGroup({
     'Articles cochés vidés': emptyProps(),
     /** Repart d'une liste vide, sans toucher au catalogue. */
     'Liste vidée': emptyProps(),
+    /**
+     * Fixe l'ordre de parcours des rayons. `order` peut être partiel ; un
+     * tableau vide revient au parcours par défaut.
+     */
+    'Rayons réordonnés': props<{ order: readonly string[] }>(),
   },
 });
 

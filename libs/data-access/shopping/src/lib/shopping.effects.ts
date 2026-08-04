@@ -10,6 +10,7 @@ import {
   createProduct,
   removeItem,
   restoreItem,
+  setAisleOrder,
   setItemChecked,
   setItemNote,
   setItemQty,
@@ -64,6 +65,7 @@ export const writeListIntents = createEffect(
         listActions.noteModifiée,
         listActions.articlesCochésVidés,
         listActions.listeVidée,
+        listActions.rayonsRéordonnés,
       ),
       tap((action) => {
         const now = Date.now();
@@ -107,6 +109,10 @@ export const writeListIntents = createEffect(
 
             case listActions.articlesCochésVidés.type:
               clearCheckedItems(doc, DEFAULT_LIST_ID, now);
+              return;
+
+            case listActions.rayonsRéordonnés.type:
+              setAisleOrder(doc, DEFAULT_LIST_ID, action.order);
               return;
 
             default:
