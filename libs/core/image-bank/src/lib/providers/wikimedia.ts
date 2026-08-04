@@ -58,6 +58,15 @@ interface ImageInfo {
 
 interface Page {
   readonly title?: string;
+  /**
+   * Le rang de pertinence, que la recherche seule sait établir.
+   *
+   * Indispensable : l'API rend les pages dans un **objet indexé par `pageid`**,
+   * et JavaScript énumère les clés ressemblant à des entiers par ordre
+   * numérique croissant. Parcourir cet objet revient donc à trier par ancienneté
+   * d'import, ce qui n'a aucun rapport avec la pertinence.
+   */
+  readonly index?: number;
   readonly imageinfo?: readonly ImageInfo[];
 }
 
@@ -111,7 +120,13 @@ async function search(
 
   // Aucune correspondance : MediaWiki omet `query` au lieu de rendre une liste
   // vide.
+  //
+  // Le tri par `index` remet les résultats dans l'ordre de pertinence, que
+  // l'objet indexé par `pageid` a détruit — voir `Page.index`. Sans lui, le
+  // choix d'office prend le fichier au plus petit identifiant plutôt que le
+  // mieux classé, et la grille s'ordonne par ancienneté d'import.
   return Object.entries(body.query?.pages ?? {})
+    .sort(([, a], [, b]) => (a.index ?? 0) - (b.index ?? 0))
     .map(([id, page]) => toBankImage(id, page))
     .filter((image): image is BankImage => null !== image);
 }

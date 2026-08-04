@@ -60,13 +60,16 @@ describe('fournisseur Open Food Facts', () => {
   });
 
   it('ne garde que la première marque quand la fiche en cite plusieurs', async () => {
+    // Les libellés arrivent en texte brut, apostrophes comprises : l'API ne les
+    // échappe pas en entités HTML — vérifié sur des fiches réelles. Un jeu
+    // d'essai échappé laisserait croire qu'il faut les décoder ici.
     const { fetchImpl } = fauxFetch(() => ({
-      products: [produit({ brands: 'Siggi&#39;s, Siggis, Icelandic' })],
+      products: [produit({ brands: "Siggi's, Siggis, Icelandic" })],
     }));
 
     const [image] = await cherche(fetchImpl);
 
-    expect(image.credit.title).toBe('Yaourt vanille — Siggi&#39;s');
+    expect(image.credit.title).toBe("Yaourt vanille — Siggi's");
   });
 
   it('se passe de marque quand la fiche n’en a pas', async () => {
