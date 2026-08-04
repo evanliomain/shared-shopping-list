@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
 
 import { addItem, createProduct, ensureList } from './operations';
-import { catalogMap, itemsMap, YNode } from './schema';
+import { catalogMap, imageCreditsMap, itemsMap, YNode } from './schema';
 import { readSnapshot } from './snapshot';
 import { EMPTY_SNAPSHOT } from './types';
 
@@ -46,6 +46,7 @@ describe('projection du Y.Doc en objets ordinaires', () => {
           defaultQty: '1 bac',
           category: 'surgeles',
           imageRef: 'emoji:🍦',
+          bankImageRef: null,
           usage: { 'device-A': 1 },
           lastUsedAt: NOW + 10,
           archivedAt: null,
@@ -70,6 +71,7 @@ describe('projection du Y.Doc en objets ordinaires', () => {
           },
         },
       },
+      credits: {},
     });
   });
 
@@ -91,6 +93,7 @@ describe('projection du Y.Doc en objets ordinaires', () => {
         defaultQty: '',
         category: '',
         imageRef: null,
+        bankImageRef: null,
         usage: {},
         lastUsedAt: 0,
         archivedAt: null,
@@ -112,6 +115,32 @@ describe('projection du Y.Doc en objets ordinaires', () => {
         createdAt: 0,
         removedAt: null,
       });
+    });
+
+    it('complète un crédit dont un champ n’est pas une chaîne', () => {
+      // Les crédits arrivent par la synchro, donc d'un appareil dont on ne
+      // maîtrise pas la version. Un champ mal typé doit se lire comme vide, pas
+      // faire tomber l'écran au milieu des courses.
+      const doc = new Y.Doc({ gc: true });
+      const credits = imageCreditsMap(doc);
+      credits.set('author:a3f9c2', 'skyseeker');
+      credits.set('license:a3f9c2', 1970 as unknown as string);
+
+      expect(readSnapshot(doc).credits['a3f9c2']).toEqual({
+        title: '',
+        author: 'skyseeker',
+        license: '',
+        licenseUrl: '',
+        sourceUrl: '',
+      });
+    });
+
+    it('n’invente pas de crédit pour une image qui n’a pas d’auteur', () => {
+      // Sans auteur il n'y a rien à créditer : la clé ne doit pas apparaître.
+      const doc = new Y.Doc({ gc: true });
+      imageCreditsMap(doc).set('title:a3f9c2', 'Avocado');
+
+      expect(readSnapshot(doc).credits).toEqual({});
     });
   });
 });

@@ -21,6 +21,27 @@ export type DeviceId = string;
 export type ImageRef = `emoji:${string}` | `blob:${string}`;
 
 /**
+ * À qui appartient une image venue de la banque.
+ *
+ * Les images de la banque sont sous licence Creative Commons : la plupart
+ * exigent de nommer l'auteur et la licence. Le crédit doit donc voyager avec
+ * l'image — l'appareil qui la reçoit par la synchro ne pourrait pas le
+ * retrouver tout seul, n'ayant jamais fait la recherche.
+ *
+ * Il est indexé par l'empreinte du contenu et non par produit : le crédit
+ * appartient à l'image, et deux produits qui choisissent la même image partagent
+ * les mêmes octets, donc le même auteur.
+ */
+export interface ImageCredit {
+  readonly title: string;
+  readonly author: string;
+  /** Déjà mise en forme, et jamais traduite : « CC BY 2.0 ». */
+  readonly license: string;
+  readonly licenseUrl: string;
+  readonly sourceUrl: string;
+}
+
+/**
  * Une entrée du catalogue : ce qu'on achète, indépendamment de toute liste.
  *
  * C'est l'historique réutilisable. « Yaourt / à la vanille » et
@@ -36,6 +57,18 @@ export interface Product {
   /** Clé de rayon — voir `@shopping-list/util/categories`. */
   readonly category: string;
   readonly imageRef: ImageRef | null;
+  /**
+   * L'image venue de la banque, mémorisée même quand elle n'est pas affichée.
+   *
+   * C'est ce qui permet de retirer une image proposée d'office **puis de la
+   * remettre**. Sans ce second champ, la retirer écraserait `imageRef` et il ne
+   * resterait rien à remettre : il faudrait refaire la recherche, en espérant
+   * du réseau et le même premier résultat.
+   *
+   * Elle survit aussi à une photo prise par-dessus : reprendre l'image de la
+   * banque après avoir essayé sa propre photo ne demande donc rien au réseau.
+   */
+  readonly bankImageRef: ImageRef | null;
   /**
    * G-Counter : un compteur par appareil, sommé à la lecture.
    * Un entier simple perdrait les incréments concurrents.
@@ -82,9 +115,15 @@ export interface ShoppingList {
 export interface CrdtSnapshot {
   readonly catalog: Readonly<Record<ProductId, Product>>;
   readonly lists: Readonly<Record<ListId, ShoppingList>>;
+  /** Crédits des images de la banque, indexés par empreinte de contenu. */
+  readonly credits: Readonly<Record<string, ImageCredit>>;
 }
 
-export const EMPTY_SNAPSHOT: CrdtSnapshot = { catalog: {}, lists: {} };
+export const EMPTY_SNAPSHOT: CrdtSnapshot = {
+  catalog: {},
+  lists: {},
+  credits: {},
+};
 
 /** Champs modifiables d'un produit, tels que les expose l'interface. */
 export interface ProductDraft {

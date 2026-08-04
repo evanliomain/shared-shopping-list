@@ -13,9 +13,11 @@ import {
   setItemChecked,
   setItemNote,
   setItemQty,
+  setProductBankImage,
   setProductImage,
   unarchiveProduct,
   updateProduct,
+  writeImageCredit,
 } from './operations';
 import { readSnapshot } from './snapshot';
 import { forkReplica, syncPair } from './testing/replicas';
@@ -498,6 +500,109 @@ describe('opérations sur le CRDT', () => {
 
       setProductImage(doc, productId, null);
       expect(readSnapshot(doc).catalog[productId].imageRef).toBeNull();
+    });
+  });
+
+  describe('image de la banque', () => {
+    const CREDIT = {
+      title: 'Avocado Growing Project',
+      author: 'skyseeker',
+      license: 'CC BY 2.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by/2.0/',
+      sourceUrl: 'https://www.flickr.com/photos/40422902@N00/20207342',
+    };
+
+    it('garde l’image de la banque quand l’affichage revient à l’emoji', () => {
+      // Tout l'intérêt du second champ : c'est ce qui rend le retrait
+      // réversible sans redemander quoi que ce soit au réseau.
+      const doc = freshDoc();
+      const productId = createProduct(doc, { label: 'Avocat' }, NOW);
+
+      setProductBankImage(doc, productId, 'blob:a3f9c2');
+      setProductImage(doc, productId, 'blob:a3f9c2');
+      setProductImage(doc, productId, 'emoji:🛒');
+
+      const product = readSnapshot(doc).catalog[productId];
+      expect(product.imageRef).toBe('emoji:🛒');
+      expect(product.bankImageRef).toBe('blob:a3f9c2');
+    });
+
+    it('oublie l’image de la banque quand on le demande', () => {
+      const doc = freshDoc();
+      const productId = createProduct(doc, { label: 'Avocat' }, NOW);
+      setProductBankImage(doc, productId, 'blob:a3f9c2');
+
+      setProductBankImage(doc, productId, null);
+
+      expect(readSnapshot(doc).catalog[productId].bankImageRef).toBeNull();
+    });
+
+    it('ignore l’image de banque d’un produit inconnu', () => {
+      const doc = freshDoc();
+
+      setProductBankImage(doc, 'jamais-cree', 'blob:a3f9c2');
+
+      expect(readSnapshot(doc).catalog).toEqual({});
+    });
+
+    it('relit le crédit qu’il a écrit', () => {
+      const doc = freshDoc();
+
+      writeImageCredit(doc, 'a3f9c2', CREDIT);
+
+      expect(readSnapshot(doc).credits).toEqual({ a3f9c2: CREDIT });
+    });
+
+    it('tient plusieurs crédits sans les mélanger', () => {
+      // Les clés étant plates et préfixées, un crédit de plus ne doit pas
+      // écraser les champs d'un autre.
+      const doc = freshDoc();
+
+      writeImageCredit(doc, 'a3f9c2', CREDIT);
+      writeImageCredit(doc, 'b7e401', { ...CREDIT, author: 'someone-else' });
+
+      const credits = readSnapshot(doc).credits;
+      expect(credits['a3f9c2'].author).toBe('skyseeker');
+      expect(credits['b7e401'].author).toBe('someone-else');
+    });
+
+    it('accepte un crédit dont seul l’auteur est connu', () => {
+      // Une image du domaine public n'a pas d'URL de licence, et toutes n'ont
+      // pas de titre : n'exiger que l'auteur, c'est n'exiger que ce qui sert à
+      // créditer.
+      const doc = freshDoc();
+
+      writeImageCredit(doc, 'a3f9c2', {
+        title: '',
+        author: 'skyseeker',
+        license: 'Public Domain Mark',
+        licenseUrl: '',
+        sourceUrl: '',
+      });
+
+      expect(readSnapshot(doc).credits['a3f9c2'].author).toBe('skyseeker');
+    });
+
+    it('fait converger deux appareils qui choisissent la même image', () => {
+      // Le cas que les clés plates rendent inoffensif : l'empreinte étant
+      // calculée sur le contenu, les deux appareils écrivent la même clé. Avec
+      // un nœud imbriqué par empreinte, l'un des deux crédits disparaîtrait.
+      const a = freshDoc();
+      const productId = createProduct(a, { label: 'Avocat' }, NOW);
+      const b = forkReplica(a);
+
+      writeImageCredit(a, 'a3f9c2', CREDIT);
+      setProductBankImage(a, productId, 'blob:a3f9c2');
+      writeImageCredit(b, 'a3f9c2', CREDIT);
+      setProductBankImage(b, productId, 'blob:a3f9c2');
+
+      syncPair(a, b);
+
+      expect(readSnapshot(a).credits).toEqual({ a3f9c2: CREDIT });
+      expect(readSnapshot(b).credits).toEqual({ a3f9c2: CREDIT });
+      expect(readSnapshot(a).catalog[productId].bankImageRef).toBe(
+        'blob:a3f9c2',
+      );
     });
   });
 });
