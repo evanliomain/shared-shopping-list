@@ -13,6 +13,7 @@ import {
   itemsMap,
   listExists,
   productNode,
+  writeAisleOrder,
   writeListCreatedAt,
   writeListName,
   YNode,
@@ -59,6 +60,21 @@ export function ensureList(
 
 export function renameList(doc: Y.Doc, id: ListId, name: string): void {
   writeListName(doc, id, name);
+}
+
+/**
+ * Fixe l'ordre de parcours des rayons pour une liste.
+ *
+ * Un tableau vide efface le réglage : la liste repart alors sur l'ordre par
+ * défaut. N'écrit qu'un scalaire, donc réconciliable en dernier-écrivain-gagne
+ * comme le nom de la liste.
+ */
+export function setAisleOrder(
+  doc: Y.Doc,
+  id: ListId,
+  order: readonly string[],
+): void {
+  writeAisleOrder(doc, id, order);
 }
 
 export function createProduct(

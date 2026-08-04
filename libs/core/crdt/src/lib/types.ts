@@ -103,6 +103,15 @@ export interface ShoppingList {
   readonly name: string;
   readonly createdAt: number;
   readonly items: Readonly<Record<ItemId, ListItem>>;
+  /**
+   * Ordre de parcours des rayons choisi pour cette liste, par clés de rayon.
+   *
+   * Vide = aucun ordre manuel, on suit le parcours par défaut. Une liste
+   * partielle est permise : les rayons absents se rangent derrière, dans leur
+   * ordre par défaut — c'est ce qui laisse un nouveau rayon apparaître sans
+   * effacer l'ordre déjà réglé.
+   */
+  readonly aisleOrder: readonly string[];
 }
 
 /**

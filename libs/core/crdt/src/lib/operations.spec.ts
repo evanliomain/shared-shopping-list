@@ -10,6 +10,7 @@ import {
   removeItem,
   renameList,
   restoreItem,
+  setAisleOrder,
   setItemChecked,
   setItemNote,
   setItemQty,
@@ -66,6 +67,61 @@ describe('opérations sur le CRDT', () => {
       expect(list.name).toBe('Chez les parents');
       expect(list.createdAt).toBe(NOW);
       expect(Object.values(list.items)).toHaveLength(1);
+    });
+  });
+
+  describe('setAisleOrder', () => {
+    it('part sur un ordre vide, faute de réglage', () => {
+      // Vide veut dire « ordre par défaut » : c'est le métier qui retombera sur
+      // le parcours codé en dur.
+      expect(readSnapshot(freshDoc()).lists[LIST].aisleOrder).toEqual([]);
+    });
+
+    it('mémorise l’ordre choisi, tel quel', () => {
+      const doc = freshDoc();
+      setAisleOrder(doc, LIST, ['cave', 'boulangerie', 'fruits-legumes']);
+
+      expect(readSnapshot(doc).lists[LIST].aisleOrder).toEqual([
+        'cave',
+        'boulangerie',
+        'fruits-legumes',
+      ]);
+    });
+
+    it('accepte un ordre partiel sans le compléter', () => {
+      // La liste peut ne citer que quelques rayons : compléter revient au
+      // métier, pas au stockage.
+      const doc = freshDoc();
+      setAisleOrder(doc, LIST, ['cave']);
+
+      expect(readSnapshot(doc).lists[LIST].aisleOrder).toEqual(['cave']);
+    });
+
+    it('efface le réglage sur un tableau vide', () => {
+      // Réinitialiser, c'est revenir à l'ordre par défaut — donc un ordre
+      // stocké vide, indistinguable de « jamais réglé ».
+      const doc = freshDoc();
+      setAisleOrder(doc, LIST, ['cave', 'boulangerie']);
+      setAisleOrder(doc, LIST, []);
+
+      expect(readSnapshot(doc).lists[LIST].aisleOrder).toEqual([]);
+    });
+
+    it('converge sur un seul ordre après deux réglages concurrents', () => {
+      // Une chaîne scalaire, donc un simple dernier-écrivain-gagne : l'un des
+      // deux ordres l'emporte en entier, jamais un mélange des deux.
+      const a = freshDoc();
+      const b = forkReplica(a);
+      setAisleOrder(a, LIST, ['cave', 'boulangerie']);
+      setAisleOrder(b, LIST, ['fruits-legumes', 'surgeles']);
+
+      syncPair(a, b);
+
+      const orderA = readSnapshot(a).lists[LIST].aisleOrder;
+      expect(orderA).toEqual(readSnapshot(b).lists[LIST].aisleOrder);
+      expect([['cave', 'boulangerie'].join(), ['fruits-legumes', 'surgeles'].join()]).toContain(
+        orderA.join(),
+      );
     });
   });
 
