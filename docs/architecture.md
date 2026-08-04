@@ -89,6 +89,7 @@ erDiagram
         string defaultQty "un pack de 4"
         string category "rayon"
         string imageRef "emoji:🍦 | blob:a3f9c2…"
+        string bankImageRef "image de banque mémorisée, affichée ou non"
         map    usage "G-Counter : deviceId → n"
         number lastUsedAt
         number archivedAt "null si actif"
@@ -221,10 +222,10 @@ limite de 1 Mo de l'API Contents de GitHub, et rendrait l'échange par QR code i
 
 Le CRDT ne contient donc **qu'une référence**, jamais des pixels.
 
-| `imageRef`    | Poids dans le CRDT | Usage                                                                   |
-| ------------- | ------------------ | ----------------------------------------------------------------------- |
-| `emoji:🍦`    | ~8 octets          | Par défaut. Sélecteur d'emoji + suggestion automatique déduite du rayon |
-| `blob:<hash>` | ~24 octets         | Une vraie photo prise avec le téléphone                                 |
+| `imageRef`    | Poids dans le CRDT | Usage                                                                                |
+| ------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| `emoji:🍦`    | ~8 octets          | Par défaut. Sélecteur d'emoji + suggestion automatique déduite du rayon              |
+| `blob:<hash>` | ~24 octets         | Une photo prise avec le téléphone, **ou une image venue d'une banque** — voir §4 bis |
 
 ```mermaid
 flowchart LR
@@ -238,7 +239,7 @@ flowchart LR
 
     CAM --> RESIZE --> ENC --> HASH --> IDB
     IDB --> Q --> GH
-    IDB -.->|"disponible hors ligne<br/>immédiatement"| UI["&lt;sl-product-image&gt;"]
+    IDB -.->|"disponible hors ligne<br/>immédiatement"| UI["&lt;sl-product-avatar&gt;"]
 ```
 
 Les blobs sont **adressés par contenu** : un fichier n'est jamais modifié, seulement créé. Donc
@@ -248,6 +249,93 @@ qui rencontre un `blob:` inconnu télécharge `images/<hash>.webp` de façon par
 > **Conséquence assumée :** l'échange par QR ne transporte pas les images. Un produit inconnu du
 > récepteur s'affiche avec l'emoji de son rayon, et la photo se complète au retour du réseau. Dans
 > un rayon de supermarché, on a besoin du libellé et de la description, pas de la photo du yaourt.
+
+---
+
+## 4 bis. La banque d'images
+
+Un emoji ne décrit pas tout. Le dictionnaire de mots-clés ne peut pas connaître « saumon fumé
+Bordier » ni « cadeau anniversaire mamie », et retombait alors sur le 🛒 du rayon « divers » — un
+glyphe qui n'apprend rien. Trois banques d'images libres comblent ce trou.
+
+### Le choix des fournisseurs s'est joué sur deux contraintes techniques
+
+Pas sur l'esthétique. **Aucune clé d'API**, parce que le bundle est servi par GitHub Pages depuis un
+dépôt public et qu'une clé y serait lisible par tous. Et **le CORS ouvert sur les octets**, parce
+qu'il faut lire les pixels pour les réduire en WebP de 160 px : sans lui la fonctionnalité est
+impossible, pas seulement moins commode.
+
+| Fournisseur           | Ce qu'il apporte                                                  | Sa limite                                                |
+| --------------------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
+| **Open Food Facts**   | Le produit **exact** — « papier toilette » rend un vrai paquet    | Alimentaire et entretien seulement ; tombe souvent (503) |
+| **Wikimedia Commons** | Photos propres et bien nommées, la meilleure disponibilité du lot | Plus documentaire que flatteur                           |
+| **Openverse**         | La plus large couverture ; le seul à répondre hors produits       | Classement bruyant sur le français                       |
+
+Ce que la liste ne peut pas contenir :
+
+- **Unsplash, Pexels, Pixabay** — exigent une clé d'API ;
+- **Google Images** — n'a plus d'API publique depuis 2011. Son seul successeur, l'API Custom Search,
+  exige une clé, devient payante au-delà de cent requêtes par jour, et rend des vignettes servies par
+  `gstatic.com` **sans en-tête CORS** — vérifié : le navigateur ne peut pas en lire les octets, donc
+  pas les réduire, donc pas les stocker. S'y ajoute que ses résultats ne portent aucune licence, alors
+  que l'application republie chaque image dans le dépôt de synchro.
+
+### Trois décisions mesurées
+
+**`allSettled`, jamais `all`.** Sur cinq requêtes réelles, Open Food Facts a répondu trois fois sur
+cinq. Avec `all`, un seul service à terre viderait une grille que les deux autres avaient remplie.
+L'erreur n'est levée que si **aucun** n'a répondu.
+
+**L'ordre de préférence est l'inverse de l'intuition.** On croit vouloir la plus belle image ; on veut
+surtout la bonne, puisqu'une image choisie d'office n'a personne pour la valider. Openverse rend des
+avocats du barreau pour « avocat » : il passe donc en dernier. Un test fige cet ordre.
+
+**La grille entrelace, elle ne concatène pas.** Huit résultats du premier fournisseur rempliraient
+l'écran, et le packshot exact du deuxième passerait sous la ligne de flottaison.
+
+La recherche d'office **élargit au premier mot** après un échec complet : elle se déclenche là où
+l'emoji manque, donc sur des libellés inhabituels et souvent à plusieurs mots. « Yaourt vanille » ne
+rend presque rien chez les généralistes, « yaourt » rend ce qu'il faut.
+
+### Une image adoptée est une photo ordinaire
+
+C'est ce qui rend l'ajout petit : même réduction à 160 px, même stockage adressé par contenu, même
+publication vers le dépôt. **Le modèle n'a pas eu besoin d'un troisième genre de référence** à côté
+d'`emoji:` et de `blob:`, et rien de ce qui affiche des images n'a eu à changer. Une fois choisie,
+l'image ne dépend plus ni du réseau ni du fournisseur, et survit à la disparition des deux.
+
+### Retirer sans oublier
+
+Un produit porte donc **deux** références d'image, et c'est la seule addition au modèle :
+
+| Champ          | Ce qu'il dit                |
+| -------------- | --------------------------- |
+| `imageRef`     | ce qui s'affiche            |
+| `bankImageRef` | ce qu'on saurait réafficher |
+
+Avec un seul champ, retirer une image proposée d'office l'écraserait : la remettre demanderait de
+refaire la recherche, en espérant du réseau et le même premier résultat. Le ramasse-miettes compte
+donc `bankImageRef` parmi les images atteignables — l'oublier ferait que « remettre l'image » rendrait
+un cadre vide, une semaine après le retrait et sans que rien ne relie la cause à l'effet.
+
+### Les crédits, et pourquoi ils sont en clés plates
+
+Les images sont sous licence Creative Commons : la plupart exigent de nommer l'auteur. Le crédit doit
+donc voyager avec l'image, car l'appareil qui la reçoit par la synchro n'a jamais fait la recherche.
+Il vit dans une racine `imageCredits` indexée par **empreinte de contenu**, en clés plates scalaires
+(`author:<hash>`, `license:<hash>`, …) et non en `Y.Map` par empreinte.
+
+C'est la leçon du §3 appliquée à un cas où elle n'est plus accidentelle mais **ordinaire** : la clé
+étant l'empreinte du contenu, deux appareils qui choisissent la même image la calculent identique.
+Un nœud imbriqué créé sous cette clé se ferait perdre à la fusion. Un test fait converger ce scénario.
+
+### Un réglage d'appareil, sur l'écran d'appairage
+
+La recherche d'office est la seule chose de l'application qui parle à un tiers sans qu'on le lui ait
+demandé : elle s'éteint depuis l'écran d'appairage, qui est déjà celui où l'on décide ce qui sort de
+l'appareil. Le réglage vit dans le `localStorage` et non dans le CRDT, comme le thème — deux
+téléphones ont le droit d'être réglés différemment. Il ne gouverne que l'automatisme : ouvrir la
+banque à la main depuis une fiche produit reste possible même éteint.
 
 ---
 
@@ -557,6 +645,7 @@ apps/
 libs/
   core/crdt/                  schéma Y.Doc (catalogue + listes), opérations, snapshot, purge
   core/blobs/                 store d'images adressé par contenu : redim., WebP, SHA-256, IndexedDB
+  core/image-bank/            trois banques d'images libres, sans clé : recherche, entrelacement, réglage
   core/sync/                  interface SyncProvider + registre
   core/sync-indexeddb/        y-indexeddb + BroadcastChannel
   core/sync-github/           client API, polling ETag, push avec retry 409, envoi des images
@@ -574,7 +663,7 @@ libs/
   feature/catalog/            parcours de l'historique, archivage, correction en masse
   feature/pairing/            appairage GitHub, réglages
   feature/nearby/             assistant d'échange QR (rôle, trames animées, scan)
-  ui/                         composants muets, tokens de design, <sl-product-image>
+  ui/                         composants muets, tokens de design, <sl-product-avatar>
   util/categories/            dictionnaire produit → rayon + emoji par défaut
                               (français et anglais fusionnés : ce qu'on tape ne
                               suit pas la langue de l'interface)
@@ -734,15 +823,16 @@ que la PWA s'installe sous le bon nom sur l'écran d'accueil.
 
 ## 13. Découpage en lots
 
-| Lot      | Contenu                                                                             | Ce qui marche à la fin                                                          |
-| -------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **0** ✅ | Workspace Nx, app Angular, PWA, CI vers Pages                                       | Coquille installable sur les deux téléphones                                    |
-| **1** ✅ | Schéma CRDT, G-Counter, IndexedDB, Store NgRx, UI liste, fiche produit, suggestions | App complète **mono-appareil**, 100 % hors ligne, avec réutilisation d'articles |
-| **2**    | Provider GitHub, appairage par QR, indicateur de statut                             | **Synchro à deux appareils** — le cœur du besoin                                |
-| **3**    | File offline, sonde réseau, bannière, invite `SwUpdate`                             | Robuste en réseau dégradé                                                       |
-| **4**    | Échange QR de proximité                                                             | Synchro sans aucun réseau                                                       |
-| **5**    | Photos : capture, WebP, store adressé par contenu, sync GitHub                      | Vraies images sur les produits                                                  |
-| **6**    | Rayons, gestion du catalogue, multi-listes, « modifié il y a 2 min par … »          | Confort au quotidien                                                            |
+| Lot      | Contenu                                                                               | Ce qui marche à la fin                                                          |
+| -------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **0** ✅ | Workspace Nx, app Angular, PWA, CI vers Pages                                         | Coquille installable sur les deux téléphones                                    |
+| **1** ✅ | Schéma CRDT, G-Counter, IndexedDB, Store NgRx, UI liste, fiche produit, suggestions   | App complète **mono-appareil**, 100 % hors ligne, avec réutilisation d'articles |
+| **2**    | Provider GitHub, appairage par QR, indicateur de statut                               | **Synchro à deux appareils** — le cœur du besoin                                |
+| **3**    | File offline, sonde réseau, bannière, invite `SwUpdate`                               | Robuste en réseau dégradé                                                       |
+| **4**    | Échange QR de proximité                                                               | Synchro sans aucun réseau                                                       |
+| **5**    | Photos : capture, WebP, store adressé par contenu, sync GitHub                        | Vraies images sur les produits                                                  |
+| **6**    | Rayons, gestion du catalogue, multi-listes, « modifié il y a 2 min par … »            | Confort au quotidien                                                            |
+| **7**    | Banque d'images : trois fournisseurs libres, proposition d'office, retrait réversible | De vraies images là où l'emoji ne dit rien                                      |
 
 Les lots 0→2 constituent déjà un remplaçant fonctionnel de Google Keep, et plus complet que lui du
 fait de l'historique.
@@ -751,6 +841,10 @@ Le découpage n'est pas arbitraire : les emojis arrivent dès le lot 1 parce qu'
 et couvrent l'essentiel du besoin visuel. Les photos attendent le lot 5 parce qu'elles dépendent du
 provider GitHub du lot 2 et introduisent un second canal de synchronisation — la partie la plus
 lourde pour le bénéfice le plus faible.
+
+Le lot 7 vient après, et n'aurait pas pu venir avant : il ne fait que **brancher des sources** sur la
+tuyauterie d'images du lot 5. C'est ce qui explique sa taille — une image de banque n'est qu'une photo
+dont personne n'a appuyé sur le déclencheur.
 
 ---
 

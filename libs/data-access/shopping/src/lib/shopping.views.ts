@@ -63,7 +63,7 @@ export interface SuggestionView {
 /**
  * Emoji à afficher pour un produit.
  *
- * Une photo (`blob:`) est rendue par `<sl-product-image>` ; l'emoji reste
+ * Une photo (`blob:`) est rendue par `<sl-product-avatar>` ; l'emoji reste
  * calculé pour servir de repli tant que l'image n'est pas téléchargée, ce qui
  * est le cas normal juste après un échange par QR code.
  */

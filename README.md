@@ -173,6 +173,71 @@ texte d'origine à partir d'index calculés sur sa forme repliée.
 Tout cela vit dans [`libs/util/search/`](libs/util/search/src/lib/), une
 fonction pure et un découpage — aucune connaissance du domaine.
 
+## Images des produits
+
+Un produit peut porter trois choses, et une seule s'affiche : une **photo** prise
+sur place, une **image de banque**, ou un **emoji**. La priorité est celle-là, et
+l'emoji ne disparaît jamais — c'est le repli qui marche sans réseau, sans compte
+et sans pixel.
+
+L'emoji vient du dictionnaire de mots-clés de
+[`libs/util/categories/`](libs/util/categories/src/lib/). Mais il ne peut pas
+tout connaître : « saumon fumé Bordier » ou « cadeau anniversaire mamie »
+retombaient sur le 🛒 du rayon « divers », un glyphe qui n'apprend rien. **C'est
+là, et seulement là, qu'une image est cherchée d'office.**
+
+Trois banques sont interrogées de front. Le choix s'est joué sur deux contraintes
+techniques plutôt que sur l'esthétique — **aucune clé d'API**, le bundle étant
+public, et **le CORS ouvert sur les octets**, sans quoi le navigateur ne peut pas
+réduire l'image en WebP de 160 px :
+
+| Banque                | Ce qu'elle apporte                                          |
+| --------------------- | ----------------------------------------------------------- |
+| **Open Food Facts**   | le produit exact — « papier toilette » rend un vrai paquet  |
+| **Wikimedia Commons** | des photos propres, et la meilleure disponibilité des trois |
+| **Openverse**         | la plus large couverture, seule à répondre hors alimentaire |
+
+Elles sont interrogées par `allSettled` et non `all` : Open Food Facts rend
+souvent un 503, et un service à terre ne doit pas vider une grille que les deux
+autres avaient remplie. La grille **entrelace** les réponses au lieu de les
+concaténer, sinon huit résultats du premier fournisseur enterreraient le packshot
+exact du deuxième.
+
+Pour le choix d'office, l'ordre de préférence est l'inverse de l'intuition : on
+croit vouloir la plus belle image, on veut surtout la bonne, puisque personne ne
+la valide. Openverse rend des avocats du barreau pour « avocat » — il passe donc
+en dernier.
+
+**Google Images n'y est pas, et ne peut pas y être.** Son API a été retirée en
+2011 ; son successeur exige une clé, devient payant au-delà de cent requêtes par
+jour, et rend des vignettes servies sans en-tête CORS — le navigateur ne peut donc
+pas en lire les octets. S'y ajoute que ses résultats ne portent aucune licence,
+alors que l'application republie chaque image dans le dépôt de synchro.
+
+### Retirer et remettre
+
+Un produit garde **deux** références : celle qui s'affiche, et celle qu'il saurait
+réafficher. Retirer une image proposée d'office revient donc à l'emoji **sans
+l'oublier**, et un bouton la remet — sans rien redemander au réseau, puisqu'elle
+n'a jamais quitté l'appareil. Avec un seul champ, la remettre demanderait de
+refaire la recherche en espérant le même premier résultat.
+
+Depuis une fiche produit, la banque s'ouvre aussi à la main, avec le libellé
+préchargé mais modifiable : c'est le rattrapage le plus utile quand la proposition
+tombe à côté — chercher « avocat fruit » plutôt qu'« avocat ».
+
+Les images étant sous licence Creative Commons, **l'auteur et la licence sont
+conservés** à côté de l'image et affichés dans la fiche. Ils voyagent dans le
+CRDT : l'appareil qui reçoit l'image par la synchro n'a jamais fait la recherche
+et ne pourrait pas les retrouver.
+
+Une fois choisie, une image de banque **est** une photo ordinaire : même réduction
+à 160 px, même stockage adressé par contenu, même synchro. Elle ne dépend donc plus
+ni du réseau ni du fournisseur, et survit à la disparition des deux.
+
+La recherche d'office se coupe depuis l'écran d'appairage, qui est déjà celui où
+l'on décide ce qui sort de l'appareil. Éteinte, la banque reste ouverte à la main.
+
 ## Thème
 
 Un sélecteur à trois positions dans l'en-tête de la liste : **clair**,
@@ -331,6 +396,7 @@ ne part que vers l'API GitHub.
 - [x] **Lot 4** — Échange QR de proximité
 - [x] **Lot 5** — Photos des produits
 - [x] **Lot 6** — Rayons, gestion du catalogue _(multi-listes non fait — voir plus bas)_
+- [x] **Lot 7** — Banque d'images libres, proposée d'office quand l'emoji manque
 
 ## Reste à faire
 
