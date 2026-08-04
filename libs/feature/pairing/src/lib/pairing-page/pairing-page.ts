@@ -18,6 +18,7 @@ import {
   PairingPayload,
   parsePairingPayload,
 } from '@shopping-list/core/sync-github';
+import { ImageBankSettings } from '@shopping-list/core/image-bank';
 import { SyncRegistry } from '@shopping-list/core/sync';
 import { ScanOverlay } from '@shopping-list/ui';
 import {
@@ -54,6 +55,14 @@ export class PairingPage {
   private readonly registry = inject(SyncRegistry);
   private readonly location = inject(Location);
   private readonly errorText = inject(ErrorText);
+  /**
+   * Le réglage de la banque d'images, exposé au gabarit.
+   *
+   * Il vit sur cet écran parce que la recherche d'images est la seule autre
+   * chose de l'application qui parle à un tiers : c'est ici qu'on décide ce qui
+   * sort de l'appareil.
+   */
+  protected readonly imageBank = inject(ImageBankSettings);
 
   private readonly videoRef = viewChild<ElementRef<HTMLVideoElement>>('video');
   private abort: AbortController | null = null;

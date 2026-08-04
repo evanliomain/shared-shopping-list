@@ -170,7 +170,10 @@
     "checking": "Vérification…",
     "nearbyTitle": "Sans réseau",
     "nearbyLead": "Au fond d'un rayon où rien ne passe, les deux téléphones peuvent s'échanger leurs modifications par QR code.",
-    "nearbyLink": "Échanger à proximité"
+    "nearbyLink": "Échanger à proximité",
+    "imageBankTitle": "Banque d'images",
+    "imageBankAuto": "Proposer une image quand aucun emoji ne convient",
+    "imageBankLead": "Les articles dont le libellé n'est pas reconnu reçoivent une photo libre de droit, cherchée chez Open Food Facts, Wikimedia Commons et Openverse. Coupez si vous préférez qu'aucune requête ne parte sans votre geste — la banque reste ouverte à la main depuis chaque fiche produit."
   },
   "nearby": {
     "title": "Échange à proximité",

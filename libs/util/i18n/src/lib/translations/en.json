@@ -170,7 +170,10 @@
     "checking": "Checking…",
     "nearbyTitle": "No network",
     "nearbyLead": "Deep in an aisle where nothing gets through, the two phones can exchange their changes by QR code.",
-    "nearbyLink": "Exchange nearby"
+    "nearbyLink": "Exchange nearby",
+    "imageBankTitle": "Image bank",
+    "imageBankAuto": "Suggest an image when no emoji fits",
+    "imageBankLead": "Items whose name isn't recognised get a royalty-free photo, looked up on Open Food Facts, Wikimedia Commons and Openverse. Turn this off if you'd rather no request left without your say — the bank stays available by hand from each product page."
   },
   "nearby": {
     "title": "Nearby exchange",

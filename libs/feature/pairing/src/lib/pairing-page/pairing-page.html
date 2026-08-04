@@ -127,5 +127,21 @@
       {{ 'pairing.nearbyLink' | transloco }}
     </a>
   </section>
+
+  <!-- La recherche d'images est ici parce que c'est la seule autre chose de
+       l'application qui parle à un tiers : cet écran est déjà celui où l'on
+       décide ce qui sort de l'appareil. -->
+  <section class="image-bank">
+    <h2>{{ 'pairing.imageBankTitle' | transloco }}</h2>
+    <label class="switch">
+      <input
+        type="checkbox"
+        [checked]="imageBank.auto()"
+        (change)="imageBank.toggle()"
+      />
+      <span>{{ 'pairing.imageBankAuto' | transloco }}</span>
+    </label>
+    <p class="lead">{{ 'pairing.imageBankLead' | transloco }}</p>
+  </section>
   }
 </main>

@@ -3,6 +3,7 @@ import { provideLocationMocks } from '@angular/common/testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { ImageBankSettings } from '@shopping-list/core/image-bank';
 import { QrScanner, ScanError } from '@shopping-list/core/qr';
 import {
   SYNC_PROVIDERS,
@@ -177,12 +178,28 @@ async function settle(fixture: { whenStable: () => Promise<unknown> }) {
   }
 }
 
+/**
+ * Les champs de saisie de l'appairage — compte, dépôt, jeton.
+ *
+ * Et non tous les `input` de la page : le réglage de la banque d'images en pose
+ * un de plus, qui n'appartient pas à ce formulaire.
+ */
+function champsDeSaisie(fixture: {
+  nativeElement: HTMLElement;
+}): HTMLInputElement[] {
+  return [
+    ...fixture.nativeElement.querySelectorAll<HTMLInputElement>(
+      'input:not([type="checkbox"])',
+    ),
+  ];
+}
+
 function fill(
   fixture: { nativeElement: HTMLElement },
   index: number,
   value: string,
 ) {
-  const input = fixture.nativeElement.querySelectorAll('input')[index];
+  const input = champsDeSaisie(fixture)[index];
   input.value = value;
   input.dispatchEvent(new Event('input'));
 }
@@ -216,6 +233,10 @@ function scanning(fixture: { nativeElement: HTMLElement }): boolean {
 }
 
 describe('PairingPage', () => {
+  // Le réglage de la banque d'images persiste dans le `localStorage` : sans ce
+  // nettoyage, un test qui le coupe déciderait du résultat du suivant.
+  beforeEach(() => localStorage.clear());
+
   it('propose la saisie manuelle quand la caméra ne sait pas lire', async () => {
     const { scanner } = setup();
     scanner.supported = false;
@@ -223,7 +244,7 @@ describe('PairingPage', () => {
     const fixture = await render();
 
     expect(fixture.nativeElement.textContent).not.toContain('Scanner le QR');
-    expect(fixture.nativeElement.querySelectorAll('input')).toHaveLength(3);
+    expect(champsDeSaisie(fixture)).toHaveLength(3);
   });
 
   it('propose le scan quand il est disponible', async () => {
@@ -235,7 +256,7 @@ describe('PairingPage', () => {
     // La saisie manuelle reste accessible : le scan est un raccourci, pas un
     // passage obligé.
     expect(fixture.nativeElement.textContent).toContain('Scanner le QR');
-    expect(fixture.nativeElement.querySelectorAll('input')).toHaveLength(3);
+    expect(champsDeSaisie(fixture)).toHaveLength(3);
   });
 
   it('refuse de connecter tant qu’un champ manque', async () => {
@@ -371,7 +392,7 @@ describe('PairingPage', () => {
     await settle(fixture);
 
     expect(fixture.nativeElement.querySelector('img')).toBeNull();
-    expect(fixture.nativeElement.querySelectorAll('input')).toHaveLength(3);
+    expect(champsDeSaisie(fixture)).toHaveLength(3);
   });
 
   it('démarre réellement la caméra au clic sur « Scanner »', async () => {
@@ -485,7 +506,7 @@ describe('PairingPage', () => {
     await settle(fixture);
 
     expect(alertText(fixture)).toContain("L'accès à la caméra a été refusé.");
-    expect(fixture.nativeElement.querySelectorAll('input')).toHaveLength(3);
+    expect(champsDeSaisie(fixture)).toHaveLength(3);
   });
 
   it('ferme l’aperçu sans rien reprocher quand on annule le scan', async () => {
@@ -560,5 +581,59 @@ describe('PairingPage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Synchronisé.');
     expect(alertText(fixture)).toBeNull();
+  });
+
+  describe('réglage de la banque d’images', () => {
+    function caseÀCocher(fixture: {
+      nativeElement: HTMLElement;
+    }): HTMLInputElement {
+      const input = fixture.nativeElement.querySelector<HTMLInputElement>(
+        'input[type="checkbox"]',
+      );
+      if (null === input) {
+        throw new Error('Case à cocher introuvable');
+      }
+      return input;
+    }
+
+    it('se présente cochée, la recherche étant active par défaut', async () => {
+      setup();
+
+      const fixture = await render();
+
+      expect(caseÀCocher(fixture).checked).toBe(true);
+    });
+
+    it('coupe la recherche automatique, et la rétablit', async () => {
+      // Le réglage vit sur cet écran parce que la recherche d'images est la
+      // seule autre chose de l'application qui parle à un tiers.
+      setup();
+      const fixture = await render();
+      const settings = TestBed.inject(ImageBankSettings);
+
+      caseÀCocher(fixture).click();
+      await fixture.whenStable();
+      expect(settings.auto()).toBe(false);
+      expect(caseÀCocher(fixture).checked).toBe(false);
+
+      caseÀCocher(fixture).click();
+      await fixture.whenStable();
+      expect(settings.auto()).toBe(true);
+    });
+
+    it('n’encombre pas l’écran qui affiche le QR', async () => {
+      // Cet écran-là a une seule chose à faire faire : montrer le code à
+      // scanner.
+      const { configService } = setup();
+      configService.config.set(CONFIG);
+      const fixture = await render();
+
+      clickButton(fixture, 'Appairer un autre appareil');
+      await settle(fixture);
+
+      expect(
+        fixture.nativeElement.querySelector('input[type="checkbox"]'),
+      ).toBeNull();
+    });
   });
 });
