@@ -27,7 +27,11 @@ import {
 
 const MAINTENANCE_DELAY_MS = 5000;
 
-function product(id: string, imageRef: Product['imageRef']): Product {
+function product(
+  id: string,
+  imageRef: Product['imageRef'],
+  bankImageRef: Product['bankImageRef'] = null,
+): Product {
   return {
     id: id as ProductId,
     label: id,
@@ -35,6 +39,7 @@ function product(id: string, imageRef: Product['imageRef']): Product {
     defaultQty: '',
     category: 'cremerie',
     imageRef,
+    bankImageRef,
     usage: {},
     lastUsedAt: 0,
     archivedAt: null,
@@ -142,6 +147,29 @@ describe('effects de maintenance', () => {
       vi.advanceTimersByTime(MAINTENANCE_DELAY_MS);
 
       expect([...collected[0]]).toEqual(['aaaa']);
+    });
+
+    it('garde l’image de banque qu’on a retirée de l’affichage', () => {
+      // Elle n'est pas affichée — c'est tout son intérêt — mais on doit pouvoir
+      // la remettre. L'effacer ferait que « remettre l'image » rendrait un cadre
+      // vide, une semaine après le retrait et sans que rien ne l'annonce.
+      catalog.next(catalogOf(product('retirée', 'emoji:🛒', 'blob:cccc')));
+
+      run(collectOrphanBlobs);
+      loaded.next(true);
+      vi.advanceTimersByTime(MAINTENANCE_DELAY_MS);
+
+      expect([...collected[0]]).toEqual(['cccc']);
+    });
+
+    it('garde les deux images d’un produit qui a photo et image de banque', () => {
+      catalog.next(catalogOf(product('les-deux', 'blob:aaaa', 'blob:cccc')));
+
+      run(collectOrphanBlobs);
+      loaded.next(true);
+      vi.advanceTimersByTime(MAINTENANCE_DELAY_MS);
+
+      expect([...collected[0]].sort()).toEqual(['aaaa', 'cccc']);
     });
 
     it('garde la photo d’un produit archivé', () => {

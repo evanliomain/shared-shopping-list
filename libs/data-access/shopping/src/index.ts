@@ -6,3 +6,4 @@ export * from './lib/shopping.effects';
 export * from './lib/maintenance.effects';
 export * from './lib/provide-shopping';
 export * from './lib/product-images.service';
+export * from './lib/product-bank-images.service';
