@@ -1,4 +1,4 @@
-import { formatLicense } from './bank-image';
+import { formatLicense, stripHtml } from './bank-image';
 
 describe('formatLicense', () => {
   it('met en forme une licence Creative Commons', () => {
@@ -15,5 +15,29 @@ describe('formatLicense', () => {
 
   it('se passe de la version quand la banque ne la donne pas', () => {
     expect(formatLicense('by', '')).toBe('CC BY');
+  });
+});
+
+describe('stripHtml', () => {
+  it('ramène un auteur balisé à son nom', () => {
+    // Wikimedia Commons rend l'auteur en HTML, et ce nom finit dans un nœud de
+    // texte du CRDT.
+    expect(
+      stripHtml('<b><a href="//example/User:Iifar">Ivar Leidus</a></b>'),
+    ).toBe('Ivar Leidus');
+  });
+
+  it('rend leurs caractères aux entités', () => {
+    expect(stripHtml('Dupont &amp; Fils &quot;photo&quot;')).toBe(
+      'Dupont & Fils "photo"',
+    );
+    expect(stripHtml('L&#39;Atelier &lt;photo&gt;')).toBe("L'Atelier <photo>");
+  });
+
+  it('resserre les blancs laissés par les balises retirées', () => {
+    expect(stripHtml('  <span>Ivar</span>\n  <span>Leidus</span>  ')).toBe(
+      'Ivar Leidus',
+    );
+    expect(stripHtml('Ivar&nbsp;Leidus')).toBe('Ivar Leidus');
   });
 });
