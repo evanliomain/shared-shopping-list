@@ -3,6 +3,10 @@ import * as Y from 'yjs';
 
 import {
   catalogMap,
+  CreditField,
+  creditedHashes,
+  creditKey,
+  imageCreditsMap,
   itemsMap,
   listIds,
   readListCreatedAt,
@@ -11,6 +15,7 @@ import {
 } from './schema';
 import {
   CrdtSnapshot,
+  ImageCredit,
   ImageRef,
   ItemId,
   ListId,
@@ -33,6 +38,7 @@ export function readSnapshot(doc: Y.Doc): CrdtSnapshot {
   return {
     catalog: readCatalog(doc),
     lists: readLists(doc),
+    credits: readCredits(doc),
   };
 }
 
@@ -68,10 +74,40 @@ function readProduct(id: ProductId, node: YNode): Product {
     defaultQty: str(node, 'defaultQty'),
     category: str(node, 'category'),
     imageRef: (node.get('imageRef') as ImageRef | null) ?? null,
+    bankImageRef: (node.get('bankImageRef') as ImageRef | null) ?? null,
     usage: readUsage(node),
     lastUsedAt: num(node, 'lastUsedAt'),
     archivedAt: (node.get('archivedAt') as number | null) ?? null,
   };
+}
+
+/**
+ * Les crédits, relus depuis leurs clés plates.
+ *
+ * Seul `author` décide qu'un crédit existe : les autres champs peuvent être
+ * vides — une image de la banque n'a pas toujours de titre, et le domaine public
+ * n'a pas d'URL de licence.
+ */
+function readCredits(doc: Y.Doc): Record<string, ImageCredit> {
+  const credits = imageCreditsMap(doc);
+
+  const read = (field: CreditField, hash: string): string => {
+    const value = credits.get(creditKey(field, hash));
+    return 'string' === typeof value ? value : '';
+  };
+
+  return Object.fromEntries(
+    creditedHashes(doc).map((hash): [string, ImageCredit] => [
+      hash,
+      {
+        title: read('title', hash),
+        author: read('author', hash),
+        license: read('license', hash),
+        licenseUrl: read('licenseUrl', hash),
+        sourceUrl: read('sourceUrl', hash),
+      },
+    ]),
+  );
 }
 
 /**

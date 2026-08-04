@@ -6,6 +6,9 @@ import {
   buildItemNode,
   buildProductNode,
   catalogMap,
+  CREDIT_FIELDS,
+  creditKey,
+  imageCreditsMap,
   itemNode,
   itemsMap,
   listExists,
@@ -17,6 +20,7 @@ import {
 import { incrementUsage } from './usage-counter';
 import {
   DeviceId,
+  ImageCredit,
   ImageRef,
   ItemId,
   ListId,
@@ -102,6 +106,41 @@ export function setProductImage(
   imageRef: ImageRef | null,
 ): void {
   productNode(doc, id)?.set('imageRef', imageRef);
+}
+
+/**
+ * Mémorise l'image que la banque a fournie pour ce produit.
+ *
+ * Séparé de `setProductImage` parce que les deux champs ne disent pas la même
+ * chose : l'un est ce qu'on affiche, l'autre ce qu'on saurait réafficher. C'est
+ * la seule façon de rendre le retrait réversible.
+ */
+export function setProductBankImage(
+  doc: Y.Doc,
+  id: ProductId,
+  bankImageRef: ImageRef | null,
+): void {
+  productNode(doc, id)?.set('bankImageRef', bankImageRef);
+}
+
+/**
+ * Enregistre le crédit d'une image.
+ *
+ * En clés plates et non en nœud imbriqué : l'empreinte du contenu étant la clé,
+ * deux appareils qui choisissent la même image la calculent identique — voir
+ * l'avertissement de `schema.ts`. Ils écrivent alors les mêmes valeurs, et le
+ * dernier-écrivain-gagne de Yjs n'a rien à perdre.
+ */
+export function writeImageCredit(
+  doc: Y.Doc,
+  hash: string,
+  credit: ImageCredit,
+): void {
+  const credits = imageCreditsMap(doc);
+
+  for (const field of CREDIT_FIELDS) {
+    credits.set(creditKey(field, hash), credit[field]);
+  }
 }
 
 /** Archiver retire des suggestions sans rien perdre de l'historique. */

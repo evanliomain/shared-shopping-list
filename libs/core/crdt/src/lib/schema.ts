@@ -10,6 +10,8 @@ import { ItemId, ListId, ProductId } from './types';
  * ├── catalog          : Y.Map<productId, Y.Map>   racine
  * ├── listMeta         : Y.Map<string, string|number>
  * │                      clés plates « name:<listId> », « createdAt:<listId> »
+ * ├── imageCredits     : Y.Map<string, string>
+ * │                      clés plates « author:<hash> », « license:<hash> », …
  * └── items:<listId>   : Y.Map<itemId, Y.Map>      une racine par liste
  * ```
  *
@@ -35,15 +37,39 @@ import { ItemId, ListId, ProductId } from './types';
  *
  * Le catalogue, lui, est déjà sûr : c'est une racine, et les produits ont des
  * identifiants aléatoires qui ne peuvent pas entrer en collision.
+ *
+ * Les crédits d'image suivent la même règle, et pour une raison plus aiguë
+ * encore : ils sont indexés par l'**empreinte du contenu**. Deux appareils qui
+ * choisissent la même image dans la banque calculent la même clé — c'est
+ * exactement le scénario de collision décrit plus haut, et cette fois il est
+ * ordinaire plutôt qu'accidentel. D'où des clés plates scalaires, et non une
+ * `Y.Map` par empreinte.
  */
 export type YNode = Y.Map<unknown>;
 
 const CATALOG = 'catalog';
 const LIST_META = 'listMeta';
+const IMAGE_CREDITS = 'imageCredits';
 const ITEMS_ROOT = 'items:';
 const NAME_KEY = 'name:';
 const CREATED_AT_KEY = 'createdAt:';
 const USAGE = 'usage';
+
+/**
+ * Les champs d'un crédit, et l'ordre dans lequel ils sont écrits.
+ *
+ * `author` fait foi de l'existence du crédit : c'est le seul champ qu'un
+ * résultat de la banque doit obligatoirement porter pour être retenu.
+ */
+export const CREDIT_FIELDS = [
+  'title',
+  'author',
+  'license',
+  'licenseUrl',
+  'sourceUrl',
+] as const;
+
+export type CreditField = (typeof CREDIT_FIELDS)[number];
 
 export function catalogMap(doc: Y.Doc): Y.Map<YNode> {
   return doc.getMap<YNode>(CATALOG);
@@ -51,6 +77,23 @@ export function catalogMap(doc: Y.Doc): Y.Map<YNode> {
 
 export function listMetaMap(doc: Y.Doc): Y.Map<string | number> {
   return doc.getMap<string | number>(LIST_META);
+}
+
+export function imageCreditsMap(doc: Y.Doc): Y.Map<string> {
+  return doc.getMap<string>(IMAGE_CREDITS);
+}
+
+export function creditKey(field: CreditField, hash: string): string {
+  return `${field}:${hash}`;
+}
+
+/** Les empreintes qui portent un crédit, déduites des clés présentes. */
+export function creditedHashes(doc: Y.Doc): string[] {
+  const prefix = `author:`;
+
+  return [...imageCreditsMap(doc).keys()]
+    .filter((key) => key.startsWith(prefix))
+    .map((key) => key.slice(prefix.length));
 }
 
 /** Racine des articles d'une liste. Toujours définie, jamais en conflit. */
@@ -128,6 +171,9 @@ export function buildProductNode(values: {
   node.set('defaultQty', values.defaultQty);
   node.set('category', values.category);
   node.set('imageRef', values.imageRef);
+  // Un produit tout neuf n'a rien reçu de la banque. La recherche automatique,
+  // si elle aboutit, remplira les deux champs après coup.
+  node.set('bankImageRef', null);
   node.set('lastUsedAt', values.lastUsedAt);
   node.set('archivedAt', null);
   node.set(USAGE, new Y.Map<number>());
