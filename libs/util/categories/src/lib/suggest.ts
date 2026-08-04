@@ -7,6 +7,20 @@ export interface CategorySuggestion {
   readonly aisle: Aisle;
   /** Emoji proposé, prêt à devenir un `imageRef` de la forme `emoji:🥕`. */
   readonly emoji: string;
+  /**
+   * Vrai si un mot-clé a effectivement reconnu le libellé.
+   *
+   * Sans ce drapeau, l'emoji du repli — le 🛒 du rayon « divers » — est
+   * indiscernable d'un emoji trouvé. Or les deux ne valent pas la même chose :
+   * le premier avoue qu'on n'a rien compris au libellé, et c'est précisément là
+   * qu'une image de la banque vaut mieux qu'un caddie générique.
+   *
+   * Aucun mot-clé ne rangeant aujourd'hui dans « divers », `aisle` répondrait
+   * la même chose. Mais cette équivalence tient à l'état du dictionnaire, pas à
+   * une règle : le premier mot-clé rangé dans « divers » la casserait sans que
+   * rien ne le signale. D'où un drapeau dit, plutôt que déduit.
+   */
+  readonly recognized: boolean;
 }
 
 /**
@@ -95,8 +109,12 @@ export function suggestCategory(label: string): CategorySuggestion {
     .value();
 
   return undefined === matched
-    ? { aisle: DEFAULT_AISLE, emoji: AISLE_EMOJI[DEFAULT_AISLE] }
-    : { aisle: matched.aisle, emoji: matched.emoji };
+    ? {
+        aisle: DEFAULT_AISLE,
+        emoji: AISLE_EMOJI[DEFAULT_AISLE],
+        recognized: false,
+      }
+    : { aisle: matched.aisle, emoji: matched.emoji, recognized: true };
 }
 
 /** Emoji par défaut d'un rayon, quand un produit n'a pas d'image à lui. */

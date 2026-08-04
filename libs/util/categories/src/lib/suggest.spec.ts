@@ -70,6 +70,13 @@ describe('suggestCategory', () => {
     expect(suggestion.aisle).toBe(DEFAULT_AISLE);
     expect(suggestion.emoji).toBe(AISLE_EMOJI[DEFAULT_AISLE]);
   });
+
+  it('avoue le repli au lieu de le faire passer pour une trouvaille', () => {
+    // C'est ce drapeau qui décide d'aller chercher une image dans la banque :
+    // le 🛒 de « divers » ne doit pas se faire passer pour un emoji trouvé.
+    expect(suggestCategory('Cadeau anniversaire mamie').recognized).toBe(false);
+    expect(suggestCategory('Carottes').recognized).toBe(true);
+  });
 });
 
 describe('helpers de rayon', () => {
