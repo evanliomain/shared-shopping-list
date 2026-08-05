@@ -179,6 +179,28 @@ function sheet(fixture: ComponentFixture<ListPage>): HTMLElement {
   return found;
 }
 
+/** Le contrôle d'ajout du téléphone : bouton au repos, champ une fois ouvert. */
+function control(fixture: ComponentFixture<ListPage>): HTMLElement {
+  const found = fixture.nativeElement.querySelector('sl-add-control');
+  if (null === found) {
+    throw new Error('Contrôle d’ajout introuvable');
+  }
+
+  return found;
+}
+
+/** Le champ actif : l'overlay sur téléphone, la barre permanente au bureau. */
+function field(fixture: ComponentFixture<ListPage>): HTMLInputElement {
+  const found = fixture.nativeElement.querySelector(
+    'sl-add-control input, sl-add-bar input',
+  );
+  if (null === found) {
+    throw new Error('Champ de saisie introuvable');
+  }
+
+  return found;
+}
+
 async function click(
   fixture: ComponentFixture<ListPage>,
   selector: string,
@@ -196,9 +218,9 @@ async function type(
   fixture: ComponentFixture<ListPage>,
   query: string,
 ): Promise<void> {
-  const field = fixture.nativeElement.querySelector('sl-add-bar input');
-  field.value = query;
-  field.dispatchEvent(new Event('input'));
+  const input = field(fixture);
+  input.value = query;
+  input.dispatchEvent(new Event('input'));
   await fixture.whenStable();
 }
 
@@ -383,7 +405,7 @@ describe('ListPage', () => {
       // La feuille est toujours là ; fermée, elle attend posée hors champ.
       expect(sheet(fixture).getAttribute('data-picking')).toBe('false');
 
-      await click(fixture, 'sl-add-button button');
+      await click(fixture, 'sl-add-control');
 
       expect(sheet(fixture).getAttribute('data-picking')).toBe('true');
     });
@@ -399,7 +421,7 @@ describe('ListPage', () => {
     it('se retire vers l’avant de la liste et revient en remontant', async () => {
       // Lire sa liste ne se fait pas avec un bouton posé sur la dernière ligne.
       const { fixture } = await render({ seed: courses });
-      const fab = fixture.nativeElement.querySelector('sl-add-button');
+      const fab = fixture.nativeElement.querySelector('sl-add-control');
       expect(fab.getAttribute('data-retracted')).toBe('false');
 
       await scroll(fixture, 300);
@@ -409,16 +431,14 @@ describe('ListPage', () => {
       expect(fab.getAttribute('data-retracted')).toBe('false');
     });
 
-    it('s’efface pendant la saisie, la feuille portant déjà le geste', async () => {
+    it('devient le champ pendant la saisie, au lieu de se retirer', async () => {
+      // Le même nœud sert de bouton puis de champ : ouvert, il ne se retire pas,
+      // il s'ouvre.
       const { fixture } = await render({ seed: courses });
 
-      await click(fixture, 'sl-add-button button');
+      await click(fixture, 'sl-add-control');
 
-      expect(
-        fixture.nativeElement
-          .querySelector('sl-add-button')
-          .getAttribute('data-retracted'),
-      ).toBe('true');
+      expect(control(fixture).getAttribute('data-open')).toBe('true');
     });
   });
 
@@ -545,7 +565,7 @@ describe('ListPage', () => {
       expect(types(dispatched)).toEqual(['[Liste] Produit ajouté']);
       // La saisie repart à vide, panneau ouvert : on enchaîne l'article suivant.
       expect(
-        fixture.nativeElement.querySelector('sl-add-bar input').value,
+        field(fixture).value,
       ).toBe('');
     });
 
@@ -597,7 +617,7 @@ describe('ListPage', () => {
       const { fixture, sync } = await render({
         seed: (doc) => put(doc, createProduct(doc, { label: 'Lait' }, NOW)),
       });
-      await click(fixture, 'sl-add-button button');
+      await click(fixture, 'sl-add-control');
 
       await sync((doc) => {
         put(doc, createProduct(doc, { label: 'Pain' }, NOW), Date.now());
@@ -677,7 +697,7 @@ describe('ListPage', () => {
       ).not.toBeNull();
       // La barre est permanente au bureau : elle n'attend pas qu'on l'ouvre.
       expect(fixture.nativeElement.querySelector('sl-add-bar')).not.toBeNull();
-      expect(fixture.nativeElement.querySelector('sl-add-button')).toBeNull();
+      expect(fixture.nativeElement.querySelector('sl-add-control')).toBeNull();
     });
 
     it('suit l’élargissement de la fenêtre sans recharger', async () => {
@@ -706,7 +726,7 @@ describe('ListPage', () => {
 
       expect(types(dispatched)).toEqual(['[Liste] Produit ajouté']);
       expect(
-        fixture.nativeElement.querySelector('sl-add-bar input').value,
+        field(fixture).value,
       ).toBe('pai');
     });
 
@@ -728,7 +748,7 @@ describe('ListPage', () => {
 
       expect(fixture.nativeElement.querySelector('sl-history-pane')).toBeNull();
       expect(
-        fixture.nativeElement.querySelector('sl-add-button'),
+        fixture.nativeElement.querySelector('sl-add-control'),
       ).not.toBeNull();
     });
   });

@@ -140,16 +140,25 @@
 </div>
 }
 
-<!-- Le bouton flottant rend à la liste les 62 px que prenait la barre collée en
-     bas, et se retire quand on défile vers l'avant : lire sa liste ne se fait
-     pas avec un bouton posé sur la dernière ligne. Sur la liste vide, c'est le
-     gros bouton du centre qui prend le relais ; au bureau, la barre permanente,
-     qui a la place de rester. -->
-@if (!wide() && !isEmpty()) {
-<sl-add-button
-  [retracted]="fabRetracted()"
+<!-- Sur téléphone, le contrôle d'ajout : un seul nœud qui est le bouton
+     flottant au repos et le champ une fois ouvert. Il rend à la liste les 62 px
+     que prenait la barre collée en bas, se retire quand on défile vers l'avant,
+     et sur la liste vide s'efface derrière le gros bouton du centre. Au bureau,
+     il n'existe pas : la barre y garde son propre champ, permanent. -->
+@if (!wide()) {
+<sl-add-control
+  [open]="ui.picking()"
+  [retracted]="controlRetracted()"
+  [query]="ui.query()"
   [label]="'list.addArticle' | transloco"
+  [placeholder]="
+    (0 < justAdded().length ? 'addBar.nextPlaceholder' : 'addBar.placeholder')
+      | transloco
+  "
   (pressed)="startAdding()"
+  (queryChanged)="ui.setQuery($event)"
+  (focused)="ui.startPicking()"
+  (submitted)="submitQuery()"
 />
 }
 
@@ -175,6 +184,7 @@
   [suggestions]="suggestions()"
   [canCreate]="canCreate()"
   [added]="justAdded()"
+  [wide]="wide()"
   (queryChanged)="ui.setQuery($event)"
   (focused)="ui.startPicking()"
   (dismissed)="ui.stopPicking()"

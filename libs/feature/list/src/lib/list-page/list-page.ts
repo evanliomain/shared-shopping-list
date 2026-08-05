@@ -40,6 +40,7 @@ import { normalize } from '@shopping-list/util/categories';
 import { ThemeStore } from '@shopping-list/util/theme';
 
 import { AddBar } from '../add-bar/add-bar';
+import { AddControl } from '../add-control/add-control';
 import { HistoryPane } from '../history-pane/history-pane';
 import { ItemRow } from '../item-row/item-row';
 import { ListMenu } from '../list-menu/list-menu';
@@ -51,6 +52,7 @@ import { ListUiStore } from '../list-ui.store';
   imports: [
     AddBar,
     AddButton,
+    AddControl,
     EmptyState,
     HistoryPane,
     ItemRow,
@@ -149,11 +151,13 @@ export class ListPage {
   });
 
   /**
-   * Le bouton flottant s'efface aussi pendant la saisie : la feuille d'ajout
-   * porte déjà le geste, à la même place.
+   * Le contrôle d'ajout se retire sous le bord quand on défile vers l'avant de
+   * la liste, et sur la liste vide où le gros bouton du centre prend le relais.
+   * Pendant la saisie il ne se retire pas : il *devient* le champ, à la place
+   * du bouton.
    */
-  protected readonly fabRetracted = computed(
-    () => this.ui.fabHidden() || this.ui.picking(),
+  protected readonly controlRetracted = computed(
+    () => this.ui.fabHidden() || this.isEmpty(),
   );
 
   /**
@@ -240,6 +244,24 @@ export class ListPage {
       listActions.produitCrééEtAjouté({ draft: { label: label.trim() } }),
     );
     this.ui.clearQuery();
+  }
+
+  /**
+   * « Entrée » dans le champ overlay du téléphone : on prend la première
+   * suggestion si elle existe, sinon on crée. Le même arbitrage que la barre au
+   * clavier, mais porté ici — l'overlay ne connaît ni les suggestions ni le
+   * catalogue, seule la page les a.
+   */
+  protected submitQuery(): void {
+    const [first] = this.suggestions();
+    if (undefined !== first) {
+      this.addExisting(first);
+      return;
+    }
+
+    if (this.canCreate()) {
+      this.createAndAdd(this.ui.trimmedQuery());
+    }
   }
 
   protected toggle(item: ItemView, checked: boolean): void {

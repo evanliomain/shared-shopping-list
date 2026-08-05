@@ -127,35 +127,43 @@ import { PluralPipe } from '@shopping-list/util/i18n';
       </div>
     }
 
-    <form class="bar" (submit)="submit($event)">
-      <div class="field">
-        <span class="plus" aria-hidden="true">＋</span>
-        <input
-          #field
-          type="text"
-          name="article"
-          autocomplete="off"
-          enterkeyhint="done"
-          [placeholder]="
-            (0 < added().length
-              ? 'addBar.nextPlaceholder'
-              : 'addBar.placeholder'
-            ) | transloco
-          "
-          [value]="query()"
-          (input)="onInput($event)"
-          (focus)="focused.emit()"
-        />
-      </div>
+    <!-- Au bureau, la barre garde son champ, permanent dans le pied de la
+         grille. Sur téléphone, le champ est l'overlay sl-add-control posé
+         par-dessus : ici on ne réserve que sa place, à la même hauteur et aux
+         mêmes marges, pour que la pilule qui morphe s'y pose pile. -->
+    @if (wide()) {
+      <form class="bar" (submit)="submit($event)">
+        <div class="field">
+          <span class="plus" aria-hidden="true">＋</span>
+          <input
+            #field
+            type="text"
+            name="article"
+            autocomplete="off"
+            enterkeyhint="done"
+            [placeholder]="
+              (0 < added().length
+                ? 'addBar.nextPlaceholder'
+                : 'addBar.placeholder'
+              ) | transloco
+            "
+            [value]="query()"
+            (input)="onInput($event)"
+            (focus)="focused.emit()"
+          />
+        </div>
 
-      <!-- Une seule sortie à la fois : « Terminé » monte dans l'en-tête dès
-           qu'il y a des ajouts, loin du champ sur lequel le pouce enchaîne. -->
-      @if (picking() && 0 === added().length) {
-        <button type="button" class="close" (click)="dismissed.emit()">
-          {{ 'common.close' | transloco }}
-        </button>
-      }
-    </form>
+        <!-- Une seule sortie à la fois : « Terminé » monte dans l'en-tête dès
+             qu'il y a des ajouts, loin du champ sur lequel le pouce enchaîne. -->
+        @if (picking() && 0 === added().length) {
+          <button type="button" class="close" (click)="dismissed.emit()">
+            {{ 'common.close' | transloco }}
+          </button>
+        }
+      </form>
+    } @else {
+      <div class="field-slot" aria-hidden="true"></div>
+    }
   `,
   styles: `
     /* Ouverte, la barre devient une feuille : coins arrondis, poignée, ombre
@@ -440,6 +448,15 @@ import { PluralPipe } from '@shopping-list/util/i18n';
       padding: 0.625rem var(--sl-space-3);
     }
 
+    /* Sur téléphone, la place réservée au champ : mêmes hauteur (50 px) et
+       marges (16 px de côté, 10 px sous le bord) que la pilule ouverte de
+       sl-add-control, qui vient s'y poser pile. */
+    .field-slot {
+      flex: none;
+      block-size: 3.125rem;
+      margin: 0.625rem var(--sl-space-4);
+    }
+
     :host([data-picking='true']) .bar {
       border-block-start: 1px solid var(--sl-border);
     }
@@ -510,6 +527,12 @@ export class AddBar {
   readonly canCreate = input.required<boolean>();
   /** Les articles entrés depuis l'ouverture, du plus récent au plus ancien. */
   readonly added = input.required<readonly ItemView[]>();
+  /**
+   * Vrai au bureau, où la barre est permanente et porte son propre champ. Sur
+   * téléphone (faux), le champ est l'overlay `sl-add-control` posé par-dessus,
+   * et la barre ne réserve que sa place sous les suggestions.
+   */
+  readonly wide = input.required<boolean>();
 
   readonly queryChanged = output<string>();
   readonly picked = output<SuggestionView>();
@@ -521,8 +544,9 @@ export class AddBar {
 
   protected readonly images = inject(ProductImages);
 
-  private readonly field =
-    viewChild.required<ElementRef<HTMLInputElement>>('field');
+  // Le champ n'existe qu'au bureau ; sur téléphone c'est l'overlay qui le
+  // porte, et ce viewChild reste vide.
+  private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
 
   constructor() {
     // Les suggestions arrivent déjà filtrées par la saisie : on ne résout que
@@ -534,12 +558,12 @@ export class AddBar {
       }
     });
 
-    // La feuille s'ouvre par le bouton flottant, à distance du champ : sans ce
-    // rappel de focus, il faudrait un second geste pour taper. Au bureau, où la
-    // barre est permanente, le champ a déjà le focus — l'appel n'y fait rien.
+    // Au bureau, le champ prend le focus à l'ouverture du panneau. Sur
+    // téléphone il n'y a pas de champ ici — c'est l'overlay `sl-add-control`
+    // qui se donne le focus —, d'où le chaînage optionnel.
     effect(() => {
       if (this.picking()) {
-        this.field().nativeElement.focus();
+        this.field()?.nativeElement.focus();
       }
     });
   }
