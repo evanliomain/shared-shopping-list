@@ -51,7 +51,8 @@ h1 {
 main {
   min-block-size: 0;
   overflow-y: auto;
-  padding-block: var(--sl-space-3) calc(var(--sl-safe-bottom) + var(--sl-space-4));
+  padding-block: var(--sl-space-3)
+    calc(var(--sl-safe-bottom) + var(--sl-space-4));
 }
 
 .card {
@@ -69,11 +70,42 @@ li {
   align-items: center;
   gap: var(--sl-space-3);
   min-block-size: var(--sl-tap-target);
-  padding-inline: 1.25rem;
+  padding-inline: 0.5rem 1.25rem;
+  background: var(--sl-surface);
+  /* On glisse au travers des libellés : mieux vaut ne rien sélectionner. */
+  user-select: none;
 }
 
 li + li {
   border-block-start: 1px solid var(--sl-border);
+}
+
+/* La poignée est le seul point qui glisse — la ligne entière porterait deux
+   flèches qu'on ne pourrait plus cliquer. `touch-action: none` lui donne le
+   mouvement vertical, que la liste garderait sinon pour défiler. */
+.grip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  align-self: stretch;
+  inline-size: 2.25rem;
+  color: var(--sl-text-muted);
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+}
+
+.grip:active {
+  cursor: grabbing;
+}
+
+/* La ligne soulevée passe au-dessus de ses voisines, détachée de la carte, le
+   temps qu'on la pose : on la suit à l'œil pendant que les autres se rangent. */
+.dragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--sl-shadow-lg);
 }
 
 .emoji {

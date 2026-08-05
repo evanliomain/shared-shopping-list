@@ -66,7 +66,7 @@
   },
   "aisleOrder": {
     "title": "Ordre des rayons",
-    "hint": "Réglez le parcours de votre magasin : la liste suivra cet ordre.",
+    "hint": "Réglez le parcours de votre magasin : glissez les rayons ou rangez-les aux flèches. La liste suivra cet ordre.",
     "moveUp": "Monter {{aisle}}",
     "moveDown": "Descendre {{aisle}}",
     "reset": "Rétablir l'ordre par défaut"
