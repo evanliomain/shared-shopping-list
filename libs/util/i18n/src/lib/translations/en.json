@@ -66,7 +66,7 @@
   },
   "aisleOrder": {
     "title": "Aisle order",
-    "hint": "Set your store's route: the list will follow this order.",
+    "hint": "Set your store's route: drag the aisles or use the arrows. The list will follow this order.",
     "moveUp": "Move {{aisle}} up",
     "moveDown": "Move {{aisle}} down",
     "reset": "Restore the default order"

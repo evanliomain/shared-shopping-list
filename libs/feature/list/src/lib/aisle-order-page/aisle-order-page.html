@@ -12,9 +12,22 @@
 
 <main>
   <ol class="card">
-    @for (aisle of aisles(); track aisle.key; let i = $index, first =
-    $first, last = $last) {
-    <li>
+    @for (aisle of aisles(); track aisle.key; let i = $index, first = $first,
+    last = $last) {
+    <li
+      [attr.data-key]="aisle.key"
+      [class.dragging]="aisle.key === draggingKey()"
+    >
+      <!-- La poignée est le seul point qui glisse : la ligne porte deux flèches
+           qu'il faut pouvoir cliquer sans tout déplacer. Décorative pour l'aide
+           technique — les flèches, elles, nomment leur rayon et rangent au
+           clavier. -->
+      <span
+        class="grip"
+        aria-hidden="true"
+        (pointerdown)="onGripDown($event, aisle.key)"
+        >⠿</span
+      >
       <span class="emoji" aria-hidden="true">{{ aisle.emoji }}</span>
       <span class="label">{{ 'aisles.' + aisle.key | transloco }}</span>
 
