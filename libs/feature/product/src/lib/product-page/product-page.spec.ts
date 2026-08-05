@@ -10,6 +10,7 @@ import {
   ProductId,
   readSnapshot,
   setProductBankImage,
+  updateProduct,
   writeImageCredit,
 } from '@shopping-list/core/crdt';
 import {
@@ -541,6 +542,57 @@ describe('ProductPage', () => {
     function cherche(fixture: { nativeElement: HTMLElement }): void {
       click(fixture, 'Chercher une image');
     }
+
+    function champRecherche(fixture: {
+      nativeElement: HTMLElement;
+    }): HTMLInputElement {
+      return fixture.nativeElement.querySelector<HTMLInputElement>(
+        'input[type="search"]',
+      ) as HTMLInputElement;
+    }
+
+    it('ouvre le champ déjà rempli du libellé', async () => {
+      // La recherche porte presque toujours sur le libellé : il est dans le
+      // champ dès l'ouverture, sans attendre le clic sur « Chercher ».
+      const { fixture } = await render((doc) =>
+        createProduct(doc, { label: 'Avocat' }, NOW),
+      );
+
+      expect(champRecherche(fixture).value).toBe('Avocat');
+    });
+
+    it('ne ressème pas le champ quand le produit se met à jour', async () => {
+      // Le libellé n'est semé qu'une fois : un delta reçu après coup — ici un
+      // renommage — ne doit pas reprendre la main sur ce qu'on a tapé.
+      const doc = new Y.Doc({ gc: true });
+      ensureList(doc, DEFAULT_LIST_ID, LIST_NAME, NOW);
+      const productId = createProduct(doc, { label: 'Avocat' }, NOW);
+
+      TestBed.configureTestingModule({ providers: providers() });
+      const store = TestBed.inject(Store);
+      store.dispatch(
+        crdtActions.snapshotProduit({ snapshot: readSnapshot(doc) }),
+      );
+
+      const fixture = TestBed.createComponent(ProductPage);
+      fixture.componentRef.setInput('productId', productId);
+      await fixture.whenStable();
+
+      const champ = champRecherche(fixture);
+      champ.value = 'avocat fruit';
+      champ.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+
+      // Le produit change : l'effet de chargement se rejoue, mais le champ
+      // reste sur la recherche affinée.
+      updateProduct(doc, productId, { label: 'Avocat mûr' });
+      store.dispatch(
+        crdtActions.snapshotProduit({ snapshot: readSnapshot(doc) }),
+      );
+      await fixture.whenStable();
+
+      expect(champRecherche(fixture).value).toBe('avocat fruit');
+    });
 
     it('cherche avec le libellé du produit, sans le faire retaper', async () => {
       const { fixture, banque } = await render((doc) =>

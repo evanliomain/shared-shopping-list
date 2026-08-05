@@ -196,6 +196,14 @@ export class ProductPage {
 
   protected readonly canSave = computed(() => '' !== this.label().trim());
 
+  /**
+   * Le champ de recherche d'images n'est semé qu'une fois, au premier
+   * chargement. L'effet qui suit se rejoue à chaque changement du catalogue —
+   * une image adoptée, un delta reçu — et ressemer y écraserait une recherche
+   * affinée à la main (« avocat » repris par-dessus « avocat fruit »).
+   */
+  private bankQuerySeeded = false;
+
   constructor() {
     // Le produit peut arriver après le premier rendu : IndexedDB restaure de
     // façon asynchrone, et un delta distant peut le créer plus tard encore.
@@ -210,6 +218,14 @@ export class ProductPage {
       this.defaultQty.set(product.defaultQty);
       this.category.set(product.category);
       this.emoji.set(displayEmoji(product));
+
+      // La recherche d'image porte presque toujours sur le libellé : autant
+      // l'avoir déjà dans le champ, prêt à lancer ou à affiner, plutôt qu'un
+      // placeholder à retaper.
+      if (!this.bankQuerySeeded) {
+        this.bankQuery.set(product.label);
+        this.bankQuerySeeded = true;
+      }
 
       const ref = product.imageRef;
       const bank = product.bankImageRef;
@@ -281,14 +297,6 @@ export class ProductPage {
     } finally {
       this.bankBusy.set(false);
     }
-  }
-
-  /** Prérenseigne le champ avec le libellé quand on n'a pas encore cherché. */
-  protected openBank(): void {
-    if ('' === this.bankQuery()) {
-      this.bankQuery.set(this.label().trim());
-    }
-    void this.searchBank();
   }
 
   /**
