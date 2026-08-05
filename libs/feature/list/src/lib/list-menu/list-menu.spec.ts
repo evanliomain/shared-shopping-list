@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { ListUiStore } from '../list-ui.store';
@@ -7,7 +8,8 @@ import { ListMenu } from './list-menu';
 describe('ListMenu', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideTestI18n(), ListUiStore],
+      // Le menu porte un lien de navigation : `RouterLink` réclame le routeur.
+      providers: [provideRouter([]), provideTestI18n(), ListUiStore],
     });
   });
 
@@ -48,19 +50,32 @@ describe('ListMenu', () => {
     ).toBe('false');
   });
 
-  it('n’offre que « Vider la liste » à l’ouverture', async () => {
-    // Une entrée unique, et c'est déjà une raison d'exister à part du « Vider »
-    // du panier : l'un jette tout, l'autre seulement ce qui est pris.
+  it('ouvre sur « Ordonner les rayons » puis « Vider la liste »', async () => {
+    // « Vider » vit ici, à part du « Vider » du panier : l'un jette tout,
+    // l'autre seulement ce qui est pris.
     const fixture = await render();
 
     await click(fixture, '.toggle');
 
-    expect(menu(fixture.nativeElement)).toBe('Vider la liste');
+    expect(menu(fixture.nativeElement)).toBe(
+      'Ordonner les rayons Vider la liste',
+    );
     expect(
       fixture.nativeElement
         .querySelector('.toggle')
         .getAttribute('aria-expanded'),
     ).toBe('true');
+  });
+
+  it('n’offre que d’ordonner les rayons quand la liste est vide', async () => {
+    // Régler le parcours vaut liste vide comme pleine ; vider, non — il n'y a
+    // rien à vider.
+    const fixture = await render(0);
+
+    await click(fixture, '.toggle');
+
+    expect(menu(fixture.nativeElement)).toBe('Ordonner les rayons');
+    expect(fixture.nativeElement.querySelector('.danger')).toBeNull();
   });
 
   it('dit combien d’articles la question emporte', async () => {

@@ -13,6 +13,11 @@ export const appRoutes: Route[] = [
       import('@shopping-list/feature/product').then((m) => m.ProductPage),
   },
   {
+    path: 'rayons',
+    loadComponent: () =>
+      import('@shopping-list/feature/list').then((m) => m.AisleOrderPage),
+  },
+  {
     path: 'synchronisation',
     loadComponent: () =>
       import('@shopping-list/feature/pairing').then((m) => m.PairingPage),
