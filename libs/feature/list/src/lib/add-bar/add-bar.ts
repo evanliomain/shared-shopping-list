@@ -37,14 +37,16 @@ import { PluralPipe } from '@shopping-list/util/i18n';
   imports: [MatchedText, PluralPipe, ProductAvatar, TranslocoPipe],
   template: `
     @if (picking()) {
-      <div class="grip" aria-hidden="true"><span></span></div>
+      <div class="grip" aria-hidden="true" animate.leave="leaving">
+        <span></span>
+      </div>
 
       <!-- L'en-tête porte la sortie, permanente tant qu'on ajoute et
            atteignable au clavier : « Fermer » vivait dans la barre, absente sur
            téléphone où c'est l'overlay qui tient le champ. « Fermer » tant que
            rien n'est entré (on annule), puis « Terminé » quand des articles
            s'enchaînent, avec leur décompte. -->
-      <div class="head">
+      <div class="head" animate.leave="leaving">
         @if (0 < added().length) {
           <p class="tally-count">
             {{ 'addBar.added' | plural: added().length }}
@@ -58,7 +60,7 @@ import { PluralPipe } from '@shopping-list/util/i18n';
       </div>
 
       @if (0 < added().length) {
-        <ul class="chips">
+        <ul class="chips" animate.leave="leaving">
           @for (item of added(); track item.id) {
             <li>
               <span class="chip">
@@ -80,7 +82,7 @@ import { PluralPipe } from '@shopping-list/util/i18n';
         </ul>
       }
 
-      <div class="panel">
+      <div class="panel" animate.leave="leaving">
         @if (0 === suggestions().length && !canCreate()) {
           <p class="hint">{{ 'addBar.emptyHistory' | transloco }}</p>
         }
@@ -205,6 +207,11 @@ import { PluralPipe } from '@shopping-list/util/i18n';
         max-block-size: 80dvh;
         visibility: hidden;
         transform: translateY(100%);
+        /* À la fermeture, la feuille glisse hors champ pendant que le contenu se
+           fond sur place : la directive animate.leave garde le contenu monté le
+           temps de sa transition, si bien qu'il s'efface tandis que la feuille
+           descend. La montée, elle, est pilotée par la règle d'ouverture
+           ci-dessous, avec son propre délai. */
         transition:
           transform var(--sl-dur-base) var(--sl-ease-in),
           visibility var(--sl-dur-base);
@@ -227,17 +234,17 @@ import { PluralPipe } from '@shopping-list/util/i18n';
          sur le précédent, à partir du moment où la feuille arrive. Le champ n'en
          est pas — c'est l'ancre qu'on vient chercher, déjà en place. */
       :host([data-picking='true']) .grip,
-      :host([data-picking='true']) .tally,
+      :host([data-picking='true']) .head,
       :host([data-picking='true']) .chips,
       :host([data-picking='true']) .panel {
-        animation: sl-sheet-cascade var(--sl-dur-base) var(--sl-ease-out) both;
+        animation: sl-sheet-reveal var(--sl-dur-base) var(--sl-ease-out) both;
       }
 
       :host([data-picking='true']) .grip {
         animation-delay: 300ms;
       }
 
-      :host([data-picking='true']) .tally {
+      :host([data-picking='true']) .head {
         animation-delay: 335ms;
       }
 
@@ -248,9 +255,38 @@ import { PluralPipe } from '@shopping-list/util/i18n';
       :host([data-picking='true']) .panel {
         animation-delay: 405ms;
       }
+
+      /* À la fermeture, chaque bloc redescend de 8 px en s'effaçant, décalé pour
+         rejouer la cascade à l'envers : le panneau part le premier, la poignée
+         en dernier. La directive animate.leave garde le bloc dans le DOM le
+         temps de la transition, puis le retire — c'est Angular qui tient la
+         sortie, plus aucun sursis à gérer à la main. Une transition (pas de
+         keyframe) : rien à scoper, rien à faire retirer par un timer. */
+      .grip.leaving,
+      .head.leaving,
+      .chips.leaving,
+      .panel.leaving {
+        opacity: 0;
+        transform: translateY(0.5rem);
+        transition:
+          opacity var(--sl-dur-fast) var(--sl-ease-in),
+          transform var(--sl-dur-fast) var(--sl-ease-in);
+      }
+
+      .chips.leaving {
+        transition-delay: 35ms;
+      }
+
+      .head.leaving {
+        transition-delay: 70ms;
+      }
+
+      .grip.leaving {
+        transition-delay: 105ms;
+      }
     }
 
-    @keyframes sl-sheet-cascade {
+    @keyframes sl-sheet-reveal {
       from {
         opacity: 0;
         transform: translateY(0.5rem);
