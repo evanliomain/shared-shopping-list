@@ -60,7 +60,7 @@ import {
          (transform/opacity/visibility) garde ses propres transitions, sans
          délai, ses propriétés étant disjointes de celles-ci. À l'ouverture le
          morph est immédiat : c'est l'état ouvert qui remet ce délai à zéro. */
-      --sl-morph-out-delay: 180ms;
+      --sl-morph-out-delay: 380ms;
 
       position: absolute;
       z-index: 45;
