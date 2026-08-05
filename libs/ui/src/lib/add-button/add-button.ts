@@ -64,6 +64,10 @@ export type AddButtonVariant = 'floating' | 'block';
 
     /* À 16 px du bord droit : dans le pouce d'une main droite comme d'une main
        gauche tenant le téléphone par le bas. */
+    /* Il revient en ressort : il monte de sous le bord, dépasse un peu, puis se
+       pose. C'est la courbe posée ici, sur l'état montré, qui gouverne ce
+       retour — l'ancien glissé linéaire de 140 ms arrivait sec, comme posé à la
+       main. */
     :host([data-variant='floating']) {
       position: absolute;
       inset-block-end: calc(1.875rem + var(--sl-safe-bottom));
@@ -72,17 +76,25 @@ export type AddButtonVariant = 'floating' | 'block';
       inline-size: 3.875rem;
       block-size: 3.875rem;
       transition:
-        transform 140ms ease,
-        visibility 140ms;
+        transform var(--sl-dur-slow) var(--sl-ease-spring),
+        opacity var(--sl-dur-base) var(--sl-ease-out),
+        visibility var(--sl-dur-slow);
     }
 
-    /* Retiré, il glisse de 88 px sous le bord. La visibilité se transitionne
-       comme un pas : elle ne tombe qu'à la fin du glissé, mais le bouton sort
-       alors de l'ordre de tabulation — un bouton invisible et atteignable au
-       clavier serait pire que pas de bouton du tout. */
+    /* Retiré, il glisse de 88 px sous le bord en rapetissant et en s'effaçant.
+       La sortie n'a pas de ressort — accélérer vers le bord se lit comme un
+       départ, pas comme une pose. La visibilité se transitionne comme un pas :
+       elle ne tombe qu'à la fin du glissé, mais le bouton sort alors de l'ordre
+       de tabulation — un bouton invisible et atteignable au clavier serait pire
+       que pas de bouton du tout. */
     :host([data-variant='floating'][data-retracted='true']) {
       visibility: hidden;
-      transform: translateY(5.5rem);
+      opacity: 0;
+      transform: translateY(5.5rem) scale(0.9);
+      transition:
+        transform var(--sl-dur-base) var(--sl-ease-in),
+        opacity var(--sl-dur-base) var(--sl-ease-in),
+        visibility var(--sl-dur-base);
     }
 
     :host([data-variant='floating']) button {
