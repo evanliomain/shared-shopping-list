@@ -569,6 +569,28 @@ describe('ListPage', () => {
       ).toBe('');
     });
 
+    it('valide au clavier depuis l’overlay : la première suggestion', async () => {
+      // « Entrée » dans le champ overlay du téléphone : la page prend la tête du
+      // panneau, comme la barre au bureau — l'overlay, lui, ne connaît pas les
+      // suggestions.
+      const { fixture, dispatched } = await render({
+        seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
+      });
+      await click(fixture, '.empty-add button');
+      await type(fixture, 'lai');
+
+      field(fixture).dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      await fixture.whenStable();
+
+      expect(types(dispatched)).toEqual(['[Liste] Produit ajouté']);
+    });
+
     it('crée le produit que l’historique ne connaît pas', async () => {
       const { fixture, dispatched } = await render();
       await click(fixture, '.empty-add button');
