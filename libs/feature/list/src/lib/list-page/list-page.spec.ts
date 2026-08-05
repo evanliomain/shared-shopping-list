@@ -166,6 +166,19 @@ function chips(fixture: ComponentFixture<ListPage>): string[] {
   );
 }
 
+/**
+ * La feuille d'ajout. Toujours montée — c'est ce qui lui laisse une sortie en
+ * glissant —, son attribut `data-picking` dit si elle est ouverte.
+ */
+function sheet(fixture: ComponentFixture<ListPage>): HTMLElement {
+  const found = fixture.nativeElement.querySelector('sl-add-bar');
+  if (null === found) {
+    throw new Error('Feuille d’ajout introuvable');
+  }
+
+  return found;
+}
+
 async function click(
   fixture: ComponentFixture<ListPage>,
   selector: string,
@@ -367,11 +380,12 @@ describe('ListPage', () => {
   describe('bouton flottant', () => {
     it('ouvre la feuille d’ajout depuis la liste', async () => {
       const { fixture } = await render({ seed: courses });
-      expect(fixture.nativeElement.querySelector('sl-add-bar')).toBeNull();
+      // La feuille est toujours là ; fermée, elle attend posée hors champ.
+      expect(sheet(fixture).getAttribute('data-picking')).toBe('false');
 
       await click(fixture, 'sl-add-button button');
 
-      expect(fixture.nativeElement.querySelector('sl-add-bar')).not.toBeNull();
+      expect(sheet(fixture).getAttribute('data-picking')).toBe('true');
     });
 
     it('ouvre la feuille depuis la liste vide, où l’ajout est l’écran', async () => {
@@ -379,7 +393,7 @@ describe('ListPage', () => {
 
       await click(fixture, '.empty-add button');
 
-      expect(fixture.nativeElement.querySelector('sl-add-bar')).not.toBeNull();
+      expect(sheet(fixture).getAttribute('data-picking')).toBe('true');
     });
 
     it('se retire vers l’avant de la liste et revient en remontant', async () => {
@@ -620,7 +634,10 @@ describe('ListPage', () => {
 
       await click(fixture, 'sl-add-bar .done');
 
-      expect(fixture.nativeElement.querySelector('sl-add-bar')).toBeNull();
+      // La feuille reste montée mais se referme, et son contenu s'efface avec :
+      // la pile d'ajouts ne survit pas à la session.
+      expect(sheet(fixture).getAttribute('data-picking')).toBe('false');
+      expect(chips(fixture)).toEqual([]);
     });
   });
 

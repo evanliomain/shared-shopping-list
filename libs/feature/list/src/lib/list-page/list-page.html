@@ -53,7 +53,7 @@
   </div>
 </header>
 
-<main [class.dimmed]="ui.picking()" (scroll)="onScroll($event)">
+<main [class.dimmed]="wide() && ui.picking()" (scroll)="onScroll($event)">
   @if (isEmpty()) {
   <sl-empty-state
     [title]="'list.emptyTitle' | transloco"
@@ -151,7 +151,24 @@
   [label]="'list.addArticle' | transloco"
   (pressed)="startAdding()"
 />
-} @if (wide() || ui.picking()) {
+}
+
+<!-- Le voile assombrit la liste derrière la feuille et se ferme d'un tap. Sur
+     téléphone seulement : au bureau la barre vit dans le pied de la grille, il
+     n'y a rien à voiler. Toujours présent pour pouvoir s'effacer en fondu ; il
+     ne ferme que lorsqu'il est montré. -->
+@if (!wide()) {
+<div
+  class="scrim"
+  [class.shown]="ui.picking()"
+  aria-hidden="true"
+  (click)="ui.stopPicking()"
+></div>
+}
+
+<!-- La feuille reste montée même fermée : sur téléphone elle est posée hors
+     champ sous le bord et remonte à la saisie, ce qui lui laisse une sortie en
+     glissant. Au bureau, c'est la barre permanente du pied de grille. -->
 <sl-add-bar
   [query]="ui.query()"
   [picking]="ui.picking()"
@@ -165,4 +182,3 @@
   (created)="createAndAdd($event)"
   (undone)="remove($event)"
 />
-}

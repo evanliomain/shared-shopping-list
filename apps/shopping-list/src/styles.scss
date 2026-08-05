@@ -197,6 +197,11 @@ textarea {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    /* Les délais tombent aussi, sans quoi une cascade décalée attendrait son
+       tour avant d'apparaître d'un coup : chaque état prend sa place tout de
+       suite, sans traversée ni attente. */
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
   }
 }
