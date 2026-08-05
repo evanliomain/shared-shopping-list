@@ -73,6 +73,23 @@ describe('AddControl', () => {
     expect(submitted).toBe(1);
   });
 
+  it('referme au clavier par « Échap »', async () => {
+    const fixture = await render(true);
+    let dismissed = 0;
+    fixture.componentInstance.dismissed.subscribe(() => (dismissed += 1));
+
+    const input = fixture.nativeElement.querySelector('input');
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+
+    expect(dismissed).toBe(1);
+  });
+
   it('donne le focus au champ dès l’ouverture', async () => {
     // Le nœud s'ouvre loin du champ : sans ce rappel, il faudrait un second
     // geste pour se mettre à taper.

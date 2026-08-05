@@ -154,13 +154,16 @@ describe('AddBar', () => {
     );
   });
 
-  it('ne porte pas de champ sur téléphone : l’overlay le tient', async () => {
+  it('ne porte pas de champ sur téléphone, mais garde sa sortie', async () => {
     // Sur téléphone, le champ est l'overlay `sl-add-control` posé par-dessus ;
-    // la barre ne réserve que sa place sous les suggestions.
+    // la barre ne réserve que sa place. La sortie, elle, reste dans l'en-tête —
+    // sans quoi, feuille ouverte sans rien ajouté, on ne pourrait plus fermer
+    // au clavier.
     const { nativeElement } = await render([BASE], true, [], false, '', false);
 
     expect(nativeElement.querySelector('input')).toBeNull();
     expect(nativeElement.querySelector('.field-slot')).not.toBeNull();
+    expect(nativeElement.querySelector('.done')).not.toBeNull();
   });
 
   describe('entrée au clavier', () => {
@@ -214,7 +217,7 @@ describe('AddBar', () => {
     it('n’affiche ni décompte ni pastille tant que rien n’est entré', async () => {
       const { nativeElement } = await render();
 
-      expect(nativeElement.querySelector('.tally')).toBeNull();
+      expect(nativeElement.querySelector('.tally-count')).toBeNull();
       expect(nativeElement.querySelectorAll('.chip')).toHaveLength(0);
     });
 
@@ -246,15 +249,16 @@ describe('AddBar', () => {
       expect(undone).toEqual(ADDED);
     });
 
-    it('remplace « Fermer » par « Terminé », loin du champ', async () => {
-      // Deux sorties à la fois, dont une sous le pouce qui enchaîne, c'est une
-      // de trop.
+    it('porte une sortie permanente : « Fermer » à vide, « Terminé » ensuite', async () => {
+      // La sortie vit dans l'en-tête, toujours présente et atteignable au
+      // clavier ; son libellé dit s'il s'agit d'annuler (rien ajouté) ou de
+      // conclure une série.
       const empty = await render([BASE], true, []);
-      expect(empty.nativeElement.querySelector('.close')).not.toBeNull();
-      expect(empty.nativeElement.querySelector('.done')).toBeNull();
+      expect(empty.nativeElement.querySelector('.done').textContent).toContain(
+        'Fermer',
+      );
 
       const chained = await render([BASE], true, [ADDED]);
-      expect(chained.nativeElement.querySelector('.close')).toBeNull();
       expect(
         chained.nativeElement.querySelector('.done').textContent,
       ).toContain('Terminé');

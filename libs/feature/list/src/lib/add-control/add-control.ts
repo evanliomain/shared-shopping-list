@@ -44,6 +44,7 @@ import {
       (input)="onInput($event)"
       (focus)="focused.emit()"
       (keydown.enter)="onEnter($event)"
+      (keydown.escape)="onEscape($event)"
     />
   `,
   styles: `
@@ -225,6 +226,8 @@ export class AddControl {
   readonly focused = output<void>();
   /** « Entrée » dans le champ : à la page de décider quoi en faire. */
   readonly submitted = output<void>();
+  /** « Échap » dans le champ : referme la feuille, comme le ferait « Fermer ». */
+  readonly dismissed = output<void>();
 
   private readonly field =
     viewChild.required<ElementRef<HTMLInputElement>>('field');
@@ -264,5 +267,10 @@ export class AddControl {
   protected onEnter(event: Event): void {
     event.preventDefault();
     this.submitted.emit();
+  }
+
+  protected onEscape(event: Event): void {
+    event.preventDefault();
+    this.dismissed.emit();
   }
 }

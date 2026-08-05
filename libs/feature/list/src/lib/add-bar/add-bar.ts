@@ -39,16 +39,25 @@ import { PluralPipe } from '@shopping-list/util/i18n';
     @if (picking()) {
       <div class="grip" aria-hidden="true"><span></span></div>
 
-      @if (0 < added().length) {
-        <div class="tally">
+      <!-- L'en-tête porte la sortie, permanente tant qu'on ajoute et
+           atteignable au clavier : « Fermer » vivait dans la barre, absente sur
+           téléphone où c'est l'overlay qui tient le champ. « Fermer » tant que
+           rien n'est entré (on annule), puis « Terminé » quand des articles
+           s'enchaînent, avec leur décompte. -->
+      <div class="head">
+        @if (0 < added().length) {
           <p class="tally-count">
             {{ 'addBar.added' | plural: added().length }}
           </p>
-          <button type="button" class="done" (click)="dismissed.emit()">
-            {{ 'addBar.done' | transloco }}
-          </button>
-        </div>
+        }
+        <button type="button" class="done" (click)="dismissed.emit()">
+          {{
+            (0 < added().length ? 'addBar.done' : 'common.close') | transloco
+          }}
+        </button>
+      </div>
 
+      @if (0 < added().length) {
         <ul class="chips">
           @for (item of added(); track item.id) {
             <li>
@@ -152,14 +161,6 @@ import { PluralPipe } from '@shopping-list/util/i18n';
             (focus)="focused.emit()"
           />
         </div>
-
-        <!-- Une seule sortie à la fois : « Terminé » monte dans l'en-tête dès
-             qu'il y a des ajouts, loin du champ sur lequel le pouce enchaîne. -->
-        @if (picking() && 0 === added().length) {
-          <button type="button" class="close" (click)="dismissed.emit()">
-            {{ 'common.close' | transloco }}
-          </button>
-        }
       </form>
     } @else {
       <div class="field-slot" aria-hidden="true"></div>
@@ -274,11 +275,12 @@ import { PluralPipe } from '@shopping-list/util/i18n';
       background: var(--sl-border);
     }
 
-    /* Le décompte des ajouts : on sait combien on en a enchaîné sans compter
-       soi-même. */
-    .tally {
+    /* L'en-tête de la feuille : le décompte des ajouts à gauche (dès qu'il y en
+       a), la sortie à droite — seule, elle s'y range quand même. */
+    .head {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 0.625rem;
       padding: 0.25rem var(--sl-space-4) 0.625rem;
       border-block-end: 1px solid var(--sl-border);
@@ -501,18 +503,6 @@ import { PluralPipe } from '@shopping-list/util/i18n';
 
     input:focus-visible {
       outline: none;
-    }
-
-    .close {
-      flex: none;
-      min-block-size: 3.125rem;
-      padding-inline: 0.875rem;
-      border: none;
-      border-radius: var(--sl-radius-full);
-      background: transparent;
-      color: var(--sl-text-muted);
-      font-size: var(--sl-font-md);
-      font-weight: 600;
     }
   `,
   host: {
