@@ -57,6 +57,9 @@ describe('AddBar', () => {
     added: readonly ItemView[] = [],
     canCreate = false,
     query = '',
+    // Par défaut le contexte du bureau, où la barre porte son propre champ :
+    // c'est là que vivent le champ, la validation clavier et le focus.
+    wide = true,
   ) {
     const fixture = TestBed.createComponent(AddBar);
     fixture.componentRef.setInput('query', query);
@@ -64,6 +67,7 @@ describe('AddBar', () => {
     fixture.componentRef.setInput('suggestions', suggestions);
     fixture.componentRef.setInput('canCreate', canCreate);
     fixture.componentRef.setInput('added', added);
+    fixture.componentRef.setInput('wide', wide);
     await fixture.whenStable();
 
     return fixture;
@@ -148,6 +152,15 @@ describe('AddBar', () => {
     expect(nativeElement.querySelector('.hint').textContent).toContain(
       "Rien dans l'historique",
     );
+  });
+
+  it('ne porte pas de champ sur téléphone : l’overlay le tient', async () => {
+    // Sur téléphone, le champ est l'overlay `sl-add-control` posé par-dessus ;
+    // la barre ne réserve que sa place sous les suggestions.
+    const { nativeElement } = await render([BASE], true, [], false, '', false);
+
+    expect(nativeElement.querySelector('input')).toBeNull();
+    expect(nativeElement.querySelector('.field-slot')).not.toBeNull();
   });
 
   describe('entrée au clavier', () => {
