@@ -177,18 +177,79 @@ import { PluralPipe } from '@shopping-list/util/i18n';
     }
 
     /* Sur téléphone, la feuille se pose au-dessus de la liste au lieu de la
-       comprimer : elle n'existe que le temps de la saisie, et la liste
-       estompée derrière garde sa place et son défilement.
+       comprimer : la liste estompée derrière garde sa place et son défilement.
        Le plafond compte autant que le calque : sans lui, dix articles
        enchaînés poussaient la saisie hors de l'écran — on ne pouvait plus
        taper le onzième. Ce qui cède est le panneau de suggestions, jamais le
        champ. Au bureau la barre reste dans le pied de la grille, où elle est
-       permanente. */
+       permanente.
+
+       Elle est posée hors champ sous le bord, et remonte à la saisie. Toujours
+       montée, même fermée : c'est ce qui lui permet de *repartir* en glissant
+       plutôt que de disparaître d'un coup — un démontage conditionnel n'a pas
+       de sortie. Montée en ressort, repli plus sec. Cachée, elle sort de
+       l'ordre de tabulation : la visibilité ne tombe qu'en fin de glissé. */
     @media (max-width: 64.9375rem) {
-      :host([data-picking='true']) {
+      :host {
         position: absolute;
         inset: auto 0 0;
         max-block-size: 80dvh;
+        visibility: hidden;
+        transform: translateY(100%);
+        transition:
+          transform var(--sl-dur-base) var(--sl-ease-in),
+          visibility var(--sl-dur-base);
+      }
+
+      :host([data-picking='true']) {
+        visibility: visible;
+        transform: translateY(0);
+        /* La feuille attend que le bouton soit devenu champ avant de monter :
+           le morph d'abord, le panneau juste après. À la fermeture, c'est la
+           règle de repos ci-dessus qui joue, sans délai : elle repart aussitôt,
+           avant que le champ ne redevienne bouton. */
+        transition:
+          transform var(--sl-dur-slow) var(--sl-ease-spring) 280ms,
+          visibility var(--sl-dur-slow) 280ms;
+      }
+
+      /* Le contenu se révèle en cascade une fois la feuille montée — donc après
+         le morph : chaque bloc s'affiche en montant de 8 px, décalé de 35 ms
+         sur le précédent, à partir du moment où la feuille arrive. Le champ n'en
+         est pas — c'est l'ancre qu'on vient chercher, déjà en place. */
+      :host([data-picking='true']) .grip,
+      :host([data-picking='true']) .tally,
+      :host([data-picking='true']) .chips,
+      :host([data-picking='true']) .panel {
+        animation: sl-sheet-cascade var(--sl-dur-base) var(--sl-ease-out) both;
+      }
+
+      :host([data-picking='true']) .grip {
+        animation-delay: 300ms;
+      }
+
+      :host([data-picking='true']) .tally {
+        animation-delay: 335ms;
+      }
+
+      :host([data-picking='true']) .chips {
+        animation-delay: 370ms;
+      }
+
+      :host([data-picking='true']) .panel {
+        animation-delay: 405ms;
+      }
+    }
+
+    @keyframes sl-sheet-cascade {
+      from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
