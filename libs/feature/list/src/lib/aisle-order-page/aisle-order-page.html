@@ -1,0 +1,60 @@
+<header>
+  <div class="title-row">
+    <button type="button" class="back" (click)="back()">
+      ← {{ 'common.back' | transloco }}
+    </button>
+    <h1>{{ 'aisleOrder.title' | transloco }}</h1>
+    <span class="balance" aria-hidden="true"></span>
+  </div>
+
+  <p class="hint">{{ 'aisleOrder.hint' | transloco }}</p>
+</header>
+
+<main>
+  <ol class="card">
+    @for (aisle of aisles(); track aisle.key; let i = $index, first =
+    $first, last = $last) {
+    <li>
+      <span class="emoji" aria-hidden="true">{{ aisle.emoji }}</span>
+      <span class="label">{{ 'aisles.' + aisle.key | transloco }}</span>
+
+      <span class="moves">
+        <button
+          type="button"
+          class="move"
+          [disabled]="first"
+          [attr.aria-label]="
+            'aisleOrder.moveUp' | transloco: { aisle: 'aisles.' + aisle.key | transloco }
+          "
+          [title]="
+            'aisleOrder.moveUp' | transloco: { aisle: 'aisles.' + aisle.key | transloco }
+          "
+          (click)="move(i, -1)"
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          class="move"
+          [disabled]="last"
+          [attr.aria-label]="
+            'aisleOrder.moveDown'
+              | transloco: { aisle: 'aisles.' + aisle.key | transloco }
+          "
+          [title]="
+            'aisleOrder.moveDown'
+              | transloco: { aisle: 'aisles.' + aisle.key | transloco }
+          "
+          (click)="move(i, 1)"
+        >
+          ▼
+        </button>
+      </span>
+    </li>
+    }
+  </ol>
+
+  <button type="button" class="reset" (click)="reset()">
+    {{ 'aisleOrder.reset' | transloco }}
+  </button>
+</main>

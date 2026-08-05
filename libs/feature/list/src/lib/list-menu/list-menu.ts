@@ -5,6 +5,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { PluralPipe } from '@shopping-list/util/i18n';
 
@@ -26,7 +27,7 @@ import { ListUiStore } from '../list-ui.store';
 @Component({
   selector: 'sl-list-menu',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PluralPipe, TranslocoPipe],
+  imports: [PluralPipe, RouterLink, TranslocoPipe],
   template: `
     <button
       type="button"
@@ -41,14 +42,22 @@ import { ListUiStore } from '../list-ui.store';
     @switch (ui.listMenu()) {
       @case ('open') {
         <div class="menu" role="menu">
-          <button
-            type="button"
-            role="menuitem"
-            class="danger"
-            (click)="ui.askClearList()"
-          >
-            {{ 'list.clearList' | transloco }}
-          </button>
+          <!-- Régler le parcours vaut liste vide comme pleine : on arrange le
+               magasin, pas les courses du jour. -->
+          <a routerLink="/rayons" role="menuitem" (click)="ui.closeListMenu()">
+            {{ 'list.reorderAisles' | transloco }}
+          </a>
+          <!-- Vider ne se propose que s'il y a de quoi vider. -->
+          @if (0 < total()) {
+            <button
+              type="button"
+              role="menuitem"
+              class="danger"
+              (click)="ui.askClearList()"
+            >
+              {{ 'list.clearList' | transloco }}
+            </button>
+          }
         </div>
       }
       @case ('confirmingClear') {
@@ -119,23 +128,26 @@ import { ListUiStore } from '../list-ui.store';
     }
 
     /* Les issues empilées, pleine largeur : dans un rayon, on tape sans viser,
-       et deux boutons côte à côte se touchent du même pouce. */
-    button[role='menuitem'] {
+       et deux entrées côte à côte se touchent du même pouce. Un lien et un
+       bouton doivent se présenter pareil, d'où le sélecteur commun. */
+    [role='menuitem'] {
       display: flex;
       align-items: center;
       min-block-size: 3rem;
       padding-inline: var(--sl-space-4);
       border: none;
       background: transparent;
+      color: var(--sl-text);
       font-size: 0.9375rem;
       text-align: start;
+      text-decoration: none;
     }
 
-    button[role='menuitem']:not(:first-child) {
+    [role='menuitem']:not(:first-child) {
       border-block-start: 1px solid var(--sl-border);
     }
 
-    button[role='menuitem']:active {
+    [role='menuitem']:active {
       background: var(--sl-surface-sunken);
     }
 

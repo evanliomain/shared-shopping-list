@@ -54,6 +54,7 @@
     "basket": "In the basket ({{count}})",
     "clearBasket": "Clear",
     "menu": "List menu",
+    "reorderAisles": "Arrange the aisles",
     "clearList": "Clear the list",
     "clearListConfirm": {
       "one": "Remove {{count}} item from the list? The history is kept.",
@@ -62,6 +63,13 @@
     "clearListAction": "Clear",
     "unknownItem": "Unknown item",
     "undoChecked": "{{label}} — in the basket"
+  },
+  "aisleOrder": {
+    "title": "Aisle order",
+    "hint": "Set your store's route: the list will follow this order.",
+    "moveUp": "Move {{aisle}} up",
+    "moveDown": "Move {{aisle}} down",
+    "reset": "Restore the default order"
   },
   "addBar": {
     "placeholder": "Add an item…",

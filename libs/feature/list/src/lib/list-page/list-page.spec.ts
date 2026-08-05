@@ -290,17 +290,27 @@ describe('ListPage', () => {
       expect(text(fixture)).toContain('La liste est vide');
     });
 
-    it('ne propose pas de vider une liste déjà vide', async () => {
+    it('offre le menu même à vide, mais sans proposer de vider', async () => {
+      // On a le droit d'arranger le parcours avant d'ajouter quoi que ce soit ;
+      // vider, en revanche, n'a rien à faire sur une liste déjà vide.
       const { fixture } = await render();
-
-      expect(fixture.nativeElement.querySelector('sl-list-menu')).toBeNull();
-    });
-
-    it('offre le menu de liste dès qu’il y a un article', async () => {
-      const { fixture } = await render({ seed: courses });
 
       expect(
         fixture.nativeElement.querySelector('sl-list-menu'),
+      ).not.toBeNull();
+
+      await click(fixture, 'sl-list-menu .toggle');
+      expect(
+        fixture.nativeElement.querySelector('sl-list-menu .danger'),
+      ).toBeNull();
+    });
+
+    it('offre de vider dès qu’il y a un article', async () => {
+      const { fixture } = await render({ seed: courses });
+
+      await click(fixture, 'sl-list-menu .toggle');
+      expect(
+        fixture.nativeElement.querySelector('sl-list-menu .danger'),
       ).not.toBeNull();
     });
   });

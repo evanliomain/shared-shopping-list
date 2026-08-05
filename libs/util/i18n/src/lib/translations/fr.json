@@ -54,6 +54,7 @@
     "basket": "Dans le panier ({{count}})",
     "clearBasket": "Vider",
     "menu": "Menu de la liste",
+    "reorderAisles": "Ordonner les rayons",
     "clearList": "Vider la liste",
     "clearListConfirm": {
       "one": "Retirer {{count}} article de la liste ? L'historique est conservé.",
@@ -62,6 +63,13 @@
     "clearListAction": "Vider",
     "unknownItem": "Article inconnu",
     "undoChecked": "{{label}} — dans le panier"
+  },
+  "aisleOrder": {
+    "title": "Ordre des rayons",
+    "hint": "Réglez le parcours de votre magasin : la liste suivra cet ordre.",
+    "moveUp": "Monter {{aisle}}",
+    "moveDown": "Descendre {{aisle}}",
+    "reset": "Rétablir l'ordre par défaut"
   },
   "addBar": {
     "placeholder": "Ajouter un article…",

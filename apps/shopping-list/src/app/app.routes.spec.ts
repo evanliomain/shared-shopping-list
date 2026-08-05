@@ -40,6 +40,7 @@ describe('appRoutes', () => {
     expect(pages).toEqual([
       ['liste', liste.ListPage],
       ['produit/:productId', produit.ProductPage],
+      ['rayons', liste.AisleOrderPage],
       ['synchronisation', appairage.PairingPage],
       ['proximite', proximite.NearbyPage],
       ['historique', historique.CatalogPage],
@@ -50,7 +51,7 @@ describe('appRoutes', () => {
     // Tout est paresseux : le premier écran doit s'afficher sans télécharger
     // l'appairage, la proximité ni l'historique.
     expect(appRoutes.filter((r) => undefined !== r.component)).toEqual([]);
-    expect(paresseuses()).toHaveLength(5);
+    expect(paresseuses()).toHaveLength(6);
   });
 
   it('ramène à la liste tout ce qui ne correspond à rien', () => {

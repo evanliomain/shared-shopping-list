@@ -13,12 +13,11 @@
       >📖</a
     >
 
-    <!-- Vider la liste vit ici et non à côté du « Vider » du panier : l'un
-         porte sur tout, l'autre sur ce qui est déjà pris. Les séparer par
-         l'emplacement évite de les confondre au moment de taper. -->
-    @if (0 < total()) {
+    <!-- Le menu de liste : ordonner les rayons, et vider la liste. « Vider »
+         vit ici et non à côté du « Vider » du panier — l'un porte sur tout,
+         l'autre sur ce qui est déjà pris. Le menu reste présent même liste
+         vide, car on a le droit d'arranger le parcours avant d'y toucher. -->
     <sl-list-menu [total]="total()" (cleared)="clearList()" />
-    }
   </div>
 
   <div class="status-row">
