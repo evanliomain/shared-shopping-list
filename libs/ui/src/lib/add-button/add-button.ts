@@ -5,40 +5,28 @@ import {
   output,
 } from '@angular/core';
 
-/** Les deux échelles auxquelles l'ajout porte l'écran. */
-export type AddButtonVariant = 'floating' | 'block';
-
 /**
- * Le bouton d'ajout.
+ * Le bouton d'ajout de la liste vide.
  *
- * Une seule couleur, deux échelles : c'est le même geste, pas deux boutons.
- *
- * - `floating` — 62 px en pastille, pendant la lecture de la liste. Le libellé
- *   n'est qu'un `aria-label` : à cette taille, le ＋ se lit de plus loin que
- *   n'importe quel mot. Il se place lui-même en bas à droite, et se retire sous
- *   le bord sur `retracted` — à charge de l'écran qui l'accueille d'être un
- *   contexte de positionnement, et de ne pas laisser dépasser ce qui sort.
- * - `block` — 64 px libellé, quand l'ajout est la seule chose à faire. Là,
- *   l'ajout *est* l'écran, et le bouton a la place de le dire.
+ * Quand il n'y a rien à cocher, l'ajout *est* l'écran : le geste monte au
+ * centre en 64 px avec son libellé écrit en toutes lettres, au lieu de rester
+ * tapi dans un coin. Sur une liste déjà pleine, ce n'est plus lui qui porte
+ * l'ajout mais le contrôle flottant `sl-add-control`, qui se fait champ.
  */
 @Component({
   selector: 'sl-add-button',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <button
-      type="button"
-      [attr.aria-label]="'block' === variant() ? null : label()"
-      (click)="pressed.emit()"
-    >
+    <button type="button" (click)="pressed.emit()">
       <span class="plus" aria-hidden="true">＋</span>
-      @if ('block' === variant()) {
-        {{ label() }}
-      }
+      {{ label() }}
     </button>
   `,
   styles: `
     :host {
       display: inline-flex;
+      inline-size: 100%;
+      max-inline-size: 18.125rem;
     }
 
     button {
@@ -47,10 +35,15 @@ export type AddButtonVariant = 'floating' | 'block';
       justify-content: center;
       gap: var(--sl-space-3);
       inline-size: 100%;
+      min-block-size: 4rem;
       border: none;
+      border-radius: var(--sl-radius);
       background: var(--sl-brand);
       color: var(--sl-text-on-brand);
       box-shadow: var(--sl-shadow-lg);
+      font-size: var(--sl-font-lg);
+      font-weight: 650;
+      letter-spacing: -0.01em;
     }
 
     button:active {
@@ -58,82 +51,15 @@ export type AddButtonVariant = 'floating' | 'block';
     }
 
     .plus {
+      font-size: 1.5rem;
       font-weight: 400;
       line-height: 1;
     }
-
-    /* À 16 px du bord droit : dans le pouce d'une main droite comme d'une main
-       gauche tenant le téléphone par le bas. */
-    /* Il revient en ressort : il monte de sous le bord, dépasse un peu, puis se
-       pose. C'est la courbe posée ici, sur l'état montré, qui gouverne ce
-       retour — l'ancien glissé linéaire de 140 ms arrivait sec, comme posé à la
-       main. */
-    :host([data-variant='floating']) {
-      position: absolute;
-      inset-block-end: calc(1.875rem + var(--sl-safe-bottom));
-      inset-inline-end: var(--sl-space-4);
-      z-index: 30;
-      inline-size: 3.875rem;
-      block-size: 3.875rem;
-      transition:
-        transform var(--sl-dur-slow) var(--sl-ease-spring),
-        opacity var(--sl-dur-base) var(--sl-ease-out),
-        visibility var(--sl-dur-slow);
-    }
-
-    /* Retiré, il glisse de 88 px sous le bord en rapetissant et en s'effaçant.
-       La sortie n'a pas de ressort — accélérer vers le bord se lit comme un
-       départ, pas comme une pose. La visibilité se transitionne comme un pas :
-       elle ne tombe qu'à la fin du glissé, mais le bouton sort alors de l'ordre
-       de tabulation — un bouton invisible et atteignable au clavier serait pire
-       que pas de bouton du tout. */
-    :host([data-variant='floating'][data-retracted='true']) {
-      visibility: hidden;
-      opacity: 0;
-      transform: translateY(5.5rem) scale(0.9);
-      transition:
-        transform var(--sl-dur-base) var(--sl-ease-in),
-        opacity var(--sl-dur-base) var(--sl-ease-in),
-        visibility var(--sl-dur-base);
-    }
-
-    :host([data-variant='floating']) button {
-      block-size: 100%;
-      border-radius: var(--sl-radius-full);
-    }
-
-    :host([data-variant='floating']) .plus {
-      font-size: 1.875rem;
-    }
-
-    :host([data-variant='block']) {
-      inline-size: 100%;
-      max-inline-size: 18.125rem;
-    }
-
-    :host([data-variant='block']) button {
-      min-block-size: 4rem;
-      border-radius: var(--sl-radius);
-      font-size: var(--sl-font-lg);
-      font-weight: 650;
-      letter-spacing: -0.01em;
-    }
-
-    :host([data-variant='block']) .plus {
-      font-size: 1.5rem;
-    }
   `,
-  host: {
-    '[attr.data-variant]': 'variant()',
-    '[attr.data-retracted]': 'retracted()',
-  },
 })
 export class AddButton {
-  /** Ce que l'ajout ajoute : lu à voix haute, ou écrit en `block`. */
+  /** Ce que l'ajout ajoute, écrit sur le bouton. */
   readonly label = input.required<string>();
-  readonly variant = input<AddButtonVariant>('floating');
-  /** Retiré sous le bord de l'écran. `floating` seulement. */
-  readonly retracted = input(false);
 
   readonly pressed = output<void>();
 }
