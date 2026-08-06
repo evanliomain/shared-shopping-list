@@ -36,14 +36,17 @@
     max-block-size: 80dvh;
     visibility: hidden;
     transform: translateY(100%);
-    /* À la fermeture, la feuille glisse hors champ pendant que le contenu se
-           fond sur place : la directive animate.leave garde le contenu monté le
-           temps de sa transition, si bien qu'il s'efface tandis que la feuille
-           descend. La montée, elle, est pilotée par la règle d'ouverture
-           ci-dessous, avec son propre délai. */
+    /* À la fermeture, le contenu se fond d'abord en cascade, puis la feuille
+           glisse hors champ d'un seul bloc : le délai laisse la cascade de sortie
+           s'effacer avant que la feuille ne parte. Le bloc de contenu garde sa
+           pleine hauteur le temps du glissé (voir .sheet-body.leaving), si bien
+           que la feuille descend d'un tenant au lieu de s'effondrer par à-coups.
+           La visibilité tient jusqu'au bout du glissé, sans quoi la feuille
+           s'escamoterait en cours de route. La montée, elle, est pilotée par la
+           règle d'ouverture ci-dessous, avec son propre délai. */
     transition:
-      transform var(--sl-dur-base) var(--sl-ease-in),
-      visibility var(--sl-dur-base);
+      transform var(--sl-dur-base) var(--sl-ease-in) 300ms,
+      visibility var(--sl-dur-base) 300ms;
   }
 
   :host([data-picking='true']) {
@@ -87,31 +90,46 @@
 
   /* À la fermeture, chaque bloc redescend de 8 px en s'effaçant, décalé pour
          rejouer la cascade à l'envers : le panneau part le premier, la poignée
-         en dernier. La directive animate.leave garde le bloc dans le DOM le
-         temps de la transition, puis le retire — c'est Angular qui tient la
-         sortie, plus aucun sursis à gérer à la main. Une transition (pas de
-         keyframe) : rien à scoper, rien à faire retirer par un timer. */
-  .grip.leaving,
-  .head.leaving,
-  .chips.leaving,
-  .panel.leaving {
-    opacity: 0;
-    transform: translateY(0.5rem);
-    transition:
-      opacity var(--sl-dur-fast) var(--sl-ease-in),
-      transform var(--sl-dur-fast) var(--sl-ease-in);
+         en dernier — l'exact miroir de la révélation.
+
+         Une keyframe, pas une transition : à l'ouverture, le bloc est tenu
+         visible par la keyframe de révélation (fill `both`). Au repli, cette
+         keyframe et la classe `leaving` changent dans la même frame ; une
+         transition déclenchée par ce basculement ne part pas — faute d'une
+         frame à `opacity:1` d'où interpoler, l'opacité saute à 0 et le bloc
+         disparaissait d'un coup. Une keyframe, elle, se joue toujours dès
+         qu'elle est posée. */
+  .sheet-body.leaving .panel,
+  .sheet-body.leaving .chips,
+  .sheet-body.leaving .head,
+  .sheet-body.leaving .grip {
+    animation: sl-sheet-dismiss var(--sl-dur-base) var(--sl-ease-in) both;
   }
 
-  .chips.leaving {
-    transition-delay: 35ms;
+  .sheet-body.leaving .chips {
+    animation-delay: 45ms;
   }
 
-  .head.leaving {
-    transition-delay: 70ms;
+  .sheet-body.leaving .head {
+    animation-delay: 90ms;
   }
 
-  .grip.leaving {
-    transition-delay: 105ms;
+  .sheet-body.leaving .grip {
+    animation-delay: 135ms;
+  }
+
+  /* Le bloc de contenu reste monté, à pleine hauteur, jusqu'à ce que la feuille
+         ait fini de glisser hors champ : c'est ce qui la fait descendre d'un seul
+         tenant. Retirer les blocs un à un, feuille ancrée en bas, tassait vers le
+         bas ce qui restait visible et la faisait s'effondrer par à-coups. La
+         cascade ci-dessus les efface (opacité) sans les retirer ; ce maintien
+         garde la hauteur, et `animate.leave` ne retire l'ensemble qu'à la toute
+         fin, hors écran — donc sans reflux visible. La durée reprend celle de la
+         sortie de la feuille (repos : 300 ms d'attente + --sl-dur-base), plus une
+         marge : ainsi le maintien suit le token si sa valeur change, au lieu de
+         se retrouver plus court que le glissé et de rendre la saccade. */
+  .sheet-body.leaving {
+    animation: sl-sheet-hold calc(300ms + var(--sl-dur-base) + 20ms) linear both;
   }
 }
 
@@ -125,6 +143,41 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* La sortie, exact miroir de la révélation. Nom distinct et non préfixe de
+   `sl-sheet-reveal` : un nom qui en contiendrait un autre casse la réécriture
+   de portée d'Angular et l'animation ne se jouerait plus. */
+@keyframes sl-sheet-dismiss {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+/* Ne change rien à l'écran : son seul rôle est de retenir `animate.leave`, qui
+   attend la fin de l'animation du bloc avant de le retirer. Le bloc reste ainsi
+   monté, à pleine hauteur, tout le temps que la feuille met à sortir du champ. */
+@keyframes sl-sheet-hold {
+  from,
+  to {
+    opacity: 1;
+  }
+}
+
+/* Regroupe le contenu de la feuille sans peser sur la mise en page : une
+   colonne flex qui peut se contracter, exactement comme les blocs l'étaient
+   directement sous l'hôte, pour que le panneau garde sa hauteur plafonnée et
+   son défilement. Son unique raison d'être est de porter la sortie d'un bloc. */
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
 }
 
 .grip {
