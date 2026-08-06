@@ -1,11 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   ElementRef,
   inject,
   input,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -70,7 +72,31 @@ export class AddBar {
   // porte, et ce viewChild reste vide.
   private readonly field = viewChild<ElementRef<HTMLInputElement>>('field');
 
+  /**
+   * Les pastilles, figées le temps de la fermeture.
+   *
+   * `added` se dérive de `picking` côté page : à la fermeture, il retombe à
+   * vide dans la même frame que `picking`. Les pastilles s'effaceraient alors
+   * d'un coup — leur contenu retiré avant qu'`animate.leave` n'ait pu le fondre.
+   * On garde donc la dernière pile vue tant que le panneau est ouvert ; une fois
+   * fermé, on la rejoue telle quelle, et la cascade de sortie l'emporte comme le
+   * reste. À la réouverture, `picking` repasse à vrai et l'on suit de nouveau la
+   * pile vive.
+   */
+  private readonly frozenAdded = signal<readonly ItemView[]>([]);
+  protected readonly shownAdded = computed(() =>
+    this.picking() ? this.added() : this.frozenAdded(),
+  );
+
   constructor() {
+    // Tant que le panneau est ouvert, la pile figée suit la pile vive. Fermé,
+    // l'effet ne la touche plus : elle retient sa dernière valeur pour la sortie.
+    effect(() => {
+      if (this.picking()) {
+        this.frozenAdded.set(this.added());
+      }
+    });
+
     // Les suggestions arrivent déjà filtrées par la saisie : on ne résout que
     // ce qui est réellement à l'écran, et seulement panneau ouvert. Une photo
     // qui manque n'empêche rien — l'emoji tient la place en attendant.

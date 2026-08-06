@@ -1,91 +1,102 @@
+<!-- Tout le contenu de la feuille tient dans un seul bloc qui porte la sortie.
+     Un `animate.leave` par bloc les retirait un à un pendant que la feuille
+     glissait : ancrée en bas, chaque retrait tassait vers le bas ce qui restait
+     visible, et la feuille s'effondrait par à-coups au lieu de glisser d'un
+     seul tenant. Un unique bloc garde sa pleine hauteur le temps que la feuille
+     sorte du champ, puis se retire hors écran — la feuille glisse d'un bloc. -->
 @if (picking()) {
-<div class="grip" aria-hidden="true" animate.leave="leaving">
-  <span></span>
-</div>
+<div class="sheet-body" animate.leave="leaving">
+  <div class="grip" aria-hidden="true">
+    <span></span>
+  </div>
 
-<!-- L'en-tête porte la sortie, permanente tant qu'on ajoute et
-           atteignable au clavier : « Fermer » vivait dans la barre, absente sur
-           téléphone où c'est l'overlay qui tient le champ. « Fermer » tant que
-           rien n'est entré (on annule), puis « Terminé » quand des articles
-           s'enchaînent, avec leur décompte. -->
-<div class="head" animate.leave="leaving">
-  @if (0 < added().length) {
-  <p class="tally-count">{{ 'addBar.added' | plural: added().length }}</p>
-  }
-  <button type="button" class="done" (click)="dismissed.emit()">
-    {{ (0 < added().length ? 'addBar.done' : 'common.close') | transloco }}
-  </button>
-</div>
+  <!-- L'en-tête porte la sortie, permanente tant qu'on ajoute et
+             atteignable au clavier : « Fermer » vivait dans la barre, absente sur
+             téléphone où c'est l'overlay qui tient le champ. « Fermer » tant que
+             rien n'est entré (on annule), puis « Terminé » quand des articles
+             s'enchaînent, avec leur décompte. -->
+  <div class="head">
+    @if (0 < shownAdded().length) {
+    <p class="tally-count">
+      {{ 'addBar.added' | plural: shownAdded().length }}
+    </p>
+    }
+    <button type="button" class="done" (click)="dismissed.emit()">
+      {{ (0 < shownAdded().length ? 'addBar.done' : 'common.close') | transloco
+      }}
+    </button>
+  </div>
 
-@if (0 < added().length) {
-<ul class="chips" animate.leave="leaving">
-  @for (item of added(); track item.id) {
-  <li>
-    <span class="chip">
-      <span aria-hidden="true">{{ item.emoji }}</span>
-      {{ item.label }}
-      <button
-        type="button"
-        class="undo"
-        [attr.aria-label]="
+  @if (0 < shownAdded().length) {
+  <ul class="chips">
+    @for (item of shownAdded(); track item.id) {
+    <li>
+      <span class="chip">
+        <span aria-hidden="true">{{ item.emoji }}</span>
+        {{ item.label }}
+        <button
+          type="button"
+          class="undo"
+          [attr.aria-label]="
                     'addBar.undoAdd' | transloco: { label: item.label }
                   "
-        (click)="undone.emit(item)"
-      >
-        ✕
-      </button>
-    </span>
-  </li>
-  }
-</ul>
-}
-
-<div class="panel" animate.leave="leaving">
-  @if (0 === suggestions().length && !canCreate()) {
-  <p class="hint">{{ 'addBar.emptyHistory' | transloco }}</p>
-  }
-
-  <ul class="suggestions">
-    @for (suggestion of suggestions(); track suggestion.productId) {
-    <li>
-      <button
-        type="button"
-        class="suggestion"
-        [class.already]="suggestion.alreadyInList"
-        (click)="picked.emit(suggestion)"
-      >
-        <sl-product-avatar
-          [emoji]="suggestion.emoji"
-          [imageUrl]="images.urlFor(suggestion.imageRef)"
-        />
-        <span class="text">
-          <span class="label">
-            <sl-matched-text [text]="suggestion.label" [query]="query()" />
-          </span>
-          <span class="second">
-            @if ('' !== suggestion.description) {
-            <sl-matched-text
-              [text]="suggestion.description"
-              [query]="query()"
-            />
-            } @else { {{ 'aisles.' + suggestion.aisle | transloco }} · {{
-            'catalog.usage' | plural: suggestion.usage }} }
-          </span>
-        </span>
-        @if (suggestion.alreadyInList) {
-        <span class="badge"> {{ 'addBar.alreadyInList' | transloco }} </span>
-        }
-      </button>
+          (click)="undone.emit(item)"
+        >
+          ✕
+        </button>
+      </span>
     </li>
     }
   </ul>
-
-  @if (canCreate()) {
-  <button type="button" class="create" (click)="created.emit(query())">
-    <span class="plus" aria-hidden="true">＋</span>
-    {{ 'addBar.create' | transloco: { label: query() } }}
-  </button>
   }
+
+  <div class="panel">
+    @if (0 === suggestions().length && !canCreate()) {
+    <p class="hint">{{ 'addBar.emptyHistory' | transloco }}</p>
+    }
+
+    <ul class="suggestions">
+      @for (suggestion of suggestions(); track suggestion.productId) {
+      <li>
+        <button
+          type="button"
+          class="suggestion"
+          [class.already]="suggestion.alreadyInList"
+          (click)="picked.emit(suggestion)"
+        >
+          <sl-product-avatar
+            [emoji]="suggestion.emoji"
+            [imageUrl]="images.urlFor(suggestion.imageRef)"
+          />
+          <span class="text">
+            <span class="label">
+              <sl-matched-text [text]="suggestion.label" [query]="query()" />
+            </span>
+            <span class="second">
+              @if ('' !== suggestion.description) {
+              <sl-matched-text
+                [text]="suggestion.description"
+                [query]="query()"
+              />
+              } @else { {{ 'aisles.' + suggestion.aisle | transloco }} · {{
+              'catalog.usage' | plural: suggestion.usage }} }
+            </span>
+          </span>
+          @if (suggestion.alreadyInList) {
+          <span class="badge"> {{ 'addBar.alreadyInList' | transloco }} </span>
+          }
+        </button>
+      </li>
+      }
+    </ul>
+
+    @if (canCreate()) {
+    <button type="button" class="create" (click)="created.emit(query())">
+      <span class="plus" aria-hidden="true">＋</span>
+      {{ 'addBar.create' | transloco: { label: query() } }}
+    </button>
+    }
+  </div>
 </div>
 }
 
