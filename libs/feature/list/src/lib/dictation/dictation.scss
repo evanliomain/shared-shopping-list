@@ -1,0 +1,354 @@
+/* Un seul nœud, deux états. Au repos, l'hôte est le bouton flottant : un disque
+   vert de 62 px dans le coin, dans la zone du pouce. Ouvert, un plein écran
+   (`.surface`) posé par-dessus tout. */
+:host {
+  position: absolute;
+  z-index: 45;
+  box-sizing: border-box;
+  inset-inline-end: var(--sl-space-4);
+  inset-block-end: calc(1.875rem + var(--sl-safe-bottom));
+  inline-size: 3.875rem;
+  block-size: 3.875rem;
+  border-radius: var(--sl-radius-full);
+  background: var(--sl-brand);
+  box-shadow: var(--sl-shadow-lg);
+  transition:
+    transform var(--sl-dur-base) var(--sl-ease-out),
+    opacity var(--sl-dur-base) var(--sl-ease-out),
+    visibility var(--sl-dur-base);
+}
+
+/* Retiré sous le bord quand on défile vers l'avant de la liste, ou sur la liste
+   vide où le gros bouton du centre prend le relais. Jamais une fois ouvert. */
+:host([data-open='false'][data-retracted='true']) {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(5.5rem) scale(0.9);
+  transition:
+    transform var(--sl-dur-base) var(--sl-ease-in),
+    opacity var(--sl-dur-base) var(--sl-ease-in),
+    visibility var(--sl-dur-base);
+}
+
+/* Ouvert, l'hôte cesse d'être un disque : le plein écran couvre tout, et le
+   fond vert du coin n'a plus lieu d'être. */
+:host([data-open='true']) {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Le disque et son ＋, portés par l'hôte-bouton ; ils s'effacent à l'ouverture,
+   le plein écran prend le relais. */
+.disc {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--sl-radius-full);
+  background: var(--sl-brand);
+}
+
+.glyph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--sl-text-on-brand);
+  font-size: 1.875rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+:host([data-open='true']) .disc,
+:host([data-open='true']) .glyph {
+  display: none;
+}
+
+/* --- Le plein écran ------------------------------------------------------- */
+
+/* Rendu seulement ouvert : il paraît en montant d'un cran, comme le disque du
+   coin qui s'étend jusqu'à couvrir l'écran. */
+.surface {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: var(--sl-bg);
+  padding-block-start: var(--sl-safe-top);
+  animation: sl-dictation-in var(--sl-dur-base) var(--sl-ease-out);
+}
+
+@keyframes sl-dictation-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985) translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.topbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sl-space-2);
+  min-block-size: 3.5rem;
+  padding-inline: var(--sl-space-3) var(--sl-space-4);
+  border-block-end: 1px solid var(--sl-border);
+}
+
+.done {
+  min-block-size: var(--sl-tap-target);
+  padding-inline: var(--sl-space-2);
+  border: none;
+  background: transparent;
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-md);
+}
+
+.title {
+  flex: 1;
+  text-align: center;
+  color: var(--sl-text);
+  font-size: var(--sl-font-md);
+  font-weight: 600;
+}
+
+/* Le compteur : une pastille discrète qui pulse à chaque ajout. Sa largeur est
+   fixée pour que « Terminé » et le titre ne se décalent pas quand il grandit. */
+.counter {
+  flex: none;
+  min-inline-size: 2.75rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-block-size: var(--sl-tap-target);
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.counter-num {
+  display: inline-flex;
+  align-items: center;
+  min-inline-size: 1.75rem;
+  block-size: 1.75rem;
+  padding-inline: 0.5rem;
+  justify-content: center;
+  border-radius: var(--sl-radius-full);
+  background: var(--sl-surface-sunken);
+  animation: sl-counter-pulse 200ms var(--sl-ease-out);
+}
+
+@keyframes sl-counter-pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.field {
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-block-size: 3.25rem;
+  margin: var(--sl-space-4) var(--sl-space-4) 0;
+  padding-inline: 1.125rem;
+  border-radius: var(--sl-radius);
+  background: var(--sl-surface-sunken);
+  box-shadow: 0 0 0 2px var(--sl-brand) inset;
+}
+
+.field input {
+  flex: 1;
+  min-inline-size: 0;
+  border: none;
+  background: transparent;
+  color: var(--sl-text);
+  font-size: var(--sl-font-lg);
+}
+
+.field input:focus-visible {
+  outline: none;
+}
+
+.field input::placeholder {
+  color: var(--sl-text-muted);
+}
+
+/* Le reçu d'une ligne, juste sous le champ : le « c'est noté » du dernier
+   ajout. Discret, il ne réclame pas l'œil qu'on garde sur la rangée du bas. */
+.receipt {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sl-space-2);
+  margin-block-start: 0.625rem;
+  padding: 0.25rem var(--sl-space-4);
+}
+
+.tick {
+  flex: none;
+  color: var(--sl-brand);
+  font-size: var(--sl-font-md);
+  font-weight: 700;
+}
+
+.receipt-text {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sl-text);
+  font-size: var(--sl-font-sm);
+}
+
+.receipt-text strong {
+  font-weight: 700;
+}
+
+.delta {
+  color: var(--sl-text-muted);
+  font-weight: 600;
+}
+
+.undo {
+  flex: none;
+  min-block-size: 2.25rem;
+  padding-inline: var(--sl-space-2);
+  border: none;
+  background: transparent;
+  color: var(--sl-brand);
+  font-size: var(--sl-font-sm);
+  font-weight: 600;
+}
+
+.panel {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding-block-start: 0.625rem;
+}
+
+.kicker,
+.hint {
+  margin: 0;
+  padding: 0.375rem 1.25rem;
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hint {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: var(--sl-font-sm);
+}
+
+.suggestions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--sl-space-3);
+  inline-size: 100%;
+  min-block-size: 3.25rem;
+  padding: var(--sl-space-2) 1.25rem;
+  border: none;
+  background: transparent;
+  text-align: start;
+}
+
+.suggestion:active {
+  background: var(--sl-surface-sunken);
+}
+
+.suggestion.already {
+  opacity: 0.55;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.label,
+.second {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label {
+  font-size: var(--sl-font-base);
+  font-weight: 550;
+}
+
+.second {
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-sm);
+}
+
+.badge {
+  flex: none;
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-xs);
+}
+
+/* La rangée de validation, collée au clavier. Quatre cibles pleine largeur de
+   44 px de haut ; le rembourrage du bas remonte avec le clavier virtuel
+   (`--sl-kb`), pour que la rangée reste toujours au-dessus de lui. */
+.row {
+  flex: none;
+  display: flex;
+  gap: 0.625rem;
+  padding: 0.625rem var(--sl-space-4);
+  padding-block-end: calc(0.625rem + var(--sl-safe-bottom) + var(--sl-kb, 0px));
+  border-block-start: 1px solid var(--sl-border);
+  background: var(--sl-bg);
+}
+
+.count {
+  flex: 1;
+  min-block-size: var(--sl-tap-target);
+  border: none;
+  border-radius: var(--sl-radius-full);
+  background: var(--sl-brand-soft);
+  color: var(--sl-brand-ink);
+  font-size: var(--sl-font-lg);
+  font-weight: 650;
+}
+
+.count:active {
+  background: var(--sl-brand);
+  color: var(--sl-text-on-brand);
+}
+
+/* Champ vide : la rangée est éteinte, gris sur gris. Elle n'a rien à valider,
+   et se lit comme une action en attente plutôt que comme un réglage. */
+.count:disabled {
+  background: var(--sl-surface-sunken);
+  color: var(--sl-text-muted);
+  opacity: 0.55;
+}

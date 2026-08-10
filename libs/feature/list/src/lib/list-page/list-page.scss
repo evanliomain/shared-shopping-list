@@ -106,31 +106,9 @@ main {
 }
 
 /* Au bureau, la liste s'estompe derrière la barre permanente pendant la
-   saisie. Sur téléphone, c'est le voile ci-dessous qui s'en charge. */
+   saisie. Sur téléphone, c'est le plein écran de dictée qui recouvre tout. */
 main.dimmed {
   opacity: 0.45;
-}
-
-/* Le voile de la feuille d'ajout, sur téléphone : il assombrit la liste et se
-   ferme d'un tap. Il se pose entre la liste et la feuille — z-index 35, sous
-   les 40 de la feuille, au-dessus des 30 du bouton flottant qui se retire.
-   Toujours monté pour pouvoir s'effacer en fondu ; caché, il ne capte plus le
-   tap et sort du champ. */
-.scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 35;
-  background: rgb(12 11 10 / 42%);
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity var(--sl-dur-base) var(--sl-ease-out),
-    visibility var(--sl-dur-base);
-}
-
-.scrim.shown {
-  opacity: 1;
-  visibility: visible;
 }
 
 /* Le rayon reste visible tant qu'on est dedans : au milieu d'une longue

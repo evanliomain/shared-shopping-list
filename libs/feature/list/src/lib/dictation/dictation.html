@@ -1,0 +1,121 @@
+<!-- Le plein écran de dictée, monté seulement ouvert : fermé, il ne reste que
+     le disque du coin, porté par l'hôte lui-même. En dictée on ne consulte pas
+     la liste, on la remplit — rien à voiler derrière. -->
+@if (open()) {
+<div class="surface">
+  <header class="topbar">
+    <button type="button" class="done" (click)="dismissed.emit()">
+      {{ 'addBar.done' | transloco }}
+    </button>
+    <span class="title">{{ 'dictation.title' | transloco }}</span>
+    <!-- Le compteur dit combien on a dicté et pulse à chaque ajout. Il se
+         recrée à chaque changement de valeur — c'est ce qui rejoue l'animation
+         d'entrée sans minuteur à piloter. -->
+    <span
+      class="counter"
+      [attr.aria-label]="'dictation.counter' | plural: counter()"
+    >
+      @for (c of [counter()]; track c) {
+      <span class="counter-num">{{ c }}</span>
+      }
+    </span>
+  </header>
+
+  <div class="field">
+    <input
+      #field
+      type="text"
+      name="article"
+      autocomplete="off"
+      enterkeyhint="done"
+      [attr.aria-label]="'list.addArticle' | transloco"
+      [placeholder]="placeholder()"
+      [value]="query()"
+      (input)="onInput($event)"
+      (keydown.enter)="onEnter($event)"
+      (keydown.escape)="onEscape($event)"
+    />
+  </div>
+
+  <!-- Le reçu d'une ligne : le seul retour dont on a besoin en rafale. Il
+       nomme le dernier ajout, propose de l'annuler, et s'efface au suivant. -->
+  @if (receipt(); as r) {
+  <div class="receipt" role="status">
+    <span class="tick" aria-hidden="true">✓</span>
+    <span class="receipt-text">
+      {{ r.label }}
+      @if ('' !== r.quantity) { <strong>{{ r.quantity }}</strong> }
+      @if (null !== r.delta) { <span class="delta">(+{{ r.delta }})</span> }
+    </span>
+    <button type="button" class="undo" (click)="undone.emit()">
+      {{ 'common.undo' | transloco }}
+    </button>
+  </div>
+  }
+
+  <div class="panel">
+    @if (!hasQuery()) {
+    <p class="kicker">{{ 'dictation.frequent' | transloco }}</p>
+    } @else if (0 === suggestions().length) {
+    <p class="hint">{{ 'dictation.willCreate' | transloco: { label: query() } }}</p>
+    }
+
+    <ul class="suggestions">
+      @for (suggestion of suggestions(); track suggestion.productId) {
+      <li>
+        <button
+          type="button"
+          class="suggestion"
+          [class.already]="suggestion.alreadyInList"
+          (click)="picked.emit(suggestion)"
+        >
+          <sl-product-avatar
+            [emoji]="suggestion.emoji"
+            [imageUrl]="images.urlFor(suggestion.imageRef)"
+          />
+          <span class="text">
+            <span class="label">
+              <sl-matched-text [text]="suggestion.label" [query]="query()" />
+            </span>
+            <span class="second">
+              @if ('' !== suggestion.description) {
+              <sl-matched-text
+                [text]="suggestion.description"
+                [query]="query()"
+              />
+              } @else { {{ 'aisles.' + suggestion.aisle | transloco }} · {{
+              'catalog.usage' | plural: suggestion.usage }} }
+            </span>
+          </span>
+          @if (suggestion.alreadyInList) {
+          <span class="badge">{{ 'addBar.alreadyInList' | transloco }}</span>
+          }
+        </button>
+      </li>
+      }
+    </ul>
+  </div>
+
+  <!-- La rangée de validation, collée au clavier. Elle n'arme rien : chaque
+       bouton ajoute le libellé en cours avec son compte. Éteinte tant que le
+       champ est vide — elle n'aurait rien à valider. -->
+  <div class="row">
+    @for (count of quickCounts; track count) {
+    <button
+      type="button"
+      class="count"
+      [disabled]="!hasQuery()"
+      [attr.aria-label]="'dictation.addCount' | plural: count"
+      (click)="onQuantify(count)"
+    >
+      ＋{{ count }}
+    </button>
+    }
+  </div>
+</div>
+}
+
+<!-- Le bouton flottant au repos : disque vert et ＋, portés par l'hôte qui est
+     alors le bouton. Ouvert, ils s'effacent derrière le plein écran. -->
+<span class="disc" aria-hidden="true"></span>
+<span class="glyph" aria-hidden="true">＋</span>
