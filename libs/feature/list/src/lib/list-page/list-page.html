@@ -183,6 +183,19 @@
   (dismissed)="ui.stopPicking()"
   (picked)="addExisting($event)"
   (created)="createAndAdd($event)"
+  (quantified)="addCounted($event)"
+  (freeRequested)="openDesktopFree()"
   (undone)="remove($event)"
+/>
+}
+
+<!-- La saisie libre du bureau. La barre n'a pas de plein écran où loger le pavé
+     comme la dictée : la page le pose elle-même par-dessus, le temps d'un poids
+     ou d'un volume, puis « Retour » ou « Ajouter » le referme. -->
+@if (wide() && desktopFree()) {
+<sl-dictation-pad
+  [article]="ui.trimmedQuery()"
+  (back)="desktopFree.set(false)"
+  (submitted)="addFreeDesktop($event)"
 />
 }

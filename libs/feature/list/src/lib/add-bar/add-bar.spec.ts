@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   ItemView,
   ProductImages,
@@ -208,6 +208,100 @@ describe('AddBar', () => {
       fixture.componentInstance.created.subscribe(() => (touched = true));
 
       submit(fixture.nativeElement);
+
+      expect(touched).toBe(false);
+    });
+  });
+
+  describe('la rangée de quantité', () => {
+    function quantities(
+      fixture: ComponentFixture<AddBar>,
+    ): HTMLButtonElement[] {
+      return [...fixture.nativeElement.querySelectorAll('.quantity')];
+    }
+
+    function press(fixture: ComponentFixture<AddBar>, event: KeyboardEvent): void {
+      fixture.nativeElement.querySelector('input').dispatchEvent(event);
+    }
+
+    it('reste éteinte tant que le champ est vide', async () => {
+      const fixture = await render([BASE], true, [], false, '');
+
+      expect(quantities(fixture).every((button) => button.disabled)).toBe(true);
+    });
+
+    it('valide la composition avec le compte du bouton', async () => {
+      const fixture = await render([BASE], true, [], false, 'yao');
+      const counts: number[] = [];
+      fixture.componentInstance.quantified.subscribe((n) => counts.push(n));
+
+      // ＋1, ＋2, ＋4 puis ＋… : le deuxième porte 2.
+      quantities(fixture)[1].click();
+
+      expect(counts).toEqual([2]);
+    });
+
+    it('demande le pavé libre au ＋…', async () => {
+      const fixture = await render([BASE], true, [], false, 'yao');
+      let free = false;
+      fixture.componentInstance.freeRequested.subscribe(() => (free = true));
+
+      // Le dernier bouton de la rangée est ＋….
+      quantities(fixture).at(-1)?.click();
+
+      expect(free).toBe(true);
+    });
+
+    it('valide à Alt+chiffre sans lâcher le clavier', async () => {
+      const fixture = await render([BASE], true, [], false, 'yao');
+      const counts: number[] = [];
+      fixture.componentInstance.quantified.subscribe((n) => counts.push(n));
+
+      press(
+        fixture,
+        new KeyboardEvent('keydown', {
+          key: '2',
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+
+      expect(counts).toEqual([2]);
+    });
+
+    it('ignore un chiffre frappé sans Alt', async () => {
+      const fixture = await render([BASE], true, [], false, 'yao');
+      let touched = false;
+      fixture.componentInstance.quantified.subscribe(() => (touched = true));
+
+      press(fixture, new KeyboardEvent('keydown', { key: '2', bubbles: true }));
+
+      expect(touched).toBe(false);
+    });
+
+    it('ignore Alt sur un chiffre hors de la rangée', async () => {
+      const fixture = await render([BASE], true, [], false, 'yao');
+      let touched = false;
+      fixture.componentInstance.quantified.subscribe(() => (touched = true));
+
+      press(
+        fixture,
+        new KeyboardEvent('keydown', { key: '3', altKey: true, bubbles: true }),
+      );
+
+      expect(touched).toBe(false);
+    });
+
+    it('ignore Alt+chiffre sur un champ vide', async () => {
+      const fixture = await render([BASE], true, [], false, '');
+      let touched = false;
+      fixture.componentInstance.quantified.subscribe(() => (touched = true));
+
+      press(
+        fixture,
+        new KeyboardEvent('keydown', { key: '2', altKey: true, bubbles: true }),
+      );
 
       expect(touched).toBe(false);
     });
