@@ -84,6 +84,20 @@
     "undoAdd": "Retirer {{label}} de la liste",
     "create": "Créer « {{label}} »"
   },
+  "dictation": {
+    "title": "Dictée",
+    "frequent": "Fréquents",
+    "willCreate": "Nouveau : « {{label}} »",
+    "addCount": {
+      "one": "Ajouter {{count}} article",
+      "other": "Ajouter {{count}} articles"
+    },
+    "counter": {
+      "=0": "Aucun article dicté",
+      "one": "{{count}} article dicté",
+      "other": "{{count}} articles dictés"
+    }
+  },
   "theme": {
     "label": "Thème",
     "light": "Thème clair",

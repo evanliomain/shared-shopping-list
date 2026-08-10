@@ -7,12 +7,27 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { ItemId } from '@shopping-list/core/crdt';
+import { ItemId, ProductId } from '@shopping-list/core/crdt';
 
 /** Un article qu'on vient de cocher, et qu'on peut encore remettre. */
 export interface UndoableCheck {
   readonly itemId: ItemId;
   readonly label: string;
+}
+
+/**
+ * Le dernier article dicté, de quoi retrouver sa ligne et rejouer le reçu.
+ *
+ * `productId` manque quand la dictée vient de **créer** le produit : son
+ * identifiant n'est pas connu dans la même frame que l'intention. La ligne se
+ * retrouve alors par son libellé, parmi celles nées depuis l'ouverture. `delta`
+ * est le compte tout juste ajouté — c'est lui qui distingue « ×6 » d'un premier
+ * ajout et « ×6 (+2) » d'un redicté.
+ */
+export interface DictationAdd {
+  readonly productId: ProductId | null;
+  readonly label: string;
+  readonly delta: number;
 }
 
 /** Durée du bandeau d'annulation. Assez pour se rendre compte, pas plus. */
@@ -58,6 +73,11 @@ interface ListUiState {
   readonly showChecked: boolean;
   /** Dernier article coché, tant que le bandeau d'annulation est affiché. */
   readonly undoable: UndoableCheck | null;
+  /**
+   * Dernier article dicté, ce que montre le reçu d'une ligne. Remplacé au
+   * suivant, effacé à l'annulation ou à la fermeture de la dictée.
+   */
+  readonly lastAdd: DictationAdd | null;
   /** Le menu de l'en-tête, celui qui porte « Vider la liste ». */
   readonly listMenu: ListMenuState;
 }
@@ -69,6 +89,7 @@ const initial: ListUiState = {
   fabHidden: false,
   showChecked: false,
   undoable: null,
+  lastAdd: null,
   listMenu: 'closed',
 };
 
@@ -141,7 +162,16 @@ export const ListUiStore = signalStore(
           pickingSince: 0,
           query: '',
           fabHidden: false,
+          lastAdd: null,
         });
+      },
+      /** Retient le dernier article dicté pour le reçu d'une ligne. */
+      noteAdd(lastAdd: DictationAdd): void {
+        patchState(store, { lastAdd });
+      },
+      /** Le reçu s'efface : article annulé, ou plus rien à montrer. */
+      clearLastAdd(): void {
+        patchState(store, { lastAdd: null });
       },
       /**
        * Note un défilement du corps de liste, et en déduit le sort du bouton

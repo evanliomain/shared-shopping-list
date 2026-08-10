@@ -139,45 +139,36 @@
 </div>
 }
 
-<!-- Sur téléphone, le contrôle d'ajout : un seul nœud qui est le bouton
-     flottant au repos et le champ une fois ouvert. Il rend à la liste les 62 px
-     que prenait la barre collée en bas, se retire quand on défile vers l'avant,
-     et sur la liste vide s'efface derrière le gros bouton du centre. Au bureau,
-     il n'existe pas : la barre y garde son propre champ, permanent. -->
+<!-- Sur téléphone, le mode dictée : un seul nœud qui est le bouton flottant au
+     repos et le plein écran une fois ouvert. Il remplace la feuille — en dictée
+     on ne consulte pas la liste, on la remplit —, se retire quand on défile
+     vers l'avant, et sur la liste vide s'efface derrière le gros bouton du
+     centre. Au bureau, il n'existe pas : la barre y garde son champ permanent. -->
 @if (!wide()) {
-<sl-add-control
+<sl-dictation
   [open]="ui.picking()"
-  [retracted]="controlRetracted()"
+  [retracted]="fabRetracted()"
   [query]="ui.query()"
-  [label]="'list.addArticle' | transloco"
+  [suggestions]="suggestions()"
+  [receipt]="dictationReceipt()"
+  [counter]="dictatedCount()"
+  [fabLabel]="'list.addArticle' | transloco"
   [placeholder]="
     (0 < justAdded().length ? 'addBar.nextPlaceholder' : 'addBar.placeholder')
       | transloco
   "
   (pressed)="startAdding()"
   (queryChanged)="ui.setQuery($event)"
-  (focused)="ui.startPicking()"
-  (submitted)="submitQuery()"
+  (picked)="pickSuggestion($event)"
+  (quantified)="addCounted($event)"
+  (undone)="undoLast()"
   (dismissed)="ui.stopPicking()"
 />
 }
 
-<!-- Le voile assombrit la liste derrière la feuille et se ferme d'un tap. Sur
-     téléphone seulement : au bureau la barre vit dans le pied de la grille, il
-     n'y a rien à voiler. Toujours présent pour pouvoir s'effacer en fondu ; il
-     ne ferme que lorsqu'il est montré. -->
-@if (!wide()) {
-<div
-  class="scrim"
-  [class.shown]="ui.picking()"
-  aria-hidden="true"
-  (click)="ui.stopPicking()"
-></div>
-}
-
-<!-- La feuille reste montée même fermée : sur téléphone elle est posée hors
-     champ sous le bord et remonte à la saisie, ce qui lui laisse une sortie en
-     glissant. Au bureau, c'est la barre permanente du pied de grille. -->
+<!-- Au bureau, la barre d'ajout permanente dans le pied de la grille. Sur
+     téléphone, c'est le mode dictée ci-dessus qui tient l'ajout. -->
+@if (wide()) {
 <sl-add-bar
   [query]="ui.query()"
   [picking]="ui.picking()"
@@ -192,3 +183,4 @@
   (created)="createAndAdd($event)"
   (undone)="remove($event)"
 />
+}

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ListUiStore, UndoableCheck } from './list-ui.store';
+import { DictationAdd, ListUiStore, UndoableCheck } from './list-ui.store';
 
 describe('ListUiStore', () => {
   function store() {
@@ -53,6 +53,35 @@ describe('ListUiStore', () => {
 
     expect(ui.query()).toBe('');
     expect(ui.picking()).toBe(false);
+  });
+
+  describe('reçu du dernier ajout', () => {
+    const YAOURT: DictationAdd = {
+      productId: 'product-1',
+      label: 'Yaourt',
+      delta: 4,
+    };
+
+    it('retient le dernier article dicté, et l’oublie sur demande', () => {
+      const ui = store();
+
+      ui.noteAdd(YAOURT);
+      expect(ui.lastAdd()).toEqual(YAOURT);
+
+      ui.clearLastAdd();
+      expect(ui.lastAdd()).toBeNull();
+    });
+
+    it('efface le reçu en quittant la dictée', () => {
+      // Le reçu ne survit pas à la session : rouvrir repart d'un écran net.
+      const ui = store();
+      ui.startPicking();
+      ui.noteAdd(YAOURT);
+
+      ui.stopPicking();
+
+      expect(ui.lastAdd()).toBeNull();
+    });
   });
 
   it('referme le menu d’un second appui sur ⋯', () => {

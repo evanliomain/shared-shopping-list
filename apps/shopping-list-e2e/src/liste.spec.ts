@@ -9,11 +9,24 @@ import { expect, test } from './support/fixtures';
  * démarre avec une liste et un catalogue vides.
  */
 
-/* Le placeholder change une fois qu'on enchaîne (« Article suivant… ») : c'est
-   la feuille qu'on vise, pas un libellé. */
-const input = (page: Page) => page.locator('sl-add-bar input');
+/* Le champ d'ajout : la barre permanente au bureau, le plein écran de dictée
+   sur téléphone. Un seul des deux est monté à la fois selon la largeur. */
+const input = (page: Page) =>
+  page.locator('sl-add-bar input, sl-dictation input');
 const row = (page: Page, label: string) =>
   page.locator('sl-item-row').filter({ hasText: label });
+
+/**
+ * Seuil du mode dictée. Sous 1040 px, l'ajout est le plein écran de dictée où
+ * la quantité se valide à la rangée ＋N ; au-delà, la barre permanente du
+ * bureau, qui ajoute d'un tap sur la suggestion.
+ */
+const DICTATION_MAX_PX = 1040;
+
+function usesDictation(page: Page): boolean {
+  const viewport = page.viewportSize();
+  return null !== viewport && DICTATION_MAX_PX > viewport.width;
+}
 
 /**
  * Ouvre l'ajout.
@@ -27,19 +40,40 @@ async function openAdd(page: Page): Promise<void> {
     return;
   }
 
-  await page.getByRole('button', { name: 'Ajouter un article' }).click();
+  // Liste vide : le gros bouton du centre. Liste peuplée : le bouton flottant
+  // de la dictée. On vise l'un ou l'autre sans ambiguïté — le flottant qui se
+  // rétracte reste un instant dans l'arbre, et « Ajouter un article » les
+  // désignerait alors tous les deux.
+  const centre = page.locator('.empty-add button');
+  if (0 < (await centre.count())) {
+    await centre.click();
+  } else {
+    await page.locator('sl-dictation').click();
+  }
   await expect(input(page)).toBeVisible();
 }
 
-/** Referme la feuille : « Terminé » dès qu'il y a des ajouts, « Fermer » sinon. */
+/** Referme l'ajout : « Terminé » dès qu'il y a des ajouts, « Fermer » sinon. */
 async function closeAdd(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^(Terminé|Fermer)$/ }).click();
+  // En dictée, on attend que le plein écran soit vraiment démonté avant de
+  // rendre la main : un geste lancé pendant sa disparition se perdrait.
+  await expect(page.locator('sl-dictation .surface')).toHaveCount(0);
 }
 
+/**
+ * Ajoute un article par le chemin le plus court, commun aux deux flux : Entrée
+ * vaut ＋1 en dictée comme il valide la barre au bureau. Crée le produit s'il
+ * est inconnu, le reprend sinon.
+ */
 async function createArticle(page: Page, label: string): Promise<void> {
   await openAdd(page);
   await input(page).fill(label);
-  await page.getByRole('button', { name: `Créer « ${label} »` }).click();
+  await input(page).press('Enter');
+  // On attend que la ligne soit revenue du CRDT avant de rendre la main : sans
+  // ça, un test qui enchaîne aussitôt sur la liste lit un état pas encore à
+  // jour (la projection Y.Doc → store → DOM est asynchrone).
+  await expect(row(page, label.trim())).toBeVisible();
 }
 
 /**
@@ -163,29 +197,39 @@ test('la liste vide met l’ajout au centre de l’écran', async ({ page }) => 
   await expect(input(page)).toBeFocused();
 });
 
-test('enchaîne les ajouts sans refermer, et défait à la pastille', async ({
+test('enchaîne les ajouts sans refermer, et défait le dernier', async ({
   page,
 }) => {
-  // Dix articles d'affilée sans revenir à la liste : le champ se vide, la
-  // feuille reste, et chaque ajout garde son ✕ tant qu'elle est ouverte.
+  // Plusieurs articles d'affilée sans revenir à la liste : le champ se vide,
+  // l'ajout reste ouvert, et le dernier reste défaisable.
   await createArticle(page, 'Lait');
   await expect(input(page)).toBeVisible();
   await expect(input(page)).toHaveValue('');
 
   await createArticle(page, 'Pain');
 
-  await expect(page.getByText('2 articles ajoutés')).toBeVisible();
-  await expect(page.locator('sl-add-bar .chip')).toHaveCount(2);
+  if (usesDictation(page)) {
+    // En dictée : un compteur dit le nombre dicté, un reçu d'une ligne nomme le
+    // dernier et l'annule.
+    await expect(page.locator('sl-dictation .counter-num')).toHaveText('2');
+    await expect(page.locator('sl-dictation .receipt')).toContainText('Pain');
 
-  await page.getByRole('button', { name: 'Retirer Pain de la liste' }).click();
+    await page.locator('sl-dictation .receipt .undo').click();
+  } else {
+    // Au bureau : la pile de pastilles, chacune avec son ✕.
+    await expect(page.getByText('2 articles ajoutés')).toBeVisible();
+    await expect(page.locator('sl-add-bar .chip')).toHaveCount(2);
 
-  await expect(page.getByText('1 article ajouté')).toBeVisible();
+    await page
+      .getByRole('button', { name: 'Retirer Pain de la liste' })
+      .click();
+    await expect(page.getByText('1 article ajouté')).toBeVisible();
+  }
+
   await expect(row(page, 'Pain')).toHaveCount(0);
   await expect(row(page, 'Lait')).toBeVisible();
 
-  // « Terminé » ferme tout, et la pile de pastilles avec.
   await closeAdd(page);
-  await expect(page.locator('sl-add-bar .chip')).toHaveCount(0);
 });
 
 test('cocher déplace l’article dans le panier', async ({ page }) => {
@@ -215,6 +259,11 @@ test('l’historique propose les articles déjà saisis', async ({ page }) => {
   await expect(suggestion).toBeVisible();
 
   await suggestion.click();
+  // En dictée, un tap complète le champ ; c'est la rangée (ici Entrée = ＋1) qui
+  // valide. Au bureau, le tap ajoute directement.
+  if (usesDictation(page)) {
+    await input(page).press('Enter');
+  }
   await expect(row(page, 'Yaourt')).toBeVisible();
 });
 
@@ -295,7 +344,7 @@ test('la recherche pardonne les lettres manquantes', async ({ page }) => {
 
   // « lat » n'est une sous-chaîne d'aucun des deux : c'est le fuzzy match qui
   // les sort, et le surlignage qui explique pourquoi.
-  const suggestions = page.locator('sl-add-bar .suggestion');
+  const suggestions = page.locator('.suggestion');
   await expect(suggestions).toHaveCount(2);
   await expect(suggestions.first().locator('mark').first()).toBeVisible();
 });
@@ -369,11 +418,15 @@ test('archiver un produit le retire des suggestions', async ({ page }) => {
   await createArticle(page, 'Bougie');
   await closeAdd(page);
   await removeArticle(page, 'Bougie');
+  await expect(row(page, 'Bougie')).toHaveCount(0);
 
   // Le produit reste dans le catalogue : on le retrouve par les suggestions.
   await openAdd(page);
   await expect(page.locator('.suggestion')).toHaveCount(1);
   await page.locator('.suggestion').click();
+  if (usesDictation(page)) {
+    await input(page).press('Enter');
+  }
   await closeAdd(page);
 
   await editArticle(page, 'Bougie');

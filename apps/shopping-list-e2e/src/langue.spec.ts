@@ -31,9 +31,11 @@ test.describe('navigateur en anglais', () => {
     await page.goto('/liste');
 
     await page.getByRole('button', { name: 'Add an item' }).click();
-    const input = page.locator('sl-add-bar input');
+    // Entrée vaut ＋1 en dictée comme elle valide la barre au bureau : un seul
+    // geste, quel que soit le flux d'ajout.
+    const input = page.locator('sl-add-bar input, sl-dictation input');
     await input.fill('Milk');
-    await page.getByRole('button', { name: 'Create “Milk”' }).click();
+    await input.press('Enter');
 
     // « 1 item », pas « 1 items ».
     await expect(page.getByText('1 item left')).toBeVisible();

@@ -12,6 +12,7 @@ import { TranslocoPipe, translateSignal } from '@jsverse/transloco';
 import { PluralPipe } from '@shopping-list/util/i18n';
 import { Store } from '@ngrx/store';
 import {
+  displayQty,
   filterSuggestions,
   ItemView,
   listActions,
@@ -40,11 +41,11 @@ import { normalize } from '@shopping-list/util/categories';
 import { ThemeStore } from '@shopping-list/util/theme';
 
 import { AddBar } from '../add-bar/add-bar';
-import { AddControl } from '../add-control/add-control';
+import { Dictation, DictationReceipt } from '../dictation/dictation';
 import { HistoryPane } from '../history-pane/history-pane';
 import { ItemRow } from '../item-row/item-row';
 import { ListMenu } from '../list-menu/list-menu';
-import { ListUiStore } from '../list-ui.store';
+import { DictationAdd, ListUiStore } from '../list-ui.store';
 
 @Component({
   selector: 'sl-list-page',
@@ -52,7 +53,7 @@ import { ListUiStore } from '../list-ui.store';
   imports: [
     AddBar,
     AddButton,
-    AddControl,
+    Dictation,
     EmptyState,
     HistoryPane,
     ItemRow,
@@ -151,14 +152,64 @@ export class ListPage {
   });
 
   /**
-   * Le contrôle d'ajout se retire sous le bord quand on défile vers l'avant de
-   * la liste, et sur la liste vide où le gros bouton du centre prend le relais.
-   * Pendant la saisie il ne se retire pas : il *devient* le champ, à la place
-   * du bouton.
+   * Le bouton flottant de la dictée se retire sous le bord quand on défile vers
+   * l'avant de la liste, et sur la liste vide où le gros bouton du centre prend
+   * le relais. Ouvert, l'attribut est ignoré : c'est le plein écran.
    */
-  protected readonly controlRetracted = computed(
+  protected readonly fabRetracted = computed(
     () => this.ui.fabHidden() || this.isEmpty(),
   );
+
+  /** Le compteur de la dictée : ce qui a rejoint la liste depuis l'ouverture. */
+  protected readonly dictatedCount = computed(() => this.justAdded().length);
+
+  /**
+   * Le reçu d'une ligne : le dernier article dicté, sa quantité, et le compte
+   * tout juste ajouté quand il préexistait. Dérivé de la liste vive plutôt que
+   * figé : si l'article ressort — annulé, ou emporté par un delta reçu de
+   * l'autre téléphone —, le reçu disparaît de lui-même.
+   */
+  protected readonly dictationReceipt = computed<DictationReceipt | null>(() => {
+    const last = this.ui.lastAdd();
+    if (null === last) {
+      return null;
+    }
+
+    const item = this.receiptItem(last);
+    if (undefined === item) {
+      return null;
+    }
+
+    const count = /^\d+$/.test(item.qty) ? parseInt(item.qty, 10) : null;
+    return {
+      label: item.label,
+      quantity: displayQty(item.qty),
+      // « (+2) » seulement si l'article était déjà là : un premier ajout de
+      // quatre n'est pas un « +4 » de plus, c'est le compte lui-même.
+      delta: null !== count && count > last.delta ? last.delta : null,
+    };
+  });
+
+  /**
+   * Retrouve la ligne du dernier ajout. Par son produit quand on le connaît ;
+   * par son libellé sinon — la dictée vient alors de créer le produit, et son
+   * identifiant n'était pas connu dans la frame de l'intention.
+   */
+  private receiptItem(last: DictationAdd): ItemView | undefined {
+    const views = this.itemViews();
+    if (null !== last.productId) {
+      return views.find((view) => view.productId === last.productId);
+    }
+
+    const since = this.ui.pickingSince();
+    return views
+      .filter(
+        (view) =>
+          view.createdAt >= since &&
+          normalize(view.label) === normalize(last.label),
+      )
+      .sort((a, b) => b.createdAt - a.createdAt)[0];
+  }
 
   /**
    * Le filtrage vit ici et non dans un selector : la requête change à chaque
@@ -247,20 +298,72 @@ export class ListPage {
   }
 
   /**
-   * « Entrée » dans le champ overlay du téléphone : on prend la première
-   * suggestion si elle existe, sinon on crée. Le même arbitrage que la barre au
-   * clavier, mais porté ici — l'overlay ne connaît ni les suggestions ni le
-   * catalogue, seule la page les a.
+   * ＋N de la dictée : valide l'article en cours avec ce compte. La première
+   * suggestion si elle existe, une création sinon — la quantité voyage avec
+   * l'ajout. La rangée étant éteinte sur un champ vide, `label` n'est jamais
+   * vide ici ; et un libellé sans suggestion est forcément à créer, sans quoi
+   * la suggestion de même libellé serait remontée.
    */
-  protected submitQuery(): void {
+  protected addCounted(count: number): void {
+    const label = this.ui.trimmedQuery();
     const [first] = this.suggestions();
+
     if (undefined !== first) {
-      this.addExisting(first);
+      this.store.dispatch(
+        listActions.produitAjouté({ productId: first.productId, qty: count }),
+      );
+      this.ui.noteAdd({
+        productId: first.productId,
+        label: first.label,
+        delta: count,
+      });
+    } else {
+      this.store.dispatch(
+        listActions.produitCrééEtAjouté({ draft: { label }, qty: count }),
+      );
+      this.ui.noteAdd({ productId: null, label, delta: count });
+    }
+
+    this.ui.clearQuery();
+  }
+
+  /**
+   * Un tap sur une suggestion **complète** le champ, il n'ajoute pas : un seul
+   * point de validation dans tout l'écran — la rangée du bas —, c'est ce qui
+   * rend le geste prévisible en rafale.
+   */
+  protected pickSuggestion(suggestion: SuggestionView): void {
+    this.ui.setQuery(suggestion.label);
+  }
+
+  /**
+   * ✕ du reçu : on défait le dernier ajout. Un compte qui préexistait revient
+   * à ce qu'il était avant le ＋N ; un article tout juste posé ressort.
+   */
+  protected undoLast(): void {
+    const last = this.ui.lastAdd();
+    /* v8 ignore next 3 -- garde : le ✕ n'existe que si un reçu est posé, donc lastAdd aussi */
+    if (null === last) {
       return;
     }
 
-    if (this.canCreate()) {
-      this.createAndAdd(this.ui.trimmedQuery());
+    const item = this.receiptItem(last);
+    this.ui.clearLastAdd();
+    /* v8 ignore next 3 -- garde : le reçu ne s'affiche que si sa ligne existe encore */
+    if (undefined === item) {
+      return;
+    }
+
+    const count = /^\d+$/.test(item.qty) ? parseInt(item.qty, 10) : 1;
+    if (count > last.delta) {
+      this.store.dispatch(
+        listActions.quantitéModifiée({
+          itemId: item.id,
+          qty: String(count - last.delta),
+        }),
+      );
+    } else {
+      this.store.dispatch(listActions.articleRetiré({ itemId: item.id }));
     }
   }
 

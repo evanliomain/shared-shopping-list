@@ -11,6 +11,7 @@ import {
   ProductId,
   readSnapshot,
   setItemChecked,
+  setItemQty,
 } from '@shopping-list/core/crdt';
 import { ProviderState, SyncRegistry } from '@shopping-list/core/sync';
 import {
@@ -159,40 +160,36 @@ function row(fixture: ComponentFixture<ListPage>, label: string): HTMLElement {
   return found;
 }
 
-/** Les pastilles annulables de la feuille d'ajout, dans l'ordre affiché. */
-function chips(fixture: ComponentFixture<ListPage>): string[] {
-  return [...fixture.nativeElement.querySelectorAll('sl-add-bar .chip')].map(
-    (chip: HTMLElement) => (chip.textContent ?? '').replace(/\s+/g, ' ').trim(),
-  );
+/** Le texte du reçu d'une ligne de la dictée, espaces normalisés. */
+function receipt(fixture: ComponentFixture<ListPage>): string | null {
+  const found = fixture.nativeElement.querySelector('sl-dictation .receipt');
+  return null === found
+    ? null
+    : (found.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
 /**
- * La feuille d'ajout. Toujours montée — c'est ce qui lui laisse une sortie en
- * glissant —, son attribut `data-picking` dit si elle est ouverte.
+ * Le mode dictée du téléphone : bouton flottant au repos, plein écran une fois
+ * ouvert. Son attribut `data-open` dit lequel des deux.
  */
-function sheet(fixture: ComponentFixture<ListPage>): HTMLElement {
-  const found = fixture.nativeElement.querySelector('sl-add-bar');
+function dictation(fixture: ComponentFixture<ListPage>): HTMLElement {
+  const found = fixture.nativeElement.querySelector('sl-dictation');
   if (null === found) {
-    throw new Error('Feuille d’ajout introuvable');
+    throw new Error('Mode dictée introuvable');
   }
 
   return found;
 }
 
-/** Le contrôle d'ajout du téléphone : bouton au repos, champ une fois ouvert. */
-function control(fixture: ComponentFixture<ListPage>): HTMLElement {
-  const found = fixture.nativeElement.querySelector('sl-add-control');
-  if (null === found) {
-    throw new Error('Contrôle d’ajout introuvable');
-  }
-
-  return found;
+/** Les boutons ＋N de la rangée de validation, dans l'ordre. */
+function counts(fixture: ComponentFixture<ListPage>): HTMLButtonElement[] {
+  return [...fixture.nativeElement.querySelectorAll('sl-dictation .count')];
 }
 
-/** Le champ actif : l'overlay sur téléphone, la barre permanente au bureau. */
+/** Le champ actif : le plein écran sur téléphone, la barre permanente au bureau. */
 function field(fixture: ComponentFixture<ListPage>): HTMLInputElement {
   const found = fixture.nativeElement.querySelector(
-    'sl-add-control input, sl-add-bar input',
+    'sl-dictation input, sl-add-bar input',
   );
   if (null === found) {
     throw new Error('Champ de saisie introuvable');
@@ -399,29 +396,29 @@ describe('ListPage', () => {
     });
   });
 
-  describe('bouton flottant', () => {
-    it('ouvre la feuille d’ajout depuis la liste', async () => {
+  describe('mode dictée', () => {
+    it('ouvre le plein écran depuis la liste', async () => {
       const { fixture } = await render({ seed: courses });
-      // La feuille est toujours là ; fermée, elle attend posée hors champ.
-      expect(sheet(fixture).getAttribute('data-picking')).toBe('false');
+      // Au repos, le bouton flottant : le plein écran attend qu'on l'ouvre.
+      expect(dictation(fixture).getAttribute('data-open')).toBe('false');
 
-      await click(fixture, 'sl-add-control');
+      await click(fixture, 'sl-dictation');
 
-      expect(sheet(fixture).getAttribute('data-picking')).toBe('true');
+      expect(dictation(fixture).getAttribute('data-open')).toBe('true');
     });
 
-    it('ouvre la feuille depuis la liste vide, où l’ajout est l’écran', async () => {
+    it('ouvre la dictée depuis la liste vide, où l’ajout est l’écran', async () => {
       const { fixture } = await render();
 
       await click(fixture, '.empty-add button');
 
-      expect(sheet(fixture).getAttribute('data-picking')).toBe('true');
+      expect(dictation(fixture).getAttribute('data-open')).toBe('true');
     });
 
     it('se retire vers l’avant de la liste et revient en remontant', async () => {
       // Lire sa liste ne se fait pas avec un bouton posé sur la dernière ligne.
       const { fixture } = await render({ seed: courses });
-      const fab = fixture.nativeElement.querySelector('sl-add-control');
+      const fab = dictation(fixture);
       expect(fab.getAttribute('data-retracted')).toBe('false');
 
       await scroll(fixture, 300);
@@ -429,16 +426,6 @@ describe('ListPage', () => {
 
       await scroll(fixture, 0);
       expect(fab.getAttribute('data-retracted')).toBe('false');
-    });
-
-    it('devient le champ pendant la saisie, au lieu de se retirer', async () => {
-      // Le même nœud sert de bouton puis de champ : ouvert, il ne se retire pas,
-      // il s'ouvre.
-      const { fixture } = await render({ seed: courses });
-
-      await click(fixture, 'sl-add-control');
-
-      expect(control(fixture).getAttribute('data-open')).toBe('true');
     });
   });
 
@@ -552,31 +539,54 @@ describe('ListPage', () => {
     });
   });
 
-  describe('ajouter', () => {
-    it('propose l’historique et l’ajoute sans rien retaper', async () => {
+  describe('ajouter en dictée', () => {
+    /** L'identifiant d'un produit du catalogue, retrouvé par son libellé. */
+    function idOf(doc: Y.Doc, label: string): ProductId {
+      const found = Object.values(readSnapshot(doc).catalog).find(
+        (product) => product.label === label,
+      );
+      if (undefined === found) {
+        throw new Error(`Produit introuvable : ${label}`);
+      }
+      return found.id;
+    }
+
+    it('complète le champ sur un tap de suggestion, sans ajouter', async () => {
+      // Un seul point de validation dans tout l'écran — la rangée du bas.
       const { fixture, dispatched } = await render({
-        seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
+        seed: (doc) => createProduct(doc, { label: 'Lait demi-écrémé' }, NOW),
       });
-      await click(fixture, '.empty-add button');
+      await click(fixture, 'sl-dictation');
       await type(fixture, 'lai');
 
-      await click(fixture, 'sl-add-bar .suggestion');
+      await click(fixture, 'sl-dictation .suggestion');
 
-      expect(types(dispatched)).toEqual(['[Liste] Produit ajouté']);
-      // La saisie repart à vide, panneau ouvert : on enchaîne l'article suivant.
-      expect(
-        field(fixture).value,
-      ).toBe('');
+      expect(dispatched).toEqual([]);
+      expect(field(fixture).value).toBe('Lait demi-écrémé');
     });
 
-    it('valide au clavier depuis l’overlay : la première suggestion', async () => {
-      // « Entrée » dans le champ overlay du téléphone : la page prend la tête du
-      // panneau, comme la barre au bureau — l'overlay, lui, ne connaît pas les
-      // suggestions.
+    it('valide la première suggestion avec le compte du bouton', async () => {
+      const { fixture, dispatched } = await render({
+        seed: (doc) => createProduct(doc, { label: 'Yaourt' }, NOW),
+      });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'yao');
+
+      counts(fixture)[2].click(); // ＋4
+      await fixture.whenStable();
+
+      expect(dispatched).toEqual([
+        expect.objectContaining({ type: '[Liste] Produit ajouté', qty: 4 }),
+      ]);
+      // Le champ repart à vide, curseur en place : l'article suivant peut partir.
+      expect(field(fixture).value).toBe('');
+    });
+
+    it('vaut ＋1 à la touche Entrée', async () => {
       const { fixture, dispatched } = await render({
         seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
       });
-      await click(fixture, '.empty-add button');
+      await click(fixture, 'sl-dictation');
       await type(fixture, 'lai');
 
       field(fixture).dispatchEvent(
@@ -588,7 +598,9 @@ describe('ListPage', () => {
       );
       await fixture.whenStable();
 
-      expect(types(dispatched)).toEqual(['[Liste] Produit ajouté']);
+      expect(dispatched).toEqual([
+        expect.objectContaining({ type: '[Liste] Produit ajouté', qty: 1 }),
+      ]);
     });
 
     it('crée le produit que l’historique ne connaît pas', async () => {
@@ -596,90 +608,162 @@ describe('ListPage', () => {
       await click(fixture, '.empty-add button');
 
       await type(fixture, '  Rutabaga  ');
-      await click(fixture, 'sl-add-bar .create');
+      counts(fixture)[0].click(); // ＋1
+      await fixture.whenStable();
 
       expect(dispatched).toEqual([
         expect.objectContaining({
           type: '[Liste] Produit créé et ajouté',
           draft: { label: 'Rutabaga' },
+          qty: 1,
         }),
       ]);
     });
 
-    it('ne propose pas de créer ce que l’historique porte déjà', async () => {
+    it('n’annonce pas de création pour ce que l’historique porte déjà', async () => {
       // Sinon on fabriquerait des doublons dans l'historique, ce qui ruinerait
       // précisément ce à quoi il sert.
       const { fixture } = await render({
         seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
       });
-      await click(fixture, '.empty-add button');
+      await click(fixture, 'sl-dictation');
 
       await type(fixture, 'Lait');
 
-      expect(
-        fixture.nativeElement.querySelector('sl-add-bar .create'),
-      ).toBeNull();
+      expect(fixture.nativeElement.querySelector('sl-dictation .hint')).toBeNull();
     });
 
-    it('ne propose rien sur une saisie d’espaces', async () => {
+    it('éteint la rangée sur une saisie d’espaces', async () => {
       const { fixture } = await render();
       await click(fixture, '.empty-add button');
 
       await type(fixture, '   ');
 
-      expect(
-        fixture.nativeElement.querySelector('sl-add-bar .create'),
-      ).toBeNull();
+      expect(counts(fixture).every((button) => button.disabled)).toBe(true);
     });
 
-    it('empile les articles entrés depuis l’ouverture, du dernier au premier', async () => {
-      // La pile est dérivée de la liste, pas journalisée : un article déjà
-      // présent avant l'ouverture n'y apparaît pas. Les plus récents sont en
-      // tête, là où le pouce vient de les poser.
-      const { fixture, sync } = await render({
-        seed: (doc) => put(doc, createProduct(doc, { label: 'Lait' }, NOW)),
+    it('montre un reçu du dernier article dicté, annulable', async () => {
+      const { fixture, dispatched, sync } = await render({
+        seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
       });
-      await click(fixture, 'sl-add-control');
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'lai');
+      counts(fixture)[0].click(); // ＋1
+      await fixture.whenStable();
+
+      // L'effect appliquerait l'ajout : on le rejoue pour que la liste le porte.
+      await sync((doc) => put(doc, idOf(doc, 'Lait'), Date.now()));
+      expect(receipt(fixture)).toContain('Lait');
+
+      await click(fixture, 'sl-dictation .receipt .undo');
+
+      // Un article tout juste posé, annulé, ressort de la liste.
+      expect(types(dispatched)).toContain('[Liste] Article retiré');
+    });
+
+    it('annonce le compte ajouté sur un doublon', async () => {
+      let itemId: ItemId = '' as ItemId;
+      const { fixture, sync } = await render({
+        seed: (doc) => {
+          itemId = put(doc, createProduct(doc, { label: 'Œufs' }, NOW));
+          setItemQty(doc, DEFAULT_LIST_ID, itemId, '4');
+        },
+      });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'Œufs');
+      counts(fixture)[1].click(); // ＋2
+      await fixture.whenStable();
+
+      // Redicter incrémente au lieu de dupliquer : 4 + 2 = 6.
+      await sync((doc) => setItemQty(doc, DEFAULT_LIST_ID, itemId, '6'));
+
+      expect(receipt(fixture)).toContain('×6');
+      expect(receipt(fixture)).toContain('+2');
+    });
+
+    it('compte les articles dictés depuis l’ouverture', async () => {
+      const { fixture, sync } = await render();
+      await click(fixture, '.empty-add button');
 
       await sync((doc) => {
         put(doc, createProduct(doc, { label: 'Pain' }, NOW), Date.now());
-        put(
-          doc,
-          createProduct(doc, { label: 'Confiture' }, NOW),
-          Date.now() + 1,
-        );
+        put(doc, createProduct(doc, { label: 'Lait' }, NOW), Date.now() + 1);
       });
 
-      expect(chips(fixture)).toEqual(['🛒 Confiture ✕', '🛒 Pain ✕']);
+      expect(
+        dictation(fixture).querySelector('.counter-num')?.textContent,
+      ).toBe('2');
     });
 
-    it('défait un ajout par le ✕ de sa pastille', async () => {
-      const { fixture, dispatched, sync } = await render();
-      await click(fixture, '.empty-add button');
-      await sync((doc) => {
-        const pain = createProduct(doc, { label: 'Pain' }, Date.now());
-        put(doc, pain, Date.now());
+    it('n’affiche plus de reçu une fois la dictée refermée', async () => {
+      const { fixture, sync } = await render({
+        seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
       });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'lai');
+      counts(fixture)[0].click();
+      await fixture.whenStable();
+      await sync((doc) => put(doc, idOf(doc, 'Lait'), Date.now()));
 
-      await click(fixture, 'sl-add-bar .chip .undo');
+      await click(fixture, 'sl-dictation .done');
 
-      expect(types(dispatched)).toEqual(['[Liste] Article retiré']);
+      expect(dictation(fixture).getAttribute('data-open')).toBe('false');
+      expect(receipt(fixture)).toBeNull();
     });
 
-    it('ne garde aucune pastille une fois la feuille refermée', async () => {
+    it('attend le retour du CRDT avant de montrer un reçu', async () => {
+      // L'intention est partie mais la ligne n'est pas encore revenue : sans
+      // ligne, pas de reçu — il est dérivé de la liste, pas de l'intention.
+      const { fixture } = await render({
+        seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
+      });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'lai');
+
+      counts(fixture)[0].click();
+      await fixture.whenStable();
+
+      expect(receipt(fixture)).toBeNull();
+    });
+
+    it('retrouve par le libellé la ligne d’un produit tout juste créé', async () => {
+      // La création ne rend pas l'identifiant dans la frame de l'intention : le
+      // reçu retrouve alors la ligne par son libellé.
       const { fixture, sync } = await render();
       await click(fixture, '.empty-add button');
+      await type(fixture, 'Rutabaga');
+      counts(fixture)[0].click();
+      await fixture.whenStable();
+
+      // Deux produits de même libellé, comme « Yaourt » vanille et Firen : le
+      // reçu retient la ligne la plus récente.
       await sync((doc) => {
-        const pain = createProduct(doc, { label: 'Pain' }, Date.now());
-        put(doc, pain, Date.now());
+        put(doc, createProduct(doc, { label: 'Rutabaga' }, NOW), Date.now());
+        put(doc, createProduct(doc, { label: 'Rutabaga' }, NOW), Date.now() + 1);
       });
 
-      await click(fixture, 'sl-add-bar .done');
+      expect(receipt(fixture)).toContain('Rutabaga');
+    });
 
-      // La feuille reste montée mais se referme, et son contenu s'efface avec :
-      // la pile d'ajouts ne survit pas à la session.
-      expect(sheet(fixture).getAttribute('data-picking')).toBe('false');
-      expect(chips(fixture)).toEqual([]);
+    it('ramène un doublon à son compte d’avant, à l’annulation', async () => {
+      let itemId: ItemId = '' as ItemId;
+      const { fixture, dispatched, sync } = await render({
+        seed: (doc) => {
+          itemId = put(doc, createProduct(doc, { label: 'Œufs' }, NOW));
+          setItemQty(doc, DEFAULT_LIST_ID, itemId, '4');
+        },
+      });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'Œufs');
+      counts(fixture)[1].click(); // ＋2
+      await fixture.whenStable();
+      await sync((doc) => setItemQty(doc, DEFAULT_LIST_ID, itemId, '6'));
+
+      await click(fixture, 'sl-dictation .receipt .undo');
+
+      expect(dispatched.at(-1)).toEqual(
+        expect.objectContaining({ type: '[Liste] Quantité modifiée', qty: '4' }),
+      );
     });
   });
 
@@ -717,9 +801,10 @@ describe('ListPage', () => {
       expect(
         fixture.nativeElement.querySelector('sl-history-pane'),
       ).not.toBeNull();
-      // La barre est permanente au bureau : elle n'attend pas qu'on l'ouvre.
+      // La barre est permanente au bureau : elle n'attend pas qu'on l'ouvre, et
+      // le mode dictée du téléphone n'a pas lieu d'être.
       expect(fixture.nativeElement.querySelector('sl-add-bar')).not.toBeNull();
-      expect(fixture.nativeElement.querySelector('sl-add-control')).toBeNull();
+      expect(fixture.nativeElement.querySelector('sl-dictation')).toBeNull();
     });
 
     it('suit l’élargissement de la fenêtre sans recharger', async () => {
@@ -752,6 +837,35 @@ describe('ListPage', () => {
       ).toBe('pai');
     });
 
+    it('ajoute une suggestion d’un tap sur la barre du bureau', async () => {
+      // Au bureau, un tap sur la suggestion ajoute — pas de rangée de quantité
+      // ici, c'est le geste de composition rapide.
+      const { fixture, dispatched } = await render({
+        wide: true,
+        seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
+      });
+      await type(fixture, 'lai');
+
+      await click(fixture, 'sl-add-bar .suggestion');
+
+      expect(types(dispatched)).toEqual(['[Liste] Produit ajouté']);
+      expect(field(fixture).value).toBe('');
+    });
+
+    it('crée depuis la barre du bureau ce que l’historique ignore', async () => {
+      const { fixture, dispatched } = await render({ wide: true });
+      await type(fixture, '  Rutabaga  ');
+
+      await click(fixture, 'sl-add-bar .create');
+
+      expect(dispatched).toEqual([
+        expect.objectContaining({
+          type: '[Liste] Produit créé et ajouté',
+          draft: { label: 'Rutabaga' },
+        }),
+      ]);
+    });
+
     it('ne laisse pas d’écouteur de largeur derrière elle', async () => {
       // Sans ce retrait, chaque visite de l'écran empilerait un écouteur qui
       // écrirait dans un composant détruit.
@@ -770,7 +884,7 @@ describe('ListPage', () => {
 
       expect(fixture.nativeElement.querySelector('sl-history-pane')).toBeNull();
       expect(
-        fixture.nativeElement.querySelector('sl-add-control'),
+        fixture.nativeElement.querySelector('sl-dictation'),
       ).not.toBeNull();
     });
   });
