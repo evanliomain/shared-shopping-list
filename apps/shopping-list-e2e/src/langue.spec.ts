@@ -35,6 +35,12 @@ test.describe('navigateur en anglais', () => {
     // geste, quel que soit le flux d'ajout.
     const input = page.locator('sl-add-bar input, sl-dictation input');
     await input.fill('Milk');
+    // La saisie doit avoir gagné le composant avant qu'Entrée ne vaille ＋1 :
+    // zoneless, sa projection est asynchrone. La rangée de quantité s'allume
+    // avec elle — on l'attend.
+    await expect(
+      page.locator('sl-dictation .count, sl-add-bar .quantity').first(),
+    ).toBeEnabled();
     await input.press('Enter');
 
     // « 1 item », pas « 1 items ».
