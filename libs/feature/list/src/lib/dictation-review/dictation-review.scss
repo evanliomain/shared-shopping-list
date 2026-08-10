@@ -1,0 +1,155 @@
+/* La relecture, un plein écran posé par-dessus la dictée. Elle paraît en montant
+   d'un cran, comme les autres écrans de la dictée. */
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: block;
+}
+
+.surface {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--sl-bg);
+  padding-block-start: var(--sl-safe-top);
+  animation: sl-dictation-review-in var(--sl-dur-base) var(--sl-ease-out);
+}
+
+@keyframes sl-dictation-review-in {
+  from {
+    opacity: 0;
+    transform: scale(0.985) translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.topbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sl-space-2);
+  min-block-size: 3.5rem;
+  padding-inline: var(--sl-space-4);
+  border-block-end: 1px solid var(--sl-border);
+}
+
+.topbar .title {
+  color: var(--sl-text);
+  font-size: var(--sl-font-md);
+  font-weight: 600;
+}
+
+.close {
+  min-block-size: var(--sl-tap-target);
+  padding-inline: var(--sl-space-2);
+  border: none;
+  background: transparent;
+  color: var(--sl-brand-ink);
+  font-size: var(--sl-font-md);
+  font-weight: 600;
+}
+
+.entries {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-block-size: 3.5rem;
+  padding-inline: var(--sl-space-3) var(--sl-space-4);
+  border-block-end: 1px solid var(--sl-surface-sunken);
+}
+
+.entry .label {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sl-text);
+  font-size: var(--sl-font-base);
+}
+
+/* Le stepper : deux disques de 32 px de part et d'autre du compte. Le moins est
+   creux et discret, le plus reprend le vert doux de la marque — c'est le geste
+   qu'on répète. */
+.step {
+  flex: none;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: none;
+  border-radius: var(--sl-radius-full);
+  font-size: var(--sl-font-xl);
+  line-height: 1;
+}
+
+.step.minus {
+  background: var(--sl-surface-sunken);
+  color: var(--sl-text-muted);
+}
+
+.step.plus {
+  background: var(--sl-brand-soft);
+  color: var(--sl-brand-ink);
+}
+
+.count {
+  min-inline-size: 1.625rem;
+  text-align: center;
+  color: var(--sl-text);
+  font-size: var(--sl-font-base);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.free {
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-sm);
+}
+
+.edit {
+  flex: none;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: none;
+  border-radius: var(--sl-radius-full);
+  background: var(--sl-surface-sunken);
+  color: var(--sl-text-muted);
+  font-size: var(--sl-font-sm);
+}
+
+/* Une seule sortie, pleine largeur : reprendre la dictée là où on l'a laissée. */
+.foot {
+  flex: none;
+  display: flex;
+  min-block-size: 5.5rem;
+  align-items: center;
+  padding: 0 var(--sl-space-4);
+  padding-block-end: var(--sl-safe-bottom);
+  border-block-start: 1px solid var(--sl-border);
+}
+
+.resume {
+  flex: 1;
+  min-block-size: 3.25rem;
+  border: none;
+  border-radius: var(--sl-radius);
+  background: var(--sl-brand);
+  color: var(--sl-text-on-brand);
+  font-size: var(--sl-font-lg);
+  font-weight: 600;
+}

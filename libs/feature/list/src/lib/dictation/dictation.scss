@@ -126,10 +126,17 @@
   justify-content: flex-end;
   align-items: center;
   min-block-size: var(--sl-tap-target);
+  border: none;
+  background: transparent;
   color: var(--sl-text-muted);
   font-size: var(--sl-font-sm);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* Rien à relire encore : le compteur reste lisible mais n'ouvre rien. */
+.counter:disabled {
+  opacity: 0.5;
 }
 
 .counter-num {

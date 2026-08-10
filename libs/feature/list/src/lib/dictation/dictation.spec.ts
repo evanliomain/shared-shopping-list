@@ -1,11 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { ProductImages, SuggestionView } from '@shopping-list/data-access/shopping';
+import {
+  ItemView,
+  ProductImages,
+  SuggestionView,
+} from '@shopping-list/data-access/shopping';
 import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
 import { DictationPad } from '../dictation-pad/dictation-pad';
+import { DictationReview } from '../dictation-review/dictation-review';
 import { FakeProductImages } from '../testing/fake-product-images';
-import { Dictation, DictationReceipt } from './dictation';
+import { Dictation, DictationReceipt, DictationRequantify } from './dictation';
 
 const YAOURT: SuggestionView = {
   productId: 'product-1',
@@ -20,13 +25,32 @@ const YAOURT: SuggestionView = {
   alreadyInList: false,
 };
 
+function entry(overrides: Partial<ItemView> = {}): ItemView {
+  return {
+    id: 'item-1',
+    productId: 'product-1',
+    label: 'Yaourt nature',
+    description: '',
+    qty: '1',
+    note: null,
+    checked: false,
+    imageRef: null,
+    emoji: '🍦',
+    aisle: 'cremerie',
+    unknownProduct: false,
+    addedBy: 'Evan',
+    createdAt: 0,
+    ...overrides,
+  };
+}
+
 interface Options {
   readonly open?: boolean;
   readonly retracted?: boolean;
   readonly query?: string;
   readonly suggestions?: readonly SuggestionView[];
   readonly receipt?: DictationReceipt | null;
-  readonly counter?: number;
+  readonly entries?: readonly ItemView[];
 }
 
 describe('Dictation', () => {
@@ -53,7 +77,7 @@ describe('Dictation', () => {
     fixture.componentRef.setInput('query', options.query ?? '');
     fixture.componentRef.setInput('suggestions', options.suggestions ?? [YAOURT]);
     fixture.componentRef.setInput('receipt', options.receipt ?? null);
-    fixture.componentRef.setInput('counter', options.counter ?? 0);
+    fixture.componentRef.setInput('entries', options.entries ?? []);
     fixture.componentRef.setInput('fabLabel', 'Ajouter un article');
     fixture.componentRef.setInput('placeholder', 'Article dicté…');
     await fixture.whenStable();
@@ -62,6 +86,16 @@ describe('Dictation', () => {
 
   function counts(fixture: ComponentFixture<Dictation>): HTMLButtonElement[] {
     return [...fixture.nativeElement.querySelectorAll('.count')];
+  }
+
+  function pad(fixture: ComponentFixture<Dictation>): DictationPad {
+    return fixture.debugElement.query(By.directive(DictationPad))
+      .componentInstance as DictationPad;
+  }
+
+  function review(fixture: ComponentFixture<Dictation>): DictationReview {
+    return fixture.debugElement.query(By.directive(DictationReview))
+      .componentInstance as DictationReview;
   }
 
   describe('au repos, un bouton flottant', () => {
@@ -289,18 +323,21 @@ describe('Dictation', () => {
 
   describe('le compteur', () => {
     it('affiche le nombre dicté', async () => {
-      const { nativeElement } = await render({ counter: 13 });
+      const { nativeElement } = await render({
+        entries: [entry({ id: 'a' }), entry({ id: 'b' })],
+      });
 
-      expect(nativeElement.querySelector('.counter-num').textContent).toBe('13');
+      expect(nativeElement.querySelector('.counter-num').textContent).toBe('2');
+    });
+
+    it('reste éteint tant que rien n’a été dicté', async () => {
+      const { nativeElement } = await render({ entries: [] });
+
+      expect(nativeElement.querySelector('.counter').disabled).toBe(true);
     });
   });
 
   describe('le pavé de saisie libre', () => {
-    function pad(fixture: ComponentFixture<Dictation>): DictationPad {
-      return fixture.debugElement.query(By.directive(DictationPad))
-        .componentInstance as DictationPad;
-    }
-
     it('remplace la saisie par le pavé quand on tape ＋…', async () => {
       const fixture = await render({ query: 'tomates' });
 
@@ -337,6 +374,93 @@ describe('Dictation', () => {
 
       expect(posed).toEqual(['500 g']);
       expect(fixture.nativeElement.querySelector('.surface')).not.toBeNull();
+    });
+  });
+
+  describe('la relecture', () => {
+    it('ouvre la relecture au tap du compteur', async () => {
+      const fixture = await render({ entries: [entry()] });
+
+      fixture.nativeElement.querySelector('.counter').click();
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.querySelector('.field')).toBeNull();
+      expect(review(fixture).entries()).toHaveLength(1);
+    });
+
+    async function openReview(query = '') {
+      const fixture = await render({ query, entries: [entry()] });
+      fixture.nativeElement.querySelector('.counter').click();
+      await fixture.whenStable();
+      return fixture;
+    }
+
+    it('revient à la saisie quand la relecture se referme', async () => {
+      const fixture = await openReview();
+
+      review(fixture).dismissed.emit();
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.querySelector('.field')).not.toBeNull();
+      expect(fixture.debugElement.query(By.directive(DictationReview))).toBeNull();
+    });
+
+    it('remonte le compte visé par le stepper, retrait sous 1', async () => {
+      const fixture = await openReview();
+      const changes: DictationRequantify[] = [];
+      fixture.componentInstance.requantified.subscribe((c) => changes.push(c));
+      const line = entry({ id: 'x', qty: '4' });
+
+      review(fixture).stepped.emit({ item: line, count: 5 });
+      review(fixture).stepped.emit({ item: line, count: 0 });
+
+      expect(changes).toEqual([
+        { item: line, qty: '5' },
+        { item: line, qty: null },
+      ]);
+    });
+
+    it('rouvre le pavé, amorcé, sur un ✎', async () => {
+      const fixture = await openReview();
+
+      review(fixture).edit.emit(entry({ label: 'Tomates', qty: '500 g' }));
+      await fixture.whenStable();
+
+      expect(pad(fixture).article()).toBe('Tomates');
+      expect(
+        (fixture.nativeElement.querySelector('.value-num') as HTMLInputElement)
+          .value,
+      ).toBe('500');
+      expect(
+        fixture.nativeElement.querySelector('.unit.chosen')?.textContent?.trim(),
+      ).toBe('g');
+    });
+
+    it('repose la quantité rééditée et revient à la relecture', async () => {
+      const fixture = await openReview();
+      const changes: DictationRequantify[] = [];
+      fixture.componentInstance.requantified.subscribe((c) => changes.push(c));
+      const line = entry({ id: 'x', qty: '500 g' });
+      review(fixture).edit.emit(line);
+      await fixture.whenStable();
+
+      pad(fixture).submitted.emit('750 g');
+      await fixture.whenStable();
+
+      expect(changes).toEqual([{ item: line, qty: '750 g' }]);
+      expect(review(fixture).entries()).toHaveLength(1);
+    });
+
+    it('revient à la relecture au « Retour » d’une réédition', async () => {
+      const fixture = await openReview();
+      review(fixture).edit.emit(entry({ qty: '500 g' }));
+      await fixture.whenStable();
+
+      pad(fixture).back.emit();
+      await fixture.whenStable();
+
+      expect(fixture.debugElement.query(By.directive(DictationReview))).not.toBeNull();
+      expect(fixture.debugElement.query(By.directive(DictationPad))).toBeNull();
     });
   });
 

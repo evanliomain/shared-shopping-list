@@ -103,6 +103,17 @@
       "article": "Article",
       "unit": "Unité",
       "add": "Ajouter {{qty}}"
+    },
+    "review": {
+      "open": {
+        "=0": "Rien à relire",
+        "one": "Relire {{count}} article dicté",
+        "other": "Relire {{count}} articles dictés"
+      },
+      "increase": "Ajouter un {{label}}",
+      "decrease": "Enlever un {{label}}",
+      "editQty": "Modifier la quantité de {{label}}",
+      "resume": "Reprendre la dictée"
     }
   },
   "theme": {

@@ -24,6 +24,24 @@ import { trackKeyboardInset } from '../keyboard-inset';
 export const PAD_UNITS: readonly string[] = ['u', 'g', 'kg', 'L', 'pack'];
 
 /**
+ * Sépare une quantité posée en valeur et unité, pour la rouvrir au pavé.
+ *
+ * L'inverse de ce que le pavé compose : « 500 g » → `{ value: '500', unit: 'g' }`,
+ * « 4 » → `{ value: '4', unit: 'u' }`. Une unité qu'on ne connaît pas — le texte
+ * libre d'une ancienne quantité, « un pack de 4 » — retombe sur le compte pur,
+ * la valeur vide : le pavé repart d'une page blanche plutôt que d'un charabia.
+ */
+export function splitQty(qty: string): { value: string; unit: string } {
+  const match = /^(\d+(?:\.\d+)?)\s*(.*)$/.exec(qty.trim());
+  if (null === match) {
+    return { value: '', unit: 'u' };
+  }
+
+  const rest = match[2].trim();
+  return { value: match[1], unit: PAD_UNITS.includes(rest) ? rest : 'u' };
+}
+
+/**
  * Le pavé de saisie libre : « 500 g », « 2 packs », « 1,5 L ».
  *
  * Il s'ouvre depuis ＋… quand le compte ne suffit pas — un poids, un volume, un

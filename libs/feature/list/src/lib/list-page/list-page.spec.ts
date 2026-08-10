@@ -891,6 +891,68 @@ describe('ListPage', () => {
     });
   });
 
+  describe('relecture au compteur', () => {
+    /** Ouvre la dictée, dépose une ligne dictée, puis ouvre la relecture. */
+    async function openReview(
+      seed: (doc: Y.Doc) => void,
+    ): Promise<{ fixture: ComponentFixture<ListPage>; dispatched: Action[] }> {
+      const { fixture, dispatched, sync } = await render();
+      await click(fixture, '.empty-add button');
+      await sync(seed);
+      await click(fixture, 'sl-dictation .counter');
+      return { fixture, dispatched };
+    }
+
+    it('augmente la quantité au « + »', async () => {
+      const { fixture, dispatched } = await openReview((doc) =>
+        put(doc, createProduct(doc, { label: 'Lait' }, NOW), Date.now()),
+      );
+
+      await click(fixture, 'sl-dictation-review .step.plus');
+
+      expect(dispatched.at(-1)).toEqual(
+        expect.objectContaining({ type: '[Liste] Quantité modifiée', qty: '2' }),
+      );
+    });
+
+    it('retire la ligne au « − » sous 1', async () => {
+      const { fixture, dispatched } = await openReview((doc) =>
+        put(doc, createProduct(doc, { label: 'Lait' }, NOW), Date.now()),
+      );
+
+      await click(fixture, 'sl-dictation-review .step.minus');
+
+      expect(types(dispatched)).toContain('[Liste] Article retiré');
+    });
+
+    it('rouvre le pavé au ✎ et repose la quantité rééditée', async () => {
+      const { fixture, dispatched } = await openReview((doc) => {
+        const itemId = put(
+          doc,
+          createProduct(doc, { label: 'Tomates grappe' }, NOW),
+          Date.now(),
+        );
+        setItemQty(doc, DEFAULT_LIST_ID, itemId, '500 g');
+      });
+
+      await click(fixture, 'sl-dictation-review .edit');
+      const num = fixture.nativeElement.querySelector(
+        'sl-dictation-pad .value-num',
+      ) as HTMLInputElement;
+      num.value = '750';
+      num.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+      await click(fixture, 'sl-dictation-pad .add');
+
+      expect(dispatched.at(-1)).toEqual(
+        expect.objectContaining({
+          type: '[Liste] Quantité modifiée',
+          qty: '750 g',
+        }),
+      );
+    });
+  });
+
   describe('photos', () => {
     it('demande la résolution des photos de la liste', async () => {
       const { images } = await render({

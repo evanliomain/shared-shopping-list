@@ -1,12 +1,21 @@
 <!-- Le plein écran de dictée, monté seulement ouvert : fermé, il ne reste que
      le disque du coin, porté par l'hôte lui-même. En dictée on ne consulte pas
      la liste, on la remplit — rien à voiler derrière. Un seul écran à la fois :
-     la saisie, ou le pavé de saisie libre ouvert par ＋…. -->
+     la saisie, la relecture ouverte par le compteur, ou le pavé ouvert par ＋…. -->
 @if (open()) { @if ('pad' === view()) {
 <sl-dictation-pad
-  [article]="query()"
+  [article]="padArticle()"
+  [value]="padSeed().value"
+  [unit]="padSeed().unit"
   (back)="closePad()"
   (submitted)="onFreeQuantified($event)"
+/>
+} @else if ('review' === view()) {
+<sl-dictation-review
+  [entries]="entries()"
+  (stepped)="onStepped($event)"
+  (edit)="onEdit($event)"
+  (dismissed)="closeReview()"
 />
 } @else {
 <div class="surface">
@@ -15,17 +24,21 @@
       {{ 'addBar.done' | transloco }}
     </button>
     <span class="title">{{ 'dictation.title' | transloco }}</span>
-    <!-- Le compteur dit combien on a dicté et pulse à chaque ajout. Il se
-         recrée à chaque changement de valeur — c'est ce qui rejoue l'animation
-         d'entrée sans minuteur à piloter. -->
-    <span
+    <!-- Le compteur dit combien on a dicté et pulse à chaque ajout ; il ouvre
+         la relecture à la demande. Il se recrée à chaque changement de valeur —
+         c'est ce qui rejoue l'animation d'entrée sans minuteur à piloter.
+         Éteint à zéro : il n'y a alors rien à relire. -->
+    <button
+      type="button"
       class="counter"
-      [attr.aria-label]="'dictation.counter' | plural: counter()"
+      [disabled]="0 === count()"
+      [attr.aria-label]="'dictation.review.open' | plural: count()"
+      (click)="openReview()"
     >
-      @for (c of [counter()]; track c) {
+      @for (c of [count()]; track c) {
       <span class="counter-num">{{ c }}</span>
       }
-    </span>
+    </button>
   </header>
 
   <div class="field">
