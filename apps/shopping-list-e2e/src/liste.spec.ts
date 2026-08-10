@@ -66,10 +66,25 @@ async function closeAdd(page: Page): Promise<void> {
  * vaut ＋1 en dictée comme il valide la barre au bureau. Crée le produit s'il
  * est inconnu, le reprend sinon.
  */
+/**
+ * Valide la composition en cours à la touche Entrée (le ＋1 des deux flux).
+ *
+ * La saisie doit avoir gagné le composant avant qu'Entrée ne vaille ＋1 :
+ * zoneless, la projection du signal est asynchrone, et Entrée sur un champ que
+ * le composant croit encore vide n'ajoute rien. La rangée de quantité s'allume
+ * avec la saisie — on l'attend, quel que soit le flux (dictée ou barre).
+ */
+async function pressAdd(page: Page): Promise<void> {
+  await expect(
+    page.locator('sl-dictation .count, sl-add-bar .quantity').first(),
+  ).toBeEnabled();
+  await input(page).press('Enter');
+}
+
 async function createArticle(page: Page, label: string): Promise<void> {
   await openAdd(page);
   await input(page).fill(label);
-  await input(page).press('Enter');
+  await pressAdd(page);
   // On attend que la ligne soit revenue du CRDT avant de rendre la main : sans
   // ça, un test qui enchaîne aussitôt sur la liste lit un état pas encore à
   // jour (la projection Y.Doc → store → DOM est asynchrone).
@@ -260,9 +275,9 @@ test('l’historique propose les articles déjà saisis', async ({ page }) => {
 
   await suggestion.click();
   // En dictée, un tap complète le champ ; c'est la rangée (ici Entrée = ＋1) qui
-  // valide. Au bureau, le tap ajoute directement.
+  // valide, une fois la saisie parvenue au composant. Au bureau, le tap ajoute.
   if (usesDictation(page)) {
-    await input(page).press('Enter');
+    await pressAdd(page);
   }
   await expect(row(page, 'Yaourt')).toBeVisible();
 });
@@ -425,7 +440,9 @@ test('archiver un produit le retire des suggestions', async ({ page }) => {
   await expect(page.locator('.suggestion')).toHaveCount(1);
   await page.locator('.suggestion').click();
   if (usesDictation(page)) {
-    await input(page).press('Enter');
+    // Le tap complète le champ ; c'est Entrée qui valide, une fois la saisie
+    // parvenue au composant.
+    await pressAdd(page);
   }
   await closeAdd(page);
 
