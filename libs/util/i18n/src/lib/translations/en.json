@@ -103,6 +103,17 @@
       "article": "Item",
       "unit": "Unit",
       "add": "Add {{qty}}"
+    },
+    "review": {
+      "open": {
+        "=0": "Nothing to review",
+        "one": "Review {{count}} dictated item",
+        "other": "Review {{count}} dictated items"
+      },
+      "increase": "Add one {{label}}",
+      "decrease": "Remove one {{label}}",
+      "editQty": "Edit {{label}} quantity",
+      "resume": "Resume dictation"
     }
   },
   "theme": {

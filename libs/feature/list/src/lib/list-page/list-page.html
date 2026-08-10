@@ -151,7 +151,7 @@
   [query]="ui.query()"
   [suggestions]="suggestions()"
   [receipt]="dictationReceipt()"
-  [counter]="dictatedCount()"
+  [entries]="justAdded()"
   [fabLabel]="'list.addArticle' | transloco"
   [placeholder]="
     (0 < justAdded().length ? 'addBar.nextPlaceholder' : 'addBar.placeholder')
@@ -162,6 +162,7 @@
   (picked)="pickSuggestion($event)"
   (quantified)="addCounted($event)"
   (freeQuantified)="addFree($event)"
+  (requantified)="requantify($event)"
   (undone)="undoLast()"
   (dismissed)="ui.stopPicking()"
 />

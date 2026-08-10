@@ -42,7 +42,11 @@ import { normalize } from '@shopping-list/util/categories';
 import { ThemeStore } from '@shopping-list/util/theme';
 
 import { AddBar } from '../add-bar/add-bar';
-import { Dictation, DictationReceipt } from '../dictation/dictation';
+import {
+  Dictation,
+  DictationReceipt,
+  DictationRequantify,
+} from '../dictation/dictation';
 import { HistoryPane } from '../history-pane/history-pane';
 import { ItemRow } from '../item-row/item-row';
 import { ListMenu } from '../list-menu/list-menu';
@@ -160,9 +164,6 @@ export class ListPage {
   protected readonly fabRetracted = computed(
     () => this.ui.fabHidden() || this.isEmpty(),
   );
-
-  /** Le compteur de la dictée : ce qui a rejoint la liste depuis l'ouverture. */
-  protected readonly dictatedCount = computed(() => this.justAdded().length);
 
   /**
    * Le reçu d'une ligne : le dernier article dicté, sa quantité, et le compte
@@ -415,6 +416,26 @@ export class ListPage {
     } else {
       this.store.dispatch(
         listActions.quantitéModifiée({ itemId: item.id, qty: previousQty }),
+      );
+    }
+  }
+
+  /**
+   * Relecture : une ligne change de quantité, ou sort. Le stepper descendu sous
+   * 1 et le ✎ qui n'a rien laissé passent tous deux par un retrait ; toute autre
+   * valeur se pose sur la ligne.
+   */
+  protected requantify(change: DictationRequantify): void {
+    if (null === change.qty) {
+      this.store.dispatch(
+        listActions.articleRetiré({ itemId: change.item.id }),
+      );
+    } else {
+      this.store.dispatch(
+        listActions.quantitéModifiée({
+          itemId: change.item.id,
+          qty: change.qty,
+        }),
       );
     }
   }

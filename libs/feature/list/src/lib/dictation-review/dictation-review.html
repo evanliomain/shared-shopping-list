@@ -1,0 +1,54 @@
+<div class="surface">
+  <header class="topbar">
+    <span class="title">{{ 'dictation.counter' | plural: entries().length }}</span>
+    <button type="button" class="close" (click)="dismissed.emit()">
+      {{ 'common.close' | transloco }}
+    </button>
+  </header>
+
+  <ul class="entries">
+    @for (row of rows(); track row.entry.id) {
+    <li class="entry">
+      <span class="label">{{ row.entry.label }}</span>
+
+      <!-- Une ligne comptée se corrige au pas ; une quantité libre se rouvre au
+           pavé — elle ne se compte pas. -->
+      @if (null !== row.count) {
+      <button
+        type="button"
+        class="step minus"
+        [attr.aria-label]="'dictation.review.decrease' | transloco: { label: row.entry.label }"
+        (click)="stepped.emit({ item: row.entry, count: row.count! - 1 })"
+      >
+        −
+      </button>
+      <span class="count">{{ row.count }}</span>
+      <button
+        type="button"
+        class="step plus"
+        [attr.aria-label]="'dictation.review.increase' | transloco: { label: row.entry.label }"
+        (click)="stepped.emit({ item: row.entry, count: row.count! + 1 })"
+      >
+        +
+      </button>
+      } @else {
+      <span class="free">{{ row.entry.qty }}</span>
+      <button
+        type="button"
+        class="edit"
+        [attr.aria-label]="'dictation.review.editQty' | transloco: { label: row.entry.label }"
+        (click)="edit.emit(row.entry)"
+      >
+        ✎
+      </button>
+      }
+    </li>
+    }
+  </ul>
+
+  <div class="foot">
+    <button type="button" class="resume" (click)="dismissed.emit()">
+      {{ 'dictation.review.resume' | transloco }}
+    </button>
+  </div>
+</div>

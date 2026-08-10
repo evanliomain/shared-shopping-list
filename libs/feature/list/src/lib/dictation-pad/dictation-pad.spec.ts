@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
-import { DictationPad } from './dictation-pad';
+import { DictationPad, splitQty } from './dictation-pad';
 
 interface Options {
   readonly article?: string;
@@ -181,5 +181,25 @@ describe('DictationPad', () => {
     expect(nativeElement.querySelector('.value-num')).toBe(
       nativeElement.ownerDocument.activeElement,
     );
+  });
+});
+
+describe('splitQty', () => {
+  it('scinde une quantité en valeur et unité connue', () => {
+    expect(splitQty('500 g')).toEqual({ value: '500', unit: 'g' });
+    expect(splitQty('2 pack')).toEqual({ value: '2', unit: 'pack' });
+    expect(splitQty('1.5 kg')).toEqual({ value: '1.5', unit: 'kg' });
+  });
+
+  it('ramène un compte nu au compte pur', () => {
+    expect(splitQty('4')).toEqual({ value: '4', unit: 'u' });
+  });
+
+  it('repart d’une page blanche sur un texte non chiffré', () => {
+    expect(splitQty('un pack de 4')).toEqual({ value: '', unit: 'u' });
+  });
+
+  it('retombe sur le compte pur quand l’unité est inconnue', () => {
+    expect(splitQty('3 douzaines')).toEqual({ value: '3', unit: 'u' });
   });
 });

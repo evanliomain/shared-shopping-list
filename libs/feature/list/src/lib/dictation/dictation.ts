@@ -11,15 +11,26 @@ import {
   viewChild,
 } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { ProductImages, SuggestionView } from '@shopping-list/data-access/shopping';
+import {
+  ItemView,
+  ProductImages,
+  SuggestionView,
+} from '@shopping-list/data-access/shopping';
 import { MatchedText, ProductAvatar } from '@shopping-list/ui';
 import { PluralPipe } from '@shopping-list/util/i18n';
 
-import { DictationPad } from '../dictation-pad/dictation-pad';
+import { DictationPad, splitQty } from '../dictation-pad/dictation-pad';
+import { DictationReview, DictationStep } from '../dictation-review/dictation-review';
 import { trackKeyboardInset } from '../keyboard-inset';
 
-/** L'écran affiché dans le plein écran de dictée : la saisie, ou le pavé libre. */
-export type DictationView = 'input' | 'pad';
+/** L'écran affiché dans le plein écran : la saisie, la relecture, ou le pavé. */
+export type DictationView = 'input' | 'review' | 'pad';
+
+/** Un changement de quantité sur une ligne dictée. `null` : la ligne sort. */
+export interface DictationRequantify {
+  readonly item: ItemView;
+  readonly qty: string | null;
+}
 
 /** Ce que le reçu d'une ligne montre du dernier article dicté. */
 export interface DictationReceipt {
@@ -51,13 +62,22 @@ export const QUICK_COUNTS: readonly number[] = [1, 2, 4];
  * nombre dicté.
  *
  * Le compte ne suffit pas toujours : ＋… bascule sur le **pavé de saisie libre**
- * (`sl-dictation-pad`) pour un poids ou un volume. Le plein écran ne montre
- * alors qu'un écran à la fois — la saisie, ou le pavé —, piloté par `view`.
+ * (`sl-dictation-pad`) pour un poids ou un volume, et le compteur ouvre la
+ * **relecture** (`sl-dictation-review`) pour corriger ce qu'on a dicté. Le plein
+ * écran ne montre qu'un écran à la fois — saisie, relecture ou pavé —, piloté
+ * par `view`.
  */
 @Component({
   selector: 'sl-dictation',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DictationPad, MatchedText, PluralPipe, ProductAvatar, TranslocoPipe],
+  imports: [
+    DictationPad,
+    DictationReview,
+    MatchedText,
+    PluralPipe,
+    ProductAvatar,
+    TranslocoPipe,
+  ],
   templateUrl: './dictation.html',
   styleUrl: './dictation.scss',
   host: {
@@ -80,8 +100,8 @@ export class Dictation {
   readonly query = input.required<string>();
   readonly suggestions = input.required<readonly SuggestionView[]>();
   readonly receipt = input<DictationReceipt | null>(null);
-  /** Nombre d'articles dictés depuis l'ouverture. */
-  readonly counter = input.required<number>();
+  /** Les lignes dictées depuis l'ouverture : le compteur, et la relecture. */
+  readonly entries = input.required<readonly ItemView[]>();
   /** Lu à voix haute sur le bouton fermé. */
   readonly fabLabel = input.required<string>();
   readonly placeholder = input.required<string>();
@@ -97,14 +117,34 @@ export class Dictation {
   readonly undone = output<void>();
   /** ＋… puis « Ajouter » : l'article en cours prend cette quantité libre. */
   readonly freeQuantified = output<string>();
+  /** Relecture : une ligne change de quantité (stepper), ou sort (sous 1, ✎). */
+  readonly requantified = output<DictationRequantify>();
   /** « Terminé » (ou Échap) : la dictée se referme. */
   readonly dismissed = output<void>();
 
   protected readonly images = inject(ProductImages);
   protected readonly quickCounts = QUICK_COUNTS;
 
-  /** L'écran en cours dans le plein écran : la saisie, sinon le pavé libre. */
+  /** L'écran en cours : la saisie, la relecture, ou le pavé de saisie libre. */
   protected readonly view = signal<DictationView>('input');
+
+  /** La ligne rouverte au pave par ✎, le temps de la réédition ; sinon `null`. */
+  private readonly editing = signal<ItemView | null>(null);
+
+  /** Le nombre dicté, affiché au compteur et en tête de la relecture. */
+  protected readonly count = computed(() => this.entries().length);
+
+  /** Ce que le pavé quantifie : la ligne rouverte, sinon le libellé en cours. */
+  protected readonly padArticle = computed(() => {
+    const editing = this.editing();
+    return null === editing ? this.query() : editing.label;
+  });
+
+  /** L'amorce du pavé : la quantité rouverte scindée, sinon une page blanche. */
+  protected readonly padSeed = computed(() => {
+    const editing = this.editing();
+    return null === editing ? { value: '', unit: 'u' } : splitQty(editing.qty);
+  });
 
   // Le champ n'existe que le plein écran ouvert ; fermé, il n'y a que le
   // bouton flottant.
@@ -131,10 +171,11 @@ export class Dictation {
     });
 
     // Fermé, on repart de la saisie : la prochaine ouverture ne rouvre jamais
-    // sur le pavé laissé derrière soi.
+    // sur la relecture ou le pavé laissés derrière soi.
     effect(() => {
       if (!this.open()) {
         this.view.set('input');
+        this.editing.set(null);
       }
     });
 
@@ -193,14 +234,51 @@ export class Dictation {
     this.view.set('pad');
   }
 
-  /** « Retour » du pavé : on revient à la saisie sans rien poser. */
-  protected closePad(): void {
+  /** Le compteur : on ouvre la relecture de ce qu'on a dicté. */
+  protected openReview(): void {
+    this.view.set('review');
+  }
+
+  /** « Fermer » ou « Reprendre la dictée » : retour à la saisie. */
+  protected closeReview(): void {
     this.view.set('input');
   }
 
-  /** « Ajouter » du pavé : la quantité libre remonte, et la saisie reparaît. */
+  /** −/+ de la relecture : le compte visé remonte, la ligne sort sous 1. */
+  protected onStepped(step: DictationStep): void {
+    this.requantified.emit({
+      item: step.item,
+      qty: step.count < 1 ? null : String(step.count),
+    });
+  }
+
+  /** ✎ de la relecture : on rouvre le pavé sur la quantité libre de la ligne. */
+  protected onEdit(item: ItemView): void {
+    this.editing.set(item);
+    this.view.set('pad');
+  }
+
+  /** « Retour » du pavé : à la relecture si on éditait une ligne, sinon la saisie. */
+  protected closePad(): void {
+    const editing = null !== this.editing();
+    this.editing.set(null);
+    this.view.set(editing ? 'review' : 'input');
+  }
+
+  /**
+   * « Ajouter » du pavé. En réédition, la quantité repose sur la ligne rouverte
+   * et l'on revient à la relecture ; sinon elle va au libellé en cours et la
+   * saisie reparaît.
+   */
   protected onFreeQuantified(qty: string): void {
-    this.freeQuantified.emit(qty);
-    this.view.set('input');
+    const editing = this.editing();
+    if (null !== editing) {
+      this.requantified.emit({ item: editing, qty });
+      this.editing.set(null);
+      this.view.set('review');
+    } else {
+      this.freeQuantified.emit(qty);
+      this.view.set('input');
+    }
   }
 }
