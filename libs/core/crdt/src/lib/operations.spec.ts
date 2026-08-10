@@ -281,6 +281,116 @@ describe('opérations sur le CRDT', () => {
       expect(itemsOf(doc)[0].note).toBe('entier');
     });
 
+    describe('compte de la dictée', () => {
+      it('ne pose rien pour un compte de 1 sur une ligne neuve', () => {
+        // « ×1 » n'apprend rien et masquerait le defaultQty du produit.
+        const doc = freshDoc();
+        const productId = createProduct(doc, { label: 'Lait' }, NOW);
+
+        addItem(doc, {
+          listId: LIST,
+          productId,
+          count: 1,
+          addedBy: 'Evan',
+          deviceId: 'device-A',
+          now: NOW,
+        });
+
+        expect(itemsOf(doc)[0].qty).toBeNull();
+      });
+
+      it('pose le compte sur une ligne neuve', () => {
+        const doc = freshDoc();
+        const productId = createProduct(doc, { label: 'Yaourt' }, NOW);
+
+        addItem(doc, {
+          listId: LIST,
+          productId,
+          count: 4,
+          addedBy: 'Evan',
+          deviceId: 'device-A',
+          now: NOW,
+        });
+
+        expect(itemsOf(doc)[0].qty).toBe('4');
+      });
+
+      it('incrémente le compte quand on redicte le même article', () => {
+        // « quatre yaourts » puis « deux yaourts » font six, pas deux.
+        const doc = freshDoc();
+        const productId = createProduct(doc, { label: 'Yaourt' }, NOW);
+        addItem(doc, {
+          listId: LIST,
+          productId,
+          count: 4,
+          addedBy: 'Evan',
+          deviceId: 'device-A',
+          now: NOW,
+        });
+
+        addItem(doc, {
+          listId: LIST,
+          productId,
+          count: 2,
+          addedBy: 'Evan',
+          deviceId: 'device-A',
+          now: NOW + 1000,
+        });
+
+        expect(itemsOf(doc)).toHaveLength(1);
+        expect(itemsOf(doc)[0].qty).toBe('6');
+      });
+
+      it('compte une ligne déjà là pour au moins un, même sans quantité', () => {
+        const doc = freshDoc();
+        const productId = createProduct(doc, { label: 'Lait' }, NOW);
+        addItem(doc, {
+          listId: LIST,
+          productId,
+          addedBy: 'Evan',
+          deviceId: 'device-A',
+          now: NOW,
+        });
+
+        addItem(doc, {
+          listId: LIST,
+          productId,
+          count: 1,
+          addedBy: 'Evan',
+          deviceId: 'device-A',
+          now: NOW + 1000,
+        });
+
+        expect(itemsOf(doc)[0].qty).toBe('2');
+      });
+
+      it('repart d’une quantité libre en la comptant pour un', () => {
+        // On ne sait pas additionner « un pack de 4 » : la redicter la remplace
+        // par un compte, qui vaut au moins ce qui était déjà là.
+        const doc = freshDoc();
+        const productId = createProduct(doc, { label: 'Œufs' }, NOW);
+        addItem(doc, {
+          listId: LIST,
+          productId,
+          qty: 'un pack de 4',
+          addedBy: 'Evan',
+          deviceId: 'device-A',
+          now: NOW,
+        });
+
+        addItem(doc, {
+          listId: LIST,
+          productId,
+          count: 2,
+          addedBy: 'Evan',
+          deviceId: 'device-A',
+          now: NOW + 1000,
+        });
+
+        expect(itemsOf(doc)[0].qty).toBe('3');
+      });
+    });
+
     it('crée la ligne même si le produit n’est pas encore au catalogue', () => {
       // Les deltas n'arrivent pas forcément dans l'ordre : refuser ici
       // perdrait l'article au lieu d'attendre son produit.

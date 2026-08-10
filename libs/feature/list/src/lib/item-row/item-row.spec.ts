@@ -56,6 +56,19 @@ describe('ItemRow', () => {
     expect(nativeElement.querySelector('.qty')).toBeNull();
   });
 
+  it('préfixe un compte pur d’un « × »', async () => {
+    const { nativeElement } = await render({ qty: '4' });
+
+    expect(nativeElement.querySelector('.qty').textContent).toContain('×4');
+  });
+
+  it('n’affiche pas un compte de 1', async () => {
+    // Le défaut : un « ×1 » n'apprend rien et alourdirait la ligne.
+    const { nativeElement } = await render({ qty: '1' });
+
+    expect(nativeElement.querySelector('.qty')).toBeNull();
+  });
+
   it('affiche la note de la ligne quand elle en porte une', async () => {
     const { nativeElement } = await render({ note: 'le petit format' });
 

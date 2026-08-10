@@ -153,6 +153,30 @@ describe('effects de la tranche « courses »', () => {
       });
     });
 
+    it('ajoute avec un compte, et l’incrémente sur un doublon', () => {
+      // C'est le ＋2 de la dictée : un nombre est un compte à ajouter, pas une
+      // quantité à poser — redicter le même article l'incrémente.
+      run(writeListIntents);
+      const yaourt = createProduct(doc, { label: 'Yaourt' }, NOW);
+
+      actions.next(listActions.produitAjouté({ productId: yaourt, qty: 4 }));
+      expect(itemFor(yaourt).qty).toBe('4');
+
+      actions.next(listActions.produitAjouté({ productId: yaourt, qty: 2 }));
+      expect(itemFor(yaourt).qty).toBe('6');
+    });
+
+    it('pose une quantité libre quand on ajoute avec une chaîne', () => {
+      run(writeListIntents);
+      const tomates = createProduct(doc, { label: 'Tomates' }, NOW);
+
+      actions.next(
+        listActions.produitAjouté({ productId: tomates, qty: '500 g' }),
+      );
+
+      expect(itemFor(tomates).qty).toBe('500 g');
+    });
+
     it('laisse passer les intentions qui ne le concernent pas', () => {
       // Sans le filtrage par type, la branche par défaut du switch — « vider la
       // liste » — s'appliquerait à n'importe quelle action traversant le store.
@@ -275,6 +299,18 @@ describe('effects de la tranche « courses »', () => {
       ]);
       expect(items()).toHaveLength(1);
       expect(items()[0].productId).toBe(catalog()[0].id);
+    });
+
+    it('pose la quantité sur la ligne qu’il crée', () => {
+      // Dicter « quatre yaourts » sur un article encore inconnu doit créer la
+      // ligne avec son compte, pas repartir à un.
+      run(createAndAddProduct);
+
+      actions.next(
+        listActions.produitCrééEtAjouté({ draft: { label: 'Yaourt' }, qty: 4 }),
+      );
+
+      expect(items()[0].qty).toBe('4');
     });
 
     it('devine le rayon sur le libellé et la description réunis', () => {

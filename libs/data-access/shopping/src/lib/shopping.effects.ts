@@ -4,6 +4,7 @@ import { Actions, ofType } from '@ngrx/effects';
 import { blobHashOf } from '@shopping-list/core/blobs';
 import {
   addItem,
+  type AddItemParams,
   archiveProduct,
   clearCheckedItems,
   clearList,
@@ -30,6 +31,23 @@ import { maintenanceEffects } from './maintenance.effects';
 import { AdoptedImage, ProductBankImages } from './product-bank-images.service';
 import { catalogActions, crdtActions, listActions } from './shopping.actions';
 import { DEFAULT_LIST_ID } from './shopping.feature';
+
+/**
+ * Traduit la quantité portée par une intention d'ajout en paramètres de
+ * `addItem`. Un nombre est un compte à incrémenter, une chaîne une quantité
+ * libre à poser ; l'absence laisse la ligne inchangée.
+ */
+function quantityParams(
+  qty: number | string | undefined,
+): Pick<AddItemParams, 'count' | 'qty'> {
+  if ('number' === typeof qty) {
+    return { count: qty };
+  }
+  if ('string' === typeof qty) {
+    return { qty };
+  }
+  return {};
+}
 
 /**
  * Projette le Y.Doc dans le store.
@@ -79,6 +97,7 @@ export const writeListIntents = createEffect(
                 addedBy: yDoc.deviceName,
                 deviceId: yDoc.deviceId,
                 now,
+                ...quantityParams(action.qty),
               });
               return;
 
@@ -166,6 +185,7 @@ export const createAndAddProduct = createEffect(
             addedBy: yDoc.deviceName,
             deviceId: yDoc.deviceId,
             now,
+            ...quantityParams(action.qty),
           });
         });
 

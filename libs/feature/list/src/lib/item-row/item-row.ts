@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { translateSignal } from '@jsverse/transloco';
-import { ItemView } from '@shopping-list/data-access/shopping';
+import { displayQty, ItemView } from '@shopping-list/data-access/shopping';
 import { ProductAvatar } from '@shopping-list/ui';
 
 /** Amplitude à franchir pour qu'un glissé compte comme une intention. */
@@ -88,8 +88,8 @@ type Swipe = 'none' | 'check' | 'remove';
           }
         </span>
 
-        @if ('' !== item().qty) {
-          <span class="qty">{{ item().qty }}</span>
+        @if ('' !== qtyLabel()) {
+          <span class="qty">{{ qtyLabel() }}</span>
         }
       </div>
 
@@ -421,6 +421,9 @@ export class ItemRow {
   protected readonly displayLabel = computed(() =>
     this.item().unknownProduct ? this.unknownLabel() : this.item().label,
   );
+
+  /** « ×4 » pour un compte, la quantité libre telle quelle, rien pour un seul. */
+  protected readonly qtyLabel = computed(() => displayQty(this.item().qty));
 
   /** Décalage horizontal courant, en pixels signés. Zéro : ligne au repos. */
   private readonly offset = signal(0);

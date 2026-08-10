@@ -1,6 +1,6 @@
 import { Product, ProductId } from '@shopping-list/core/crdt';
 
-import { displayEmoji, productUsage } from './shopping.views';
+import { displayEmoji, displayQty, productUsage } from './shopping.views';
 
 function product(values: Partial<Product> = {}): Product {
   return {
@@ -50,5 +50,24 @@ describe('productUsage', () => {
 
   it('vaut zéro pour un produit jamais repris', () => {
     expect(productUsage(product())).toBe(0);
+  });
+});
+
+describe('displayQty', () => {
+  it('préfixe un compte pur d’un « × »', () => {
+    expect(displayQty('4')).toBe('×4');
+  });
+
+  it('n’affiche pas le compte 1 — c’est le défaut', () => {
+    expect(displayQty('1')).toBe('');
+  });
+
+  it('laisse une quantité libre telle quelle', () => {
+    expect(displayQty('500 g')).toBe('500 g');
+    expect(displayQty('un pack de 4')).toBe('un pack de 4');
+  });
+
+  it('rend une chaîne vide pour l’absence de quantité', () => {
+    expect(displayQty('')).toBe('');
   });
 });
