@@ -1,0 +1,65 @@
+<div class="surface">
+  <header class="topbar">
+    <button type="button" class="back" (click)="back.emit()">
+      {{ 'common.back' | transloco }}
+    </button>
+    <span class="title">{{ 'dictation.pad.title' | transloco }}</span>
+    <!-- Un vide symétrique du bouton « Retour », pour que le titre reste centré. -->
+    <span class="spacer" aria-hidden="true"></span>
+  </header>
+
+  <div class="article">
+    <p class="kicker">{{ 'dictation.pad.article' | transloco }}</p>
+    <p class="name">{{ article() }}</p>
+  </div>
+
+  <!-- La valeur en grand, l'unité juste après : « 500 g ». Le champ porte le
+       clavier numérique et son curseur ; l'unité le suit comme un suffixe. -->
+  <label class="value">
+    <input
+      #field
+      class="value-num"
+      type="text"
+      inputmode="decimal"
+      autocomplete="off"
+      enterkeyhint="done"
+      [attr.aria-label]="'dictation.pad.title' | transloco"
+      [value]="draft()"
+      (input)="onInput($event)"
+      (keydown.enter)="submit()"
+    />
+    <span class="value-unit" aria-hidden="true">{{ chosenUnit() }}</span>
+  </label>
+
+  <div
+    class="units"
+    role="radiogroup"
+    [attr.aria-label]="'dictation.pad.unit' | transloco"
+  >
+    @for (u of units; track u) {
+    <button
+      type="button"
+      class="unit"
+      role="radio"
+      [class.chosen]="u === chosenUnit()"
+      [attr.aria-checked]="u === chosenUnit()"
+      (click)="chooseUnit(u)"
+    >
+      {{ u }}
+    </button>
+    }
+  </div>
+
+  <!-- Une seule sortie utile : poser la quantité et revenir à la dictée.
+       Éteinte tant que rien n'est saisi — elle n'aurait rien à poser. -->
+  <div class="row">
+    <button
+      type="button"
+      class="add"
+      [disabled]="'' === composed()"
+      (click)="submit()"
+    >
+      {{ 'dictation.pad.add' | transloco: { qty: label() } }}
+    </button>
+  </div>
+</div>

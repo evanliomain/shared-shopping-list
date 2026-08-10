@@ -96,6 +96,13 @@
       "=0": "Aucun article dicté",
       "one": "{{count}} article dicté",
       "other": "{{count}} articles dictés"
+    },
+    "pad": {
+      "open": "Saisir une quantité libre",
+      "title": "Quantité",
+      "article": "Article",
+      "unit": "Unité",
+      "add": "Ajouter {{qty}}"
     }
   },
   "theme": {

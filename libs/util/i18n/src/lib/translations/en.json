@@ -96,6 +96,13 @@
       "=0": "No items dictated",
       "one": "{{count}} item dictated",
       "other": "{{count}} items dictated"
+    },
+    "pad": {
+      "open": "Enter a free quantity",
+      "title": "Quantity",
+      "article": "Item",
+      "unit": "Unit",
+      "add": "Add {{qty}}"
     }
   },
   "theme": {

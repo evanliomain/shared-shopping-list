@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { ProductImages, SuggestionView } from '@shopping-list/data-access/shopping';
 import { provideTestI18n } from '@shopping-list/util/i18n/testing';
 
+import { DictationPad } from '../dictation-pad/dictation-pad';
 import { FakeProductImages } from '../testing/fake-product-images';
 import { Dictation, DictationReceipt } from './dictation';
 
@@ -290,6 +292,51 @@ describe('Dictation', () => {
       const { nativeElement } = await render({ counter: 13 });
 
       expect(nativeElement.querySelector('.counter-num').textContent).toBe('13');
+    });
+  });
+
+  describe('le pavé de saisie libre', () => {
+    function pad(fixture: ComponentFixture<Dictation>): DictationPad {
+      return fixture.debugElement.query(By.directive(DictationPad))
+        .componentInstance as DictationPad;
+    }
+
+    it('remplace la saisie par le pavé quand on tape ＋…', async () => {
+      const fixture = await render({ query: 'tomates' });
+
+      // La rangée porte ＋1/＋2/＋4 puis ＋… en dernier.
+      counts(fixture)[3].click();
+      await fixture.whenStable();
+
+      // Le pavé remplace la saisie : plus de champ, mais son propre écran.
+      expect(fixture.nativeElement.querySelector('.field')).toBeNull();
+      expect(pad(fixture).article()).toBe('tomates');
+    });
+
+    it('revient à la saisie au « Retour » du pavé', async () => {
+      const fixture = await render({ query: 'tomates' });
+      counts(fixture)[3].click();
+      await fixture.whenStable();
+
+      pad(fixture).back.emit();
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.querySelector('.surface')).not.toBeNull();
+      expect(fixture.debugElement.query(By.directive(DictationPad))).toBeNull();
+    });
+
+    it('remonte la quantité libre puis rend la saisie', async () => {
+      const fixture = await render({ query: 'tomates' });
+      const posed: string[] = [];
+      fixture.componentInstance.freeQuantified.subscribe((q) => posed.push(q));
+      counts(fixture)[3].click();
+      await fixture.whenStable();
+
+      pad(fixture).submitted.emit('500 g');
+      await fixture.whenStable();
+
+      expect(posed).toEqual(['500 g']);
+      expect(fixture.nativeElement.querySelector('.surface')).not.toBeNull();
     });
   });
 

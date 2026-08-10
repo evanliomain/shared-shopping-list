@@ -1,9 +1,7 @@
-import { DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -16,6 +14,12 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { ProductImages, SuggestionView } from '@shopping-list/data-access/shopping';
 import { MatchedText, ProductAvatar } from '@shopping-list/ui';
 import { PluralPipe } from '@shopping-list/util/i18n';
+
+import { DictationPad } from '../dictation-pad/dictation-pad';
+import { trackKeyboardInset } from '../keyboard-inset';
+
+/** L'écran affiché dans le plein écran de dictée : la saisie, ou le pavé libre. */
+export type DictationView = 'input' | 'pad';
 
 /** Ce que le reçu d'une ligne montre du dernier article dicté. */
 export interface DictationReceipt {
@@ -40,16 +44,20 @@ export const QUICK_COUNTS: readonly number[] = [1, 2, 4];
  * porte le nombre, la validation et le retour au champ vide ; plus de mode à
  * retenir, donc plus de remise à zéro à surveiller. Entrée reste le ＋1.
  *
- * Un seul nœud, deux états, comme le bouton flottant qu'il remplace : au repos
- * c'est le disque vert du coin ; ouvert, le plein écran. La pile de pastilles a
- * disparu — un mur de vingt pastilles pousse le clavier hors de l'écran et ne
- * se relit jamais. À sa place, un **reçu d'une ligne** (le « c'est noté » du
- * dernier ajout, annulable) et un **compteur** qui dit le nombre dicté.
+ * Au repos c'est le disque vert du coin ; ouvert, le plein écran. La pile de
+ * pastilles a disparu — un mur de vingt pastilles pousse le clavier hors de
+ * l'écran et ne se relit jamais. À sa place, un **reçu d'une ligne** (le
+ * « c'est noté » du dernier ajout, annulable) et un **compteur** qui dit le
+ * nombre dicté.
+ *
+ * Le compte ne suffit pas toujours : ＋… bascule sur le **pavé de saisie libre**
+ * (`sl-dictation-pad`) pour un poids ou un volume. Le plein écran ne montre
+ * alors qu'un écran à la fois — la saisie, ou le pavé —, piloté par `view`.
  */
 @Component({
   selector: 'sl-dictation',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatchedText, PluralPipe, ProductAvatar, TranslocoPipe],
+  imports: [DictationPad, MatchedText, PluralPipe, ProductAvatar, TranslocoPipe],
   templateUrl: './dictation.html',
   styleUrl: './dictation.scss',
   host: {
@@ -87,11 +95,16 @@ export class Dictation {
   readonly quantified = output<number>();
   /** ✕ du reçu : le dernier article dicté ressort. */
   readonly undone = output<void>();
+  /** ＋… puis « Ajouter » : l'article en cours prend cette quantité libre. */
+  readonly freeQuantified = output<string>();
   /** « Terminé » (ou Échap) : la dictée se referme. */
   readonly dismissed = output<void>();
 
   protected readonly images = inject(ProductImages);
   protected readonly quickCounts = QUICK_COUNTS;
+
+  /** L'écran en cours dans le plein écran : la saisie, sinon le pavé libre. */
+  protected readonly view = signal<DictationView>('input');
 
   // Le champ n'existe que le plein écran ouvert ; fermé, il n'y a que le
   // bouton flottant.
@@ -99,12 +112,9 @@ export class Dictation {
 
   protected readonly hasQuery = computed(() => '' !== this.query().trim());
 
-  /**
-   * Décalage du bas imposé par le clavier virtuel, pour que la rangée reste
-   * juste au-dessus de lui plutôt que dessous. Zéro tant qu'aucun clavier n'est
-   * levé — ou quand le navigateur n'expose pas `visualViewport`.
-   */
-  private readonly kbInset = signal(0);
+  // Le champ est en haut ; le clavier ancré en bas recouvrirait la rangée de
+  // validation. On réserve sa hauteur pour que la rangée remonte avec lui.
+  private readonly kbInset = trackKeyboardInset();
   protected readonly kbStyle = computed(() => `${this.kbInset()}px`);
 
   constructor() {
@@ -112,10 +122,19 @@ export class Dictation {
     // rappel de focus, il faudrait un second geste pour se mettre à taper. Le
     // focus est reporté d'un tour de boucle : donné dans la foulée du tap, sur
     // un champ tout juste inséré, il se fait reprendre par le bouton qu'on
-    // vient de relâcher et ne se pose pas sur mobile.
+    // vient de relâcher et ne se pose pas sur mobile. Rendu aussi au retour du
+    // pavé, quand la saisie reparaît.
     effect(() => {
-      if (this.open()) {
+      if (this.open() && 'input' === this.view()) {
         requestAnimationFrame(() => this.field()?.nativeElement.focus());
+      }
+    });
+
+    // Fermé, on repart de la saisie : la prochaine ouverture ne rouvre jamais
+    // sur le pavé laissé derrière soi.
+    effect(() => {
+      if (!this.open()) {
+        this.view.set('input');
       }
     });
 
@@ -124,32 +143,6 @@ export class Dictation {
       if (this.open()) {
         this.images.ensure(this.suggestions().map((s) => s.imageRef));
       }
-    });
-
-    this.trackKeyboard();
-  }
-
-  /**
-   * Suit la hauteur du clavier virtuel via `visualViewport`. Le champ étant en
-   * haut, un clavier ancré en bas recouvrirait la rangée de validation : on
-   * réserve sa hauteur en rembourrage pour que la rangée remonte avec lui.
-   */
-  private trackKeyboard(): void {
-    const view = inject(DOCUMENT).defaultView;
-    const viewport = view?.visualViewport;
-    if (null == view || null == viewport) {
-      return;
-    }
-
-    const onResize = (): void =>
-      this.kbInset.set(
-        Math.max(0, view.innerHeight - viewport.height - viewport.offsetTop),
-      );
-    viewport.addEventListener('resize', onResize);
-    viewport.addEventListener('scroll', onResize);
-    inject(DestroyRef).onDestroy(() => {
-      viewport.removeEventListener('resize', onResize);
-      viewport.removeEventListener('scroll', onResize);
     });
   }
 
@@ -193,5 +186,21 @@ export class Dictation {
    */
   protected onQuantify(count: number): void {
     this.quantified.emit(count);
+  }
+
+  /** ＋… : le compte ne suffit pas, on passe au pavé de saisie libre. */
+  protected openPad(): void {
+    this.view.set('pad');
+  }
+
+  /** « Retour » du pavé : on revient à la saisie sans rien poser. */
+  protected closePad(): void {
+    this.view.set('input');
+  }
+
+  /** « Ajouter » du pavé : la quantité libre remonte, et la saisie reparaît. */
+  protected onFreeQuantified(qty: string): void {
+    this.freeQuantified.emit(qty);
+    this.view.set('input');
   }
 }
