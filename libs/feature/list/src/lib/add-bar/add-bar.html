@@ -122,8 +122,35 @@
             "
       [value]="query()"
       (input)="onInput($event)"
+      (keydown)="onKeydown($event)"
       (focus)="focused.emit()"
     />
+  </div>
+
+  <!-- Même logique que la dictée, sans plein écran : la rangée ne s'arme pas,
+       elle valide. ＋N ajoute la composition avec ce compte, ＋… passe au pavé
+       libre ; Alt+1/2/4 fait de même sans lâcher le clavier. Éteinte à vide. -->
+  <div class="quantities">
+    @for (count of quickCounts; track count) {
+    <button
+      type="button"
+      class="quantity"
+      [disabled]="!hasQuery()"
+      [attr.aria-label]="'dictation.addCount' | plural: count"
+      (click)="onQuantify(count)"
+    >
+      ＋{{ count }}
+    </button>
+    }
+    <button
+      type="button"
+      class="quantity"
+      [disabled]="!hasQuery()"
+      [attr.aria-label]="'dictation.pad.open' | transloco"
+      (click)="freeRequested.emit()"
+    >
+      ＋…
+    </button>
   </div>
 </form>
 } @else {

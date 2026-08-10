@@ -19,6 +19,8 @@ import {
 import { MatchedText, ProductAvatar } from '@shopping-list/ui';
 import { PluralPipe } from '@shopping-list/util/i18n';
 
+import { QUICK_COUNTS } from '../dictation/dictation';
+
 /**
  * Barre d'ajout et panneau de suggestions.
  *
@@ -61,12 +63,20 @@ export class AddBar {
   readonly queryChanged = output<string>();
   readonly picked = output<SuggestionView>();
   readonly created = output<string>();
+  /** ＋N (ou Alt+N) : ajoute la composition en cours avec ce compte. */
+  readonly quantified = output<number>();
+  /** ＋… : le compte ne suffit pas, on demande le pavé de saisie libre. */
+  readonly freeRequested = output<void>();
   readonly focused = output<void>();
   readonly dismissed = output<void>();
   /** Un ✕ de pastille : cet article-là ressort de la liste. */
   readonly undone = output<ItemView>();
 
   protected readonly images = inject(ProductImages);
+  protected readonly quickCounts = QUICK_COUNTS;
+
+  /** Rien à valider tant que le champ est vide : la rangée s'éteint. */
+  protected readonly hasQuery = computed(() => '' !== this.query().trim());
 
   // Le champ n'existe qu'au bureau ; sur téléphone c'est l'overlay qui le
   // porte, et ce viewChild reste vide.
@@ -135,6 +145,28 @@ export class AddBar {
 
     if (this.canCreate()) {
       this.created.emit(this.query());
+    }
+  }
+
+  /** ＋N : ajoute la composition en cours avec ce compte. */
+  protected onQuantify(count: number): void {
+    this.quantified.emit(count);
+  }
+
+  /**
+   * Alt+1/2/4 valide sans lâcher le clavier : le même compte que les boutons,
+   * pour composer la liste au bureau sans quitter le champ. Rien sans Alt, rien
+   * sur un champ vide, rien sur un chiffre hors de la rangée.
+   */
+  protected onKeydown(event: KeyboardEvent): void {
+    if (!event.altKey) {
+      return;
+    }
+
+    const count = this.quickCounts.find((value) => String(value) === event.key);
+    if (undefined !== count && this.hasQuery()) {
+      event.preventDefault();
+      this.quantified.emit(count);
     }
   }
 }

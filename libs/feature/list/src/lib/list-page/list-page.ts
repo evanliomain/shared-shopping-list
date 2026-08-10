@@ -42,6 +42,7 @@ import { normalize } from '@shopping-list/util/categories';
 import { ThemeStore } from '@shopping-list/util/theme';
 
 import { AddBar } from '../add-bar/add-bar';
+import { DictationPad } from '../dictation-pad/dictation-pad';
 import {
   Dictation,
   DictationReceipt,
@@ -59,6 +60,7 @@ import { DictationAdd, ListUiStore } from '../list-ui.store';
     AddBar,
     AddButton,
     Dictation,
+    DictationPad,
     EmptyState,
     HistoryPane,
     ItemRow,
@@ -245,6 +247,13 @@ export class ListPage {
    */
   protected readonly wide = signal(false);
 
+  /**
+   * Le pavé de saisie libre, ouvert au bureau par ＋… de la barre. Sur téléphone
+   * c'est la dictée qui le porte ; ici il n'a pas de plein écran où vivre, la
+   * page le pose donc elle-même par-dessus.
+   */
+  protected readonly desktopFree = signal(false);
+
   constructor() {
     // Les photos se résolvent au fil de l'eau, sans jamais retarder
     // l'affichage : `ensure` est idempotent et ne rend pas la main.
@@ -361,6 +370,17 @@ export class ListPage {
     }
 
     this.ui.clearQuery();
+  }
+
+  /** ＋… de la barre du bureau : on ouvre le pavé de saisie libre par-dessus. */
+  protected openDesktopFree(): void {
+    this.desktopFree.set(true);
+  }
+
+  /** « Ajouter » du pavé au bureau : on pose la quantité libre et on referme. */
+  protected addFreeDesktop(qty: string): void {
+    this.addFree(qty);
+    this.desktopFree.set(false);
   }
 
   /**

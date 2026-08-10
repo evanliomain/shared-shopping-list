@@ -1024,8 +1024,8 @@ describe('ListPage', () => {
     });
 
     it('ajoute une suggestion d’un tap sur la barre du bureau', async () => {
-      // Au bureau, un tap sur la suggestion ajoute — pas de rangée de quantité
-      // ici, c'est le geste de composition rapide.
+      // Au bureau, un tap sur la suggestion ajoute à l'unité : le geste de
+      // composition rapide, à côté de la rangée de quantité pour le reste.
       const { fixture, dispatched } = await render({
         wide: true,
         seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
@@ -1050,6 +1050,60 @@ describe('ListPage', () => {
           draft: { label: 'Rutabaga' },
         }),
       ]);
+    });
+
+    it('ajoute avec un compte au ＋N de la barre', async () => {
+      const { fixture, dispatched } = await render({
+        wide: true,
+        seed: (doc) => createProduct(doc, { label: 'Lait' }, NOW),
+      });
+      await type(fixture, 'lai');
+
+      // ＋1/＋2/＋4/＋… : le deuxième porte 2.
+      (
+        fixture.nativeElement.querySelectorAll(
+          'sl-add-bar .quantity',
+        )[1] as HTMLElement
+      ).click();
+      await fixture.whenStable();
+
+      expect(dispatched).toEqual([
+        expect.objectContaining({ type: '[Liste] Produit ajouté', qty: 2 }),
+      ]);
+    });
+
+    it('ouvre le pavé au ＋… de la barre et pose la quantité libre', async () => {
+      const { fixture, dispatched } = await render({ wide: true });
+      await type(fixture, 'Farine');
+
+      const buttons = fixture.nativeElement.querySelectorAll(
+        'sl-add-bar .quantity',
+      );
+      (buttons[buttons.length - 1] as HTMLElement).click(); // ＋…
+      await fixture.whenStable();
+
+      const num = fixture.nativeElement.querySelector(
+        'sl-dictation-pad .value-num',
+      ) as HTMLInputElement;
+      num.value = '1';
+      num.dispatchEvent(new Event('input'));
+      (
+        fixture.nativeElement.querySelectorAll(
+          'sl-dictation-pad .unit',
+        )[2] as HTMLElement
+      ).click(); // kg
+      await fixture.whenStable();
+      await click(fixture, 'sl-dictation-pad .add');
+
+      expect(dispatched).toEqual([
+        expect.objectContaining({
+          type: '[Liste] Produit créé et ajouté',
+          draft: { label: 'Farine' },
+          qty: '1 kg',
+        }),
+      ]);
+      // Le pavé se referme une fois la quantité posée.
+      expect(fixture.nativeElement.querySelector('sl-dictation-pad')).toBeNull();
     });
 
     it('ne laisse pas d’écouteur de largeur derrière elle', async () => {

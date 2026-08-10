@@ -368,6 +368,38 @@
   padding: 0.625rem var(--sl-space-3);
 }
 
+/* La rangée de quantité, à droite du champ. Quatre cibles qui valident — le
+   vert doux de la marque, comme les ＋N de la dictée —, éteintes gris sur gris
+   tant que le champ est vide : elles n'auraient rien à valider. */
+.quantities {
+  flex: none;
+  display: flex;
+  gap: var(--sl-space-2);
+}
+
+.quantity {
+  min-inline-size: 2.75rem;
+  min-block-size: 2.75rem;
+  padding-inline: var(--sl-space-3);
+  border: none;
+  border-radius: var(--sl-radius);
+  background: var(--sl-brand-soft);
+  color: var(--sl-brand-ink);
+  font-size: var(--sl-font-base);
+  font-weight: 650;
+}
+
+.quantity:hover:not(:disabled) {
+  background: var(--sl-brand);
+  color: var(--sl-text-on-brand);
+}
+
+.quantity:disabled {
+  background: var(--sl-surface-sunken);
+  color: var(--sl-text-muted);
+  opacity: 0.55;
+}
+
 /* Sur téléphone, la place réservée au champ : mêmes hauteur (50 px) et
        marges (16 px de côté, 10 px sous le bord) que la pilule ouverte de
        sl-add-control, qui vient s'y poser pile. */
