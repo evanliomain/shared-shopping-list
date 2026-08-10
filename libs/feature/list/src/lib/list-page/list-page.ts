@@ -12,6 +12,7 @@ import { TranslocoPipe, translateSignal } from '@jsverse/transloco';
 import { PluralPipe } from '@shopping-list/util/i18n';
 import { Store } from '@ngrx/store';
 import {
+  asCount,
   displayQty,
   filterSuggestions,
   ItemView,
@@ -180,12 +181,13 @@ export class ListPage {
       return null;
     }
 
-    const count = /^\d+$/.test(item.qty) ? parseInt(item.qty, 10) : null;
+    const count = asCount(item.qty);
     return {
       label: item.label,
       quantity: displayQty(item.qty),
       // « (+2) » seulement si l'article était déjà là : un premier ajout de
-      // quatre n'est pas un « +4 » de plus, c'est le compte lui-même.
+      // quatre n'est pas un « +4 » de plus, c'est le compte lui-même. Une
+      // quantité libre (« 500 g ») n'est pas un compte : jamais de « +N ».
       delta: null !== count && count > last.delta ? last.delta : null,
     };
   });
@@ -328,6 +330,39 @@ export class ListPage {
   }
 
   /**
+   * ＋… puis « Ajouter 500 g » : l'article en cours prend cette quantité libre.
+   * Elle **écrase** au lieu d'incrémenter — c'est une valeur qu'on construit,
+   * pas un compte. On retient la quantité d'avant pour que l'annulation la
+   * restaure, ou `null` quand la ligne naît de ce geste : elle repartira alors.
+   */
+  protected addFree(qty: string): void {
+    const label = this.ui.trimmedQuery();
+    const [first] = this.suggestions();
+
+    if (undefined !== first) {
+      const existing = this.itemViews().find(
+        (view) => view.productId === first.productId,
+      );
+      this.store.dispatch(
+        listActions.produitAjouté({ productId: first.productId, qty }),
+      );
+      this.ui.noteAdd({
+        productId: first.productId,
+        label: first.label,
+        delta: 0,
+        previousQty: existing?.qty ?? null,
+      });
+    } else {
+      this.store.dispatch(
+        listActions.produitCrééEtAjouté({ draft: { label }, qty }),
+      );
+      this.ui.noteAdd({ productId: null, label, delta: 0, previousQty: null });
+    }
+
+    this.ui.clearQuery();
+  }
+
+  /**
    * Un tap sur une suggestion **complète** le champ, il n'ajoute pas : un seul
    * point de validation dans tout l'écran — la rangée du bas —, c'est ce qui
    * rend le geste prévisible en rafale.
@@ -337,8 +372,9 @@ export class ListPage {
   }
 
   /**
-   * ✕ du reçu : on défait le dernier ajout. Un compte qui préexistait revient
-   * à ce qu'il était avant le ＋N ; un article tout juste posé ressort.
+   * ✕ du reçu : on défait le dernier ajout. Une saisie libre restaure la
+   * quantité d'avant, ou retire la ligne qu'elle avait créée. Un comptage
+   * retranche ce qu'il venait d'ajouter ; si c'était toute la ligne, elle sort.
    */
   protected undoLast(): void {
     const last = this.ui.lastAdd();
@@ -354,7 +390,12 @@ export class ListPage {
       return;
     }
 
-    const count = /^\d+$/.test(item.qty) ? parseInt(item.qty, 10) : 1;
+    if (undefined !== last.previousQty) {
+      this.undoFree(item, last.previousQty);
+      return;
+    }
+
+    const count = asCount(item.qty) ?? 1;
     if (count > last.delta) {
       this.store.dispatch(
         listActions.quantitéModifiée({
@@ -364,6 +405,17 @@ export class ListPage {
       );
     } else {
       this.store.dispatch(listActions.articleRetiré({ itemId: item.id }));
+    }
+  }
+
+  /** Annule une saisie libre : la ligne née du geste sort, sinon on restaure. */
+  private undoFree(item: ItemView, previousQty: string | null): void {
+    if (null === previousQty) {
+      this.store.dispatch(listActions.articleRetiré({ itemId: item.id }));
+    } else {
+      this.store.dispatch(
+        listActions.quantitéModifiée({ itemId: item.id, qty: previousQty }),
+      );
     }
   }
 

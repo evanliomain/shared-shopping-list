@@ -23,11 +23,17 @@ export interface UndoableCheck {
  * retrouve alors par son libellé, parmi celles nées depuis l'ouverture. `delta`
  * est le compte tout juste ajouté — c'est lui qui distingue « ×6 » d'un premier
  * ajout et « ×6 (+2) » d'un redicté.
+ *
+ * `previousQty` sépare les deux façons d'annuler. Absent : c'était un comptage,
+ * l'annulation retranche `delta`. Présent : la saisie libre a **posé** une
+ * valeur en écrasant — l'annulation restaure l'ancienne quantité, ou retire la
+ * ligne si `null` (elle est née de ce geste).
  */
 export interface DictationAdd {
   readonly productId: ProductId | null;
   readonly label: string;
   readonly delta: number;
+  readonly previousQty?: string | null;
 }
 
 /** Durée du bandeau d'annulation. Assez pour se rendre compte, pas plus. */

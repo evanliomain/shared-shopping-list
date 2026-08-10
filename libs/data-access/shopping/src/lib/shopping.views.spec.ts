@@ -1,6 +1,11 @@
 import { Product, ProductId } from '@shopping-list/core/crdt';
 
-import { displayEmoji, displayQty, productUsage } from './shopping.views';
+import {
+  asCount,
+  displayEmoji,
+  displayQty,
+  productUsage,
+} from './shopping.views';
 
 function product(values: Partial<Product> = {}): Product {
   return {
@@ -69,5 +74,18 @@ describe('displayQty', () => {
 
   it('rend une chaîne vide pour l’absence de quantité', () => {
     expect(displayQty('')).toBe('');
+  });
+});
+
+describe('asCount', () => {
+  it('lit un compte pur comme un nombre', () => {
+    expect(asCount('4')).toBe(4);
+    expect(asCount('1')).toBe(1);
+  });
+
+  it('rend null pour une quantité libre — elle ne se compte pas', () => {
+    expect(asCount('500 g')).toBeNull();
+    expect(asCount('un pack de 4')).toBeNull();
+    expect(asCount('')).toBeNull();
   });
 });

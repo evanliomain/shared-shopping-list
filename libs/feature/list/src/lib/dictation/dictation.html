@@ -1,7 +1,14 @@
 <!-- Le plein écran de dictée, monté seulement ouvert : fermé, il ne reste que
      le disque du coin, porté par l'hôte lui-même. En dictée on ne consulte pas
-     la liste, on la remplit — rien à voiler derrière. -->
-@if (open()) {
+     la liste, on la remplit — rien à voiler derrière. Un seul écran à la fois :
+     la saisie, ou le pavé de saisie libre ouvert par ＋…. -->
+@if (open()) { @if ('pad' === view()) {
+<sl-dictation-pad
+  [article]="query()"
+  (back)="closePad()"
+  (submitted)="onFreeQuantified($event)"
+/>
+} @else {
 <div class="surface">
   <header class="topbar">
     <button type="button" class="done" (click)="dismissed.emit()">
@@ -97,8 +104,8 @@
   </div>
 
   <!-- La rangée de validation, collée au clavier. Elle n'arme rien : chaque
-       bouton ajoute le libellé en cours avec son compte. Éteinte tant que le
-       champ est vide — elle n'aurait rien à valider. -->
+       bouton ajoute le libellé en cours avec son compte. ＋… ne valide pas : il
+       ouvre le pavé libre. Éteinte tant que le champ est vide. -->
   <div class="row">
     @for (count of quickCounts; track count) {
     <button
@@ -111,9 +118,18 @@
       ＋{{ count }}
     </button>
     }
+    <button
+      type="button"
+      class="count"
+      [disabled]="!hasQuery()"
+      [attr.aria-label]="'dictation.pad.open' | transloco"
+      (click)="openPad()"
+    >
+      ＋…
+    </button>
   </div>
 </div>
-}
+} }
 
 <!-- Le bouton flottant au repos : disque vert et ＋, portés par l'hôte qui est
      alors le bouton. Ouvert, ils s'effacent derrière le plein écran. -->

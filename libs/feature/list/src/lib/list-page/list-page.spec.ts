@@ -767,6 +767,130 @@ describe('ListPage', () => {
     });
   });
 
+  describe('saisie libre au pavé', () => {
+    function pad(fixture: ComponentFixture<ListPage>): HTMLElement {
+      const found = fixture.nativeElement.querySelector('sl-dictation-pad');
+      if (null === found) {
+        throw new Error('Pavé de saisie libre introuvable');
+      }
+      return found;
+    }
+
+    /** Ouvre le pavé (＋…), y pose une valeur et une unité, puis « Ajouter ». */
+    async function poseFree(
+      fixture: ComponentFixture<ListPage>,
+      value: string,
+      unitIndex: number,
+    ): Promise<void> {
+      counts(fixture)[3].click(); // ＋…
+      await fixture.whenStable();
+
+      const num = pad(fixture).querySelector('.value-num') as HTMLInputElement;
+      num.value = value;
+      num.dispatchEvent(new Event('input'));
+      (pad(fixture).querySelectorAll('.unit')[unitIndex] as HTMLElement).click();
+      await fixture.whenStable();
+
+      (pad(fixture).querySelector('.add') as HTMLElement).click();
+      await fixture.whenStable();
+    }
+
+    it('pose une quantité libre sur la première suggestion', async () => {
+      const { fixture, dispatched } = await render({
+        seed: (doc) => createProduct(doc, { label: 'Tomates grappe' }, NOW),
+      });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'tomates');
+
+      await poseFree(fixture, '500', 1); // g
+
+      expect(dispatched).toEqual([
+        expect.objectContaining({
+          type: '[Liste] Produit ajouté',
+          qty: '500 g',
+        }),
+      ]);
+      // Le pavé refermé, la saisie reparaît vide, prête pour l'article suivant.
+      expect(field(fixture).value).toBe('');
+    });
+
+    it('crée le produit neuf avec sa quantité libre', async () => {
+      const { fixture, dispatched } = await render();
+      await click(fixture, '.empty-add button');
+      await type(fixture, 'Farine');
+
+      await poseFree(fixture, '1', 2); // kg
+
+      expect(dispatched).toEqual([
+        expect.objectContaining({
+          type: '[Liste] Produit créé et ajouté',
+          draft: { label: 'Farine' },
+          qty: '1 kg',
+        }),
+      ]);
+    });
+
+    it('montre le reçu de la quantité libre, sans « +N »', async () => {
+      let productId: ProductId = '' as ProductId;
+      const { fixture, sync } = await render({
+        seed: (doc) => {
+          productId = createProduct(doc, { label: 'Tomates grappe' }, NOW);
+        },
+      });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'tomates');
+      await poseFree(fixture, '500', 1); // g
+
+      await sync((doc) => {
+        const itemId = put(doc, productId, Date.now());
+        setItemQty(doc, DEFAULT_LIST_ID, itemId, '500 g');
+      });
+
+      expect(receipt(fixture)).toContain('500 g');
+      expect(receipt(fixture)).not.toContain('+');
+    });
+
+    it('retire la ligne née d’une saisie libre, à l’annulation', async () => {
+      const { fixture, dispatched, sync } = await render();
+      await click(fixture, '.empty-add button');
+      await type(fixture, 'Farine');
+      await poseFree(fixture, '1', 2); // kg
+
+      await sync((doc) => {
+        const productId = createProduct(doc, { label: 'Farine' }, NOW);
+        const itemId = put(doc, productId, Date.now());
+        setItemQty(doc, DEFAULT_LIST_ID, itemId, '1 kg');
+      });
+
+      await click(fixture, 'sl-dictation .receipt .undo');
+
+      expect(types(dispatched)).toContain('[Liste] Article retiré');
+    });
+
+    it('restaure la quantité d’avant, sur une ligne préexistante', async () => {
+      let itemId: ItemId = '' as ItemId;
+      const { fixture, dispatched, sync } = await render({
+        seed: (doc) => {
+          itemId = put(doc, createProduct(doc, { label: 'Farine' }, NOW));
+          setItemQty(doc, DEFAULT_LIST_ID, itemId, '1 kg');
+        },
+      });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'Farine');
+      await poseFree(fixture, '500', 1); // g
+      await sync((doc) => setItemQty(doc, DEFAULT_LIST_ID, itemId, '500 g'));
+
+      await click(fixture, 'sl-dictation .receipt .undo');
+
+      expect(dispatched.at(-1)).toEqual(
+        expect.objectContaining({
+          type: '[Liste] Quantité modifiée',
+          qty: '1 kg',
+        }),
+      );
+    });
+  });
+
   describe('photos', () => {
     it('demande la résolution des photos de la liste', async () => {
       const { images } = await render({

@@ -89,3 +89,16 @@ export function displayQty(qty: string): string {
   }
   return qty;
 }
+
+/**
+ * La quantité lue comme un compte, ou `null` quand c'est une quantité libre.
+ *
+ * C'est la frontière entre les deux natures de `qty` : un compte pur (« 4 »)
+ * s'incrémente et se relit au pas d'un stepper ; une quantité libre (« 500 g »)
+ * ne se compte pas — elle se réédite au pavé. Le reçu, l'annulation et la
+ * relecture s'appuient tous sur cette distinction, d'où un seul endroit qui la
+ * tranche.
+ */
+export function asCount(qty: string): number | null {
+  return /^\d+$/.test(qty) ? parseInt(qty, 10) : null;
+}
