@@ -77,3 +77,15 @@ export function displayEmoji(product: Product): string {
 export function productUsage(product: Product): number {
   return usageTotal(product.usage);
 }
+
+/**
+ * Quantité prête à afficher. Un compte pur devient « ×4 » ; une quantité libre
+ * (« 500 g », « un pack de 4 ») s'affiche telle quelle. Le compte 1 ne s'écrit
+ * pas — c'est le défaut, un « ×1 » n'apprendrait rien et alourdirait la ligne.
+ */
+export function displayQty(qty: string): string {
+  if (/^\d+$/.test(qty)) {
+    return '1' === qty ? '' : `×${qty}`;
+  }
+  return qty;
+}

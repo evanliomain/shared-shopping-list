@@ -34,10 +34,20 @@ export const crdtActions = createActionGroup({
 export const listActions = createActionGroup({
   source: 'Liste',
   events: {
-    /** Remet dans la liste un produit déjà connu du catalogue. */
-    'Produit ajouté': props<{ productId: ProductId }>(),
+    /**
+     * Remet dans la liste un produit déjà connu du catalogue.
+     *
+     * `qty` dit quelle quantité : un **nombre** est un compte à ajouter — c'est
+     * le ＋1/＋2/＋4 de la dictée, qui incrémente sur un doublon —, une **chaîne**
+     * est une quantité libre à poser (« 500 g »). Absent, la ligne garde ce
+     * qu'elle avait : c'est le simple retour d'un article dans la liste.
+     */
+    'Produit ajouté': props<{ productId: ProductId; qty?: number | string }>(),
     /** Crée le produit puis l'ajoute — c'est ce qui alimente l'historique. */
-    'Produit créé et ajouté': props<{ draft: ProductDraft }>(),
+    'Produit créé et ajouté': props<{
+      draft: ProductDraft;
+      qty?: number | string;
+    }>(),
     /**
      * Le produit vient d'être créé. Un constat, pas une intention.
      *

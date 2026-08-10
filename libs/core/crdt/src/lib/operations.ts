@@ -172,6 +172,16 @@ export interface AddItemParams {
   readonly listId: ListId;
   readonly productId: ProductId;
   readonly qty?: string | null;
+  /**
+   * Compte à **ajouter** à la quantité de la ligne, plutôt qu'à y poser.
+   *
+   * C'est le geste de la dictée : « quatre yaourts » puis « deux yaourts »
+   * font six, pas deux. Une ligne déjà présente vaut au moins un, même sans
+   * quantité chiffrée, si bien qu'un second passage incrémente au lieu de
+   * repartir de zéro. Prioritaire sur `qty` ; le compte 1 sur une ligne neuve
+   * ne pose rien — un « ×1 » n'apprend rien et masquerait le `defaultQty`.
+   */
+  readonly count?: number;
   readonly note?: string | null;
   readonly addedBy: string;
   readonly deviceId: DeviceId;
@@ -209,8 +219,9 @@ export function addItem(doc: Y.Doc, params: AddItemParams): ItemId {
     const [existingId, node] = existing;
     node.set('checked', false);
     node.set('removedAt', null);
-    if (undefined !== params.qty) {
-      node.set('qty', params.qty);
+    const nextQty = reusedQty(node, params);
+    if (undefined !== nextQty) {
+      node.set('qty', nextQty);
     }
     if (undefined !== params.note) {
       node.set('note', params.note);
@@ -223,13 +234,41 @@ export function addItem(doc: Y.Doc, params: AddItemParams): ItemId {
     id,
     buildItemNode({
       productId,
-      qty: params.qty ?? null,
+      qty: initialQty(params),
       note: params.note ?? null,
       addedBy,
       createdAt: now,
     }),
   );
   return id;
+}
+
+/**
+ * Quantité d'une ligne réutilisée. `undefined` signifie « ne touche à rien » :
+ * remettre un article sans rien préciser garde la quantité déjà saisie.
+ */
+function reusedQty(node: YNode, params: AddItemParams): string | null | undefined {
+  if (undefined !== params.count) {
+    return String(countOf(node.get('qty')) + params.count);
+  }
+  return params.qty;
+}
+
+/** Quantité d'une ligne neuve : un compte de 1 ne pose rien (le défaut). */
+function initialQty(params: AddItemParams): string | null {
+  if (undefined !== params.count) {
+    return 1 === params.count ? null : String(params.count);
+  }
+  return params.qty ?? null;
+}
+
+/**
+ * Lit une quantité comme un compte. Une ligne déjà là vaut au moins un, même
+ * quand sa quantité est libre (« un pack de 4 ») ou absente : dicter le même
+ * article une seconde fois ajoute au compte plutôt que de le ramener à zéro.
+ */
+function countOf(qty: unknown): number {
+  return 'string' === typeof qty && /^\d+$/.test(qty) ? parseInt(qty, 10) : 1;
 }
 
 function findActiveItemForProduct(
