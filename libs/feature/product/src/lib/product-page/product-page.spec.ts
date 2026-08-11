@@ -269,9 +269,9 @@ describe('ProductPage', () => {
     expect(inputs[0].value).toBe('Yaourt');
     expect(inputs[1].value).toBe('à la vanille');
     expect(inputs[2].value).toBe('x4');
-    expect(fixture.nativeElement.querySelector('select').value).toBe(
-      'cremerie',
-    );
+    const rayon = fixture.nativeElement.querySelector('.aisle-tile.selected');
+    expect(rayon?.getAttribute('aria-checked')).toBe('true');
+    expect(rayon?.getAttribute('aria-label')).toBe('Crèmerie');
   });
 
   it('affiche un message quand le produit n’existe pas', async () => {

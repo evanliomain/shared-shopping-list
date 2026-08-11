@@ -3,9 +3,12 @@ import {
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
   input,
   signal,
+  viewChild,
+  viewChildren,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Location } from '@angular/common';
@@ -127,11 +130,27 @@ export class ProductPage {
   }));
   protected readonly emojiChoices = EMOJI_CHOICES;
 
+  private readonly aisleGrid = viewChild<ElementRef<HTMLElement>>('aisleGrid');
+  private readonly aisleTiles =
+    viewChildren<ElementRef<HTMLButtonElement>>('aisleTile');
+
   protected readonly label = signal('');
   protected readonly description = signal('');
   protected readonly defaultQty = signal('');
   protected readonly category = signal('');
   protected readonly emoji = signal('🛒');
+
+  /**
+   * Le rayon sélectionné porte l'unique point d'entrée au clavier ; à défaut,
+   * c'est la première tuile. Le groupe radio n'expose ainsi qu'un seul arrêt de
+   * tabulation, et les flèches circulent entre les tuiles à partir de là.
+   */
+  protected readonly tabbableAisle = computed(() => {
+    const selected = this.category();
+    return this.aisles.some((aisle) => aisle.key === selected)
+      ? selected
+      : this.aisles[0].key;
+  });
 
   /** Photo prise sur place. L'emporte sur l'image de banque comme sur l'emoji. */
   protected readonly photoRef = signal<ImageRef | null>(null);
@@ -406,5 +425,72 @@ export class ProductPage {
 
   protected close(): void {
     this.location.back();
+  }
+
+  /**
+   * Parcours de la grille de rayons au clavier, comme un vrai groupe radio :
+   * les flèches gauche/droite passent d'une tuile à la voisine, haut/bas
+   * sautent d'une rangée, Espace et Entrée confirment la tuile courante. La
+   * sélection suit le focus. Le nombre de colonnes est lu sur la grille rendue,
+   * pour rester juste quel que soit le point de rupture responsive.
+   */
+  protected onAisleKeydown(event: KeyboardEvent): void {
+    const tiles = this.aisleTiles();
+    if (0 === tiles.length) {
+      return;
+    }
+
+    const focused = tiles.findIndex(
+      (tile) => tile.nativeElement === document.activeElement,
+    );
+    const current = -1 === focused ? this.selectedAisleIndex() : focused;
+    const columns = this.aisleColumns();
+    const last = this.aisles.length - 1;
+
+    let next: number;
+    switch (event.key) {
+      case 'ArrowRight':
+        next = Math.min(last, current + 1);
+        break;
+      case 'ArrowLeft':
+        next = Math.max(0, current - 1);
+        break;
+      case 'ArrowDown':
+        next = Math.min(last, current + columns);
+        break;
+      case 'ArrowUp':
+        next = Math.max(0, current - columns);
+        break;
+      case ' ':
+      case 'Enter':
+        event.preventDefault();
+        this.category.set(this.aisles[current].key);
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    this.category.set(this.aisles[next].key);
+    tiles[next]?.nativeElement.focus();
+  }
+
+  private selectedAisleIndex(): number {
+    const index = this.aisles.findIndex(
+      (aisle) => aisle.key === this.category(),
+    );
+    return -1 === index ? 0 : index;
+  }
+
+  private aisleColumns(): number {
+    const grid = this.aisleGrid()?.nativeElement;
+    if (undefined === grid) {
+      return 1;
+    }
+    const tracks = getComputedStyle(grid)
+      .gridTemplateColumns.trim()
+      .split(/\s+/)
+      .filter((track) => '' !== track);
+    return Math.max(1, tracks.length);
   }
 }
