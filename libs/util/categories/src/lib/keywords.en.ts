@@ -70,23 +70,25 @@ export const KEYWORDS_EN: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['cilantro', 'fruits-legumes', '🌿'],
   ['mint', 'fruits-legumes', '🌿'],
 
-  // Butcher
+  // Butcher — fresh cuts to cook.
   ['beef', 'boucherie', '🥩'],
   ['meat', 'boucherie', '🥩'],
   ['mince', 'boucherie', '🥩'],
   ['veal', 'boucherie', '🥩'],
   ['lamb', 'boucherie', '🍖'],
   ['pork', 'boucherie', '🥓'],
-  ['ham', 'boucherie', '🍖'],
   ['sausage', 'boucherie', '🌭'],
-  ['salami', 'boucherie', '🍖'],
   ['chicken', 'boucherie', '🍗'],
   ['turkey', 'boucherie', '🍗'],
   ['poultry', 'boucherie', '🍗'],
 
+  // Charcuterie — cured and deli meats on their own counter.
+  ['charcuterie', 'charcuterie', '🥓'],
+  ['ham', 'charcuterie', '🍖'],
+  ['salami', 'charcuterie', '🍖'],
+
   // Deli
   ['deli', 'traiteur', '🥡'],
-  ['charcuterie', 'traiteur', '🥓'],
   ['sushi', 'traiteur', '🍣'],
   ['quiche', 'traiteur', '🥧'],
   ['coleslaw', 'traiteur', '🥗'],
@@ -105,17 +107,20 @@ export const KEYWORDS_EN: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['crab', 'poissonnerie', '🦀'],
   ['squid', 'poissonnerie', '🦑'],
 
-  // Dairy
+  // Dairy — the fresh dairy shelf. Cottage cheese stays here: it's a fresh
+  // dairy product, hence its 🥛 rather than a 🧀.
   ['milk', 'cremerie', '🥛'],
   ['butter', 'cremerie', '🧈'],
   ['cream', 'cremerie', '🥛'],
   ['yogurt', 'cremerie', '🥛'],
   ['yoghurt', 'cremerie', '🥛'],
-  ['cheese', 'cremerie', '🧀'],
-  ['cheddar', 'cremerie', '🧀'],
-  ['goat cheese', 'cremerie', '🧀'],
   ['egg', 'cremerie', '🥚'],
   ['cottage cheese', 'cremerie', '🥛'],
+
+  // Cheese — the counter, apart from the fresh dairy shelf.
+  ['cheese', 'fromage', '🧀'],
+  ['cheddar', 'fromage', '🧀'],
+  ['goat cheese', 'fromage', '🧀'],
 
   // Bakery
   ['bread', 'boulangerie', '🥖'],

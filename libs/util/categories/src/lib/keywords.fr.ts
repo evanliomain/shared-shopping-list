@@ -61,7 +61,7 @@ export const KEYWORDS_FR: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['menthe', 'fruits-legumes', '🌿'],
   ['herbe', 'fruits-legumes', '🌿'],
 
-  // Boucherie
+  // Boucherie — les viandes fraîches à cuire.
   ['boeuf', 'boucherie', '🥩'],
   ['steak', 'boucherie', '🥩'],
   ['entrecote', 'boucherie', '🥩'],
@@ -69,24 +69,26 @@ export const KEYWORDS_FR: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['veau', 'boucherie', '🥩'],
   ['agneau', 'boucherie', '🍖'],
   ['porc', 'boucherie', '🥓'],
-  ['lard', 'boucherie', '🥓'],
-  ['bacon', 'boucherie', '🥓'],
-  ['jambon', 'boucherie', '🍖'],
   ['saucisse', 'boucherie', '🌭'],
-  ['saucisson', 'boucherie', '🍖'],
-  ['chorizo', 'boucherie', '🍖'],
   ['poulet', 'boucherie', '🍗'],
   ['dinde', 'boucherie', '🍗'],
   ['canard', 'boucherie', '🍗'],
   ['volaille', 'boucherie', '🍗'],
   ['escalope', 'boucherie', '🍗'],
   ['merguez', 'boucherie', '🌭'],
-  ['pate', 'boucherie', '🍖'],
-  ['rillette', 'boucherie', '🍖'],
+
+  // Charcuterie — les viandes préparées, salées ou séchées, sur leur stand.
+  ['charcuterie', 'charcuterie', '🥓'],
+  ['jambon', 'charcuterie', '🍖'],
+  ['saucisson', 'charcuterie', '🍖'],
+  ['chorizo', 'charcuterie', '🍖'],
+  ['lard', 'charcuterie', '🥓'],
+  ['bacon', 'charcuterie', '🥓'],
+  ['pate', 'charcuterie', '🍖'],
+  ['rillette', 'charcuterie', '🍖'],
 
   // Traiteur
   ['traiteur', 'traiteur', '🥡'],
-  ['charcuterie', 'traiteur', '🥓'],
   ['sushi', 'traiteur', '🍣'],
   ['quiche', 'traiteur', '🥧'],
   ['taboule', 'traiteur', '🥗'],
@@ -108,26 +110,29 @@ export const KEYWORDS_FR: ReadonlyArray<readonly [string, Aisle, string]> = [
   ['calamar', 'poissonnerie', '🦑'],
   ['surimi', 'poissonnerie', '🍥'],
 
-  // Crèmerie
+  // Crèmerie — le frais laitier. Le fromage blanc y reste : c'est un dessert
+  // laitier, pas une pièce du stand fromage, d'où son 🥛 et non un 🧀.
   ['lait', 'cremerie', '🥛'],
   ['beurre', 'cremerie', '🧈'],
   ['creme', 'cremerie', '🥛'],
   ['yaourt', 'cremerie', '🥛'],
   ['yaourts', 'cremerie', '🥛'],
-  ['fromage', 'cremerie', '🧀'],
-  ['comte', 'cremerie', '🧀'],
-  ['gruyere', 'cremerie', '🧀'],
-  ['emmental', 'cremerie', '🧀'],
-  ['camembert', 'cremerie', '🧀'],
-  ['chevre', 'cremerie', '🧀'],
-  ['mozzarella', 'cremerie', '🧀'],
-  ['parmesan', 'cremerie', '🧀'],
-  ['raclette', 'cremerie', '🧀'],
   ['oeuf', 'cremerie', '🥚'],
   ['oeufs', 'cremerie', '🥚'],
   ['fromage blanc', 'cremerie', '🥛'],
   ['petit suisse', 'cremerie', '🥛'],
   ['skyr', 'cremerie', '🥛'],
+
+  // Fromage — le stand à la coupe, distinct du frais laitier.
+  ['fromage', 'fromage', '🧀'],
+  ['comte', 'fromage', '🧀'],
+  ['gruyere', 'fromage', '🧀'],
+  ['emmental', 'fromage', '🧀'],
+  ['camembert', 'fromage', '🧀'],
+  ['chevre', 'fromage', '🧀'],
+  ['mozzarella', 'fromage', '🧀'],
+  ['parmesan', 'fromage', '🧀'],
+  ['raclette', 'fromage', '🧀'],
 
   // Boulangerie
   ['pain', 'boulangerie', '🥖'],
