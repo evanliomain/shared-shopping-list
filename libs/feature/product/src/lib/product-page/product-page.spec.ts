@@ -216,6 +216,27 @@ function click(fixture: { nativeElement: HTMLElement }, label: string): void {
   button.click();
 }
 
+/** Déplie le plein écran des rayons et rend ses tuiles, dans l'ordre du parcours. */
+async function ouvreRayons(fixture: {
+  nativeElement: HTMLElement;
+  whenStable: () => Promise<unknown>;
+}): Promise<HTMLButtonElement[]> {
+  fixture.nativeElement
+    .querySelector<HTMLButtonElement>('.aisle-trigger')
+    ?.click();
+  await fixture.whenStable();
+  return [
+    ...fixture.nativeElement.querySelectorAll<HTMLButtonElement>('.aisle-tile'),
+  ];
+}
+
+/** Rejoue une touche sur une cible, comme le ferait le clavier. */
+function presseTouche(cible: HTMLElement, touche: string): void {
+  cible.dispatchEvent(
+    new KeyboardEvent('keydown', { key: touche, bubbles: true }),
+  );
+}
+
 /** Le libellé du bouton de prise de vue, qui dit aussi l'attente en cours. */
 function photoLabel(fixture: { nativeElement: HTMLElement }): string {
   return (
@@ -269,9 +290,114 @@ describe('ProductPage', () => {
     expect(inputs[0].value).toBe('Yaourt');
     expect(inputs[1].value).toBe('à la vanille');
     expect(inputs[2].value).toBe('x4');
-    const rayon = fixture.nativeElement.querySelector('.aisle-tile.selected');
-    expect(rayon?.getAttribute('aria-checked')).toBe('true');
-    expect(rayon?.getAttribute('aria-label')).toBe('Crèmerie');
+    const rayon = fixture.nativeElement.querySelector('.aisle-trigger-value');
+    expect(rayon?.textContent).toContain('Crèmerie');
+  });
+
+  it('choisit un rayon dans le plein écran déplié', async () => {
+    const { fixture } = await render((doc) =>
+      createProduct(doc, { label: 'Yaourt', category: 'cremerie' }, NOW),
+    );
+
+    // Le plein écran est fermé au départ : aucune tuile n'est rendue.
+    expect(fixture.nativeElement.querySelector('.aisle-tile')).toBeNull();
+
+    fixture.nativeElement
+      .querySelector<HTMLButtonElement>('.aisle-trigger')
+      ?.click();
+    await fixture.whenStable();
+
+    const boucherie = [
+      ...fixture.nativeElement.querySelectorAll<HTMLButtonElement>(
+        '.aisle-tile',
+      ),
+    ].find((tile) => 'Boucherie' === tile.getAttribute('aria-label'));
+    boucherie?.click();
+    await fixture.whenStable();
+
+    // Choisir referme le plein écran et reporte le rayon sur le champ replié.
+    expect(fixture.nativeElement.querySelector('.aisle-picker')).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('.aisle-trigger-value')?.textContent,
+    ).toContain('Boucherie');
+  });
+
+  it('pose le focus sur le rayon retenu à l’ouverture', async () => {
+    const { fixture } = await render((doc) =>
+      createProduct(doc, { label: 'Yaourt', category: 'cremerie' }, NOW),
+    );
+
+    // Crèmerie est le sixième rayon du parcours (index 5).
+    const tiles = await ouvreRayons(fixture);
+    expect(document.activeElement).toBe(tiles[5]);
+  });
+
+  it('pose le focus sur la première tuile quand le rayon est inconnu', async () => {
+    const { fixture } = await render((doc) =>
+      createProduct(doc, { label: 'Yaourt', category: 'venu-d-ailleurs' }, NOW),
+    );
+
+    const tiles = await ouvreRayons(fixture);
+    expect(document.activeElement).toBe(tiles[0]);
+  });
+
+  it('déplace le focus dans la grille avec les flèches', async () => {
+    const { fixture } = await render((doc) =>
+      createProduct(doc, { label: 'Yaourt', category: 'cremerie' }, NOW),
+    );
+    const tiles = await ouvreRayons(fixture);
+
+    presseTouche(tiles[5], 'ArrowRight');
+    expect(document.activeElement).toBe(tiles[6]);
+
+    presseTouche(tiles[6], 'ArrowLeft');
+    expect(document.activeElement).toBe(tiles[5]);
+
+    // Descendre puis remonter ramène à la même tuile : le pas vertical vaut
+    // une rangée entière.
+    presseTouche(tiles[5], 'ArrowDown');
+    const descendu = document.activeElement as HTMLButtonElement;
+    expect(descendu).not.toBe(tiles[5]);
+    presseTouche(descendu, 'ArrowUp');
+    expect(document.activeElement).toBe(tiles[5]);
+  });
+
+  it('repart du rayon retenu quand aucune tuile n’a le focus', async () => {
+    const { fixture } = await render((doc) =>
+      createProduct(doc, { label: 'Yaourt', category: 'cremerie' }, NOW),
+    );
+    const tiles = await ouvreRayons(fixture);
+
+    (document.activeElement as HTMLElement | null)?.blur();
+    presseTouche(tiles[0], 'ArrowRight');
+
+    // Focus perdu → on reprend à Crèmerie (5), la flèche mène donc à la 6.
+    expect(document.activeElement).toBe(tiles[6]);
+  });
+
+  it('ignore une touche non gérée', async () => {
+    const { fixture } = await render((doc) =>
+      createProduct(doc, { label: 'Yaourt', category: 'cremerie' }, NOW),
+    );
+    const tiles = await ouvreRayons(fixture);
+
+    presseTouche(tiles[5], 'Tab');
+    expect(document.activeElement).toBe(tiles[5]);
+  });
+
+  it('referme le plein écran avec Échap et rend le focus au champ', async () => {
+    const { fixture } = await render((doc) =>
+      createProduct(doc, { label: 'Yaourt', category: 'cremerie' }, NOW),
+    );
+    const tiles = await ouvreRayons(fixture);
+
+    presseTouche(tiles[5], 'Escape');
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('.aisle-picker')).toBeNull();
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector('.aisle-trigger'),
+    );
   });
 
   it('affiche un message quand le produit n’existe pas', async () => {

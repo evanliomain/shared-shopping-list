@@ -145,6 +145,7 @@
     "defaultQty": "Usual quantity",
     "defaultQtyPlaceholder": "a pack of 4, 500 g…",
     "aisle": "Aisle",
+    "chooseAisle": "Choose the aisle",
     "photo": "Photo",
     "takePhoto": "Take a photo",
     "photoBusy": "Processing…",

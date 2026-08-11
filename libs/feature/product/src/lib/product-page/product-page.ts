@@ -130,6 +130,8 @@ export class ProductPage {
   }));
   protected readonly emojiChoices = EMOJI_CHOICES;
 
+  private readonly aisleTrigger =
+    viewChild<ElementRef<HTMLButtonElement>>('aisleTrigger');
   private readonly aisleGrid = viewChild<ElementRef<HTMLElement>>('aisleGrid');
   private readonly aisleTiles =
     viewChildren<ElementRef<HTMLButtonElement>>('aisleTile');
@@ -141,9 +143,23 @@ export class ProductPage {
   protected readonly emoji = signal('🛒');
 
   /**
-   * Le rayon sélectionné porte l'unique point d'entrée au clavier ; à défaut,
-   * c'est la première tuile. Le groupe radio n'expose ainsi qu'un seul arrêt de
-   * tabulation, et les flèches circulent entre les tuiles à partir de là.
+   * La grille des rayons est un plein écran modal : le formulaire n'affiche que
+   * le rayon retenu, et c'est le toucher sur ce champ qui déplie le choix. Trente
+   * tuiles occupent trop de hauteur pour rester dépliées sous des champs qu'on
+   * remplit rarement.
+   */
+  protected readonly aislePickerOpen = signal(false);
+
+  /** Le rayon affiché sur le champ replié ; `null` si la valeur stockée est inconnue. */
+  protected readonly selectedAisle = computed(() => {
+    const selected = this.category();
+    return this.aisles.find((aisle) => aisle.key === selected) ?? null;
+  });
+
+  /**
+   * Le rayon retenu porte l'unique point d'entrée au clavier de la grille ; à
+   * défaut, c'est la première tuile. Le groupe radio n'expose ainsi qu'un seul
+   * arrêt de tabulation, et les flèches déplacent le focus à partir de là.
    */
   protected readonly tabbableAisle = computed(() => {
     const selected = this.category();
@@ -223,6 +239,9 @@ export class ProductPage {
    */
   private bankQuerySeeded = false;
 
+  /** Vrai tant que le focus a été posé dans le plein écran et pas encore rendu. */
+  private aislePickerFocused = false;
+
   constructor() {
     // Le produit peut arriver après le premier rendu : IndexedDB restaure de
     // façon asynchrone, et un delta distant peut le créer plus tard encore.
@@ -259,6 +278,22 @@ export class ProductPage {
       );
 
       this.images.ensure([ref, bank]);
+    });
+
+    // Ouvrir le plein écran pose le focus sur la tuile du rayon retenu, pour que
+    // le clavier reprenne là où en est la sélection ; le refermer le rend au
+    // champ qui l'a ouvert, sans quoi il retomberait en haut de page. On attend
+    // que les tuiles soient rendues (`@if`) avant de viser, d'où le drapeau.
+    effect(() => {
+      const open = this.aislePickerOpen();
+      const tiles = this.aisleTiles();
+      if (open && !this.aislePickerFocused && 0 < tiles.length) {
+        this.aislePickerFocused = true;
+        tiles[Math.max(0, this.selectedAisleIndex())]?.nativeElement.focus();
+      } else if (!open && this.aislePickerFocused) {
+        this.aislePickerFocused = false;
+        this.aisleTrigger()?.nativeElement.focus();
+      }
     });
   }
 
@@ -427,19 +462,40 @@ export class ProductPage {
     this.location.back();
   }
 
+  protected openAislePicker(): void {
+    this.aislePickerOpen.set(true);
+  }
+
+  protected closeAislePicker(): void {
+    this.aislePickerOpen.set(false);
+  }
+
   /**
-   * Parcours de la grille de rayons au clavier, comme un vrai groupe radio :
-   * les flèches gauche/droite passent d'une tuile à la voisine, haut/bas
-   * sautent d'une rangée, Espace et Entrée confirment la tuile courante. La
-   * sélection suit le focus. Le nombre de colonnes est lu sur la grille rendue,
-   * pour rester juste quel que soit le point de rupture responsive.
+   * Choisir un rayon vaut validation : on pose la valeur et on referme le plein
+   * écran d'un même geste, comme un select natif — pas de bouton « Enregistrer »
+   * intermédiaire.
+   */
+  protected chooseAisle(key: string): void {
+    this.category.set(key);
+    this.closeAislePicker();
+  }
+
+  /**
+   * Clavier de la grille de rayons. Les flèches déplacent le seul focus, sans
+   * rien choisir : la sélection ne change qu'à la validation (toucher, Entrée ou
+   * Espace, gérés par le bouton natif), et Échap referme sans toucher au rayon.
+   * Découpler ainsi focus et sélection est ce qui rend Échap réellement
+   * annulable. Le nombre de colonnes est lu sur la grille rendue, pour rester
+   * juste quel que soit le point de rupture responsive.
    */
   protected onAisleKeydown(event: KeyboardEvent): void {
-    const tiles = this.aisleTiles();
-    if (0 === tiles.length) {
+    if ('Escape' === event.key) {
+      event.preventDefault();
+      this.closeAislePicker();
       return;
     }
 
+    const tiles = this.aisleTiles();
     const focused = tiles.findIndex(
       (tile) => tile.nativeElement === document.activeElement,
     );
@@ -461,17 +517,11 @@ export class ProductPage {
       case 'ArrowUp':
         next = Math.max(0, current - columns);
         break;
-      case ' ':
-      case 'Enter':
-        event.preventDefault();
-        this.category.set(this.aisles[current].key);
-        return;
       default:
         return;
     }
 
     event.preventDefault();
-    this.category.set(this.aisles[next].key);
     tiles[next]?.nativeElement.focus();
   }
 
@@ -484,6 +534,7 @@ export class ProductPage {
 
   private aisleColumns(): number {
     const grid = this.aisleGrid()?.nativeElement;
+    /* v8 ignore next 3 -- garde : `aisleColumns` n'est appelé qu'au clavier de la grille, donc le plein écran ouvert et `#aisleGrid` rendu */
     if (undefined === grid) {
       return 1;
     }
