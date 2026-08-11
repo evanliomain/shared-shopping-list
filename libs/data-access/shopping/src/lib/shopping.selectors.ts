@@ -141,6 +141,28 @@ export const selectPendingByAisle = createSelector(
   },
 );
 
+/**
+ * Les articles restants, du plus récemment ajouté au plus ancien.
+ *
+ * La vue de validation d'ajout : on vient d'entrer plusieurs articles et on
+ * veut les voir remonter en tête pour vérifier qu'ils sont bien arrivés, sans
+ * les traquer chacun dans son rayon. `createdAt` décroissant ; à égalité — deux
+ * lignes nées dans la même milliseconde —, l'ordre alphabétique départage pour
+ * que l'affichage reste stable.
+ */
+export const selectPendingByRecency = createSelector(
+  selectPendingItems,
+  (items) =>
+    chain([...items])
+      .chain(
+        sortBy<ItemView>(
+          (v) => -v.createdAt,
+          (v) => normalize(v.label),
+        ),
+      )
+      .value() as ItemView[],
+);
+
 export const selectRemainingCount = createSelector(
   selectPendingItems,
   (items) =>
