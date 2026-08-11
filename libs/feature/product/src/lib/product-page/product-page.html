@@ -64,25 +64,38 @@
     />
   </label>
 
-  <label>
-    <span>{{ 'product.aisle' | transloco }}</span>
-    <!-- Le chevron est dessiné par la feuille de styles : le natif diffère
-         d'une plateforme à l'autre, et le champ ne ressemblerait plus aux
-         autres. -->
-    <span class="select-wrap">
-      <select
-        name="category"
-        [ngModel]="category()"
-        (ngModelChange)="category.set($event)"
+  <fieldset>
+    <legend>{{ 'product.aisle' | transloco }}</legend>
+    <!-- Une grille de tuiles plutôt qu'un menu déroulant : les rayons se voient
+         tous d'un coup et se choisissent d'un seul toucher, sans deuxième
+         étape. Groupe de boutons radio, parcourable aux flèches ; la coche et
+         la graisse doublent la couleur pour qui ne distingue pas le vert. -->
+    <div
+      #aisleGrid
+      class="aisle-grid"
+      role="radiogroup"
+      [attr.aria-label]="'product.aisle' | transloco"
+    >
+      @for (aisle of aisles; track aisle.key) {
+      <button
+        #aisleTile
+        type="button"
+        class="aisle-tile"
+        role="radio"
+        [class.selected]="aisle.key === category()"
+        [attr.aria-checked]="aisle.key === category()"
+        [attr.aria-label]="'aisles.' + aisle.key | transloco"
+        [tabindex]="aisle.key === tabbableAisle() ? 0 : -1"
+        (click)="category.set(aisle.key)"
+        (keydown)="onAisleKeydown($event)"
       >
-        @for (aisle of aisles; track aisle.key) {
-        <option [value]="aisle.key">
-          {{ aisle.emoji }} {{ 'aisles.' + aisle.key | transloco }}
-        </option>
-        }
-      </select>
-    </span>
-  </label>
+        <span class="aisle-emoji" aria-hidden="true">{{ aisle.emoji }}</span>
+        <span class="aisle-label">{{ 'aisles.' + aisle.key | transloco }}</span>
+        <span class="aisle-check" aria-hidden="true">✓</span>
+      </button>
+      }
+    </div>
+  </fieldset>
 
   <fieldset>
     <legend>{{ 'product.photo' | transloco }}</legend>
