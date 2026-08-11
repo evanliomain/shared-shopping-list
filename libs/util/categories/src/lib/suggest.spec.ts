@@ -98,7 +98,7 @@ describe('suggestCategory', () => {
 
 describe('helpers de rayon', () => {
   it('donne l’emoji du rayon, avec repli sur « divers »', () => {
-    expect(emojiForAisle('cremerie')).toBe('🧀');
+    expect(emojiForAisle('cremerie')).toBe('🥛');
     expect(emojiForAisle('rayon-inconnu')).toBe(AISLE_EMOJI[DEFAULT_AISLE]);
     expect(emojiForAisle('')).toBe(AISLE_EMOJI[DEFAULT_AISLE]);
   });

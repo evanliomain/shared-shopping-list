@@ -528,7 +528,7 @@ describe('ProductPage', () => {
       expect(dispatched).toContainEqual({
         type: '[Catalogue] Image modifiée',
         productId,
-        imageRef: 'emoji:🧀',
+        imageRef: 'emoji:🥛',
       });
     });
   });
