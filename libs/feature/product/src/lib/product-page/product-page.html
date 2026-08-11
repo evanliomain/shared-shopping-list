@@ -64,38 +64,32 @@
     />
   </label>
 
-  <fieldset>
-    <legend>{{ 'product.aisle' | transloco }}</legend>
-    <!-- Une grille de tuiles plutôt qu'un menu déroulant : les rayons se voient
-         tous d'un coup et se choisissent d'un seul toucher, sans deuxième
-         étape. Groupe de boutons radio, parcourable aux flèches ; la coche et
-         la graisse doublent la couleur pour qui ne distingue pas le vert. -->
-    <div
-      #aisleGrid
-      class="aisle-grid"
-      role="radiogroup"
-      [attr.aria-label]="'product.aisle' | transloco"
+  <!-- Le formulaire ne montre que le rayon retenu ; le choix parmi trente se
+       déplie en plein écran au toucher, faute de quoi la grille mangerait la
+       hauteur de champs qu'on remplit rarement. -->
+  <div class="field">
+    <span id="aisle-caption" class="field-caption">
+      {{ 'product.aisle' | transloco }}
+    </span>
+    <button
+      #aisleTrigger
+      type="button"
+      class="aisle-trigger"
+      aria-haspopup="dialog"
+      aria-labelledby="aisle-caption aisle-value"
+      (click)="openAislePicker()"
     >
-      @for (aisle of aisles; track aisle.key) {
-      <button
-        #aisleTile
-        type="button"
-        class="aisle-tile"
-        role="radio"
-        [class.selected]="aisle.key === category()"
-        [attr.aria-checked]="aisle.key === category()"
-        [attr.aria-label]="'aisles.' + aisle.key | transloco"
-        [tabindex]="aisle.key === tabbableAisle() ? 0 : -1"
-        (click)="category.set(aisle.key)"
-        (keydown)="onAisleKeydown($event)"
-      >
-        <span class="aisle-emoji" aria-hidden="true">{{ aisle.emoji }}</span>
-        <span class="aisle-label">{{ 'aisles.' + aisle.key | transloco }}</span>
-        <span class="aisle-check" aria-hidden="true">✓</span>
-      </button>
-      }
-    </div>
-  </fieldset>
+      <span id="aisle-value" class="aisle-trigger-value">
+        @if (selectedAisle(); as aisle) {
+        <span class="aisle-trigger-emoji" aria-hidden="true"
+          >{{ aisle.emoji }}</span
+        >
+        {{ 'aisles.' + aisle.key | transloco }} } @else { {{
+        'product.chooseAisle' | transloco }} }
+      </span>
+      <span class="aisle-trigger-chevron" aria-hidden="true">▾</span>
+    </button>
+  </div>
 
   <fieldset>
     <legend>{{ 'product.photo' | transloco }}</legend>
@@ -238,3 +232,53 @@
     {{ 'product.save' | transloco }}
   </button>
 </footer>
+
+<!-- Le sélecteur de rayon, déplié en plein écran. Grille de tuiles bord à bord :
+     les rayons se voient tous, se parcourent aux flèches et se choisissent d'un
+     toucher — qui vaut validation et referme. Échap referme sans rien changer,
+     et la coche comme la graisse doublent la couleur pour qui ne distingue pas
+     le vert. -->
+@if (aislePickerOpen()) {
+<div
+  class="aisle-picker"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="'product.chooseAisle' | transloco"
+>
+  <header>
+    <button type="button" class="back" (click)="closeAislePicker()">
+      ← {{ 'common.back' | transloco }}
+    </button>
+    <h2>{{ 'product.chooseAisle' | transloco }}</h2>
+    <span class="balance" aria-hidden="true"></span>
+  </header>
+
+  <div class="aisle-picker-body">
+    <div
+      #aisleGrid
+      class="aisle-grid"
+      role="radiogroup"
+      [attr.aria-label]="'product.aisle' | transloco"
+    >
+      @for (aisle of aisles; track aisle.key) {
+      <button
+        #aisleTile
+        type="button"
+        class="aisle-tile"
+        role="radio"
+        [class.selected]="aisle.key === category()"
+        [attr.aria-checked]="aisle.key === category()"
+        [attr.aria-label]="'aisles.' + aisle.key | transloco"
+        [tabindex]="aisle.key === tabbableAisle() ? 0 : -1"
+        (click)="chooseAisle(aisle.key)"
+        (keydown)="onAisleKeydown($event)"
+      >
+        <span class="aisle-emoji" aria-hidden="true">{{ aisle.emoji }}</span>
+        <span class="aisle-label">{{ 'aisles.' + aisle.key | transloco }}</span>
+        <span class="aisle-check" aria-hidden="true">✓</span>
+      </button>
+      }
+    </div>
+  </div>
+</div>
+}

@@ -145,6 +145,7 @@
     "defaultQty": "Quantité habituelle",
     "defaultQtyPlaceholder": "un pack de 4, 500 g…",
     "aisle": "Rayon",
+    "chooseAisle": "Choisir le rayon",
     "photo": "Photo",
     "takePhoto": "Prendre une photo",
     "photoBusy": "Traitement…",
