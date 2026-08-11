@@ -28,6 +28,7 @@ import {
   selectItemViews,
   selectOrderedAisles,
   selectPendingByAisle,
+  selectPendingByRecency,
   selectPendingItems,
   selectRemainingCount,
   selectSuggestions,
@@ -257,6 +258,37 @@ describe('selectors de la liste', () => {
       orderFor(state),
     );
     expect(group.items.map((i) => i.label)).toEqual(['Avocats', 'Poireaux']);
+  });
+
+  it('classe les restants du plus récemment ajouté au plus ancien', () => {
+    // Ajoutés dans un ordre, à des instants croissants : la vue de validation
+    // les rend dans l'ordre inverse, le dernier entré en tête, quel que soit
+    // leur rayon.
+    const state = new Scenario()
+      .product('lait', { label: 'Lait', category: 'cremerie' })
+      .product('carotte', { label: 'Carottes', category: 'fruits-legumes' })
+      .product('lessive', { label: 'Lessive', category: 'entretien' })
+      .add('lait', { at: NOW })
+      .add('carotte', { at: NOW + 1000 })
+      .add('lessive', { at: NOW + 2000 })
+      .state();
+
+    const recent = selectPendingByRecency.projector(pendingOf(state));
+
+    expect(recent.map((v) => v.label)).toEqual(['Lessive', 'Carottes', 'Lait']);
+  });
+
+  it('départage alphabétiquement deux ajouts de même instant', () => {
+    const state = new Scenario()
+      .product('poireau', { label: 'Poireaux', category: 'fruits-legumes' })
+      .product('avocat', { label: 'Avocats', category: 'fruits-legumes' })
+      .add('poireau', { at: NOW })
+      .add('avocat', { at: NOW })
+      .state();
+
+    const recent = selectPendingByRecency.projector(pendingOf(state));
+
+    expect(recent.map((v) => v.label)).toEqual(['Avocats', 'Poireaux']);
   });
 
   it('expose tous les rayons dans l’ordre effectif, réglage ou défaut', () => {
