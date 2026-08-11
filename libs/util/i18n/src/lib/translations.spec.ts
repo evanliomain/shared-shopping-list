@@ -123,5 +123,9 @@ describe('rendu des traductions', () => {
   it('rend les libellés de rayon dans les deux langues', () => {
     expect(serviceFor('fr').translate('aisles.cremerie')).toBe('Crèmerie');
     expect(serviceFor('en').translate('aisles.cremerie')).toBe('Dairy');
+    expect(serviceFor('fr').translate('aisles.charcuterie')).toBe('Charcuterie');
+    expect(serviceFor('en').translate('aisles.charcuterie')).toBe('Charcuterie');
+    expect(serviceFor('fr').translate('aisles.fromage')).toBe('Fromage');
+    expect(serviceFor('en').translate('aisles.fromage')).toBe('Cheese');
   });
 });

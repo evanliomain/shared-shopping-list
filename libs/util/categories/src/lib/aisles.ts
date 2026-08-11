@@ -6,9 +6,11 @@
 export const AISLES = [
   'fruits-legumes',
   'boucherie',
+  'charcuterie',
   'traiteur',
   'poissonnerie',
   'cremerie',
+  'fromage',
   'boulangerie',
   'epicerie-salee',
   'epicerie-sucree',
@@ -53,9 +55,13 @@ export type Aisle = (typeof AISLES)[number];
 export const AISLE_EMOJI: Readonly<Record<Aisle, string>> = {
   'fruits-legumes': '🥕',
   boucherie: '🥩',
-  traiteur: '🥓',
+  charcuterie: '🥓',
+  traiteur: '🥡',
   poissonnerie: '🐟',
-  cremerie: '🧀',
+  // La crèmerie garde le lait ; le fromage a désormais son rayon, et donc
+  // le 🧀 qui lui revient.
+  cremerie: '🥛',
+  fromage: '🧀',
   boulangerie: '🥖',
   'epicerie-salee': '🥫',
   'epicerie-sucree': '🍪',

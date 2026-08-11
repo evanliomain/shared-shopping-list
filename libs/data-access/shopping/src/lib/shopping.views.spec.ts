@@ -28,13 +28,13 @@ describe('displayEmoji', () => {
   });
 
   it('retombe sur l’emoji du rayon quand le produit n’a pas d’image', () => {
-    expect(displayEmoji(product({ imageRef: null }))).toBe('🧀');
+    expect(displayEmoji(product({ imageRef: null }))).toBe('🥛');
   });
 
   it('garde un emoji de repli derrière une photo', () => {
     // Une photo peut n'être pas encore téléchargée — le cas normal juste après
     // un échange par QR code. L'emoji tient la place en attendant.
-    expect(displayEmoji(product({ imageRef: 'blob:aaaa' }))).toBe('🧀');
+    expect(displayEmoji(product({ imageRef: 'blob:aaaa' }))).toBe('🥛');
   });
 
   it('range sous « divers » un rayon qu’il ne connaît pas', () => {

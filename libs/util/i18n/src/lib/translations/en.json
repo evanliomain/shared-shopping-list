@@ -249,9 +249,11 @@
   "aisles": {
     "fruits-legumes": "Fruit & vegetables",
     "boucherie": "Butcher",
+    "charcuterie": "Charcuterie",
     "traiteur": "Deli",
     "poissonnerie": "Fishmonger",
     "cremerie": "Dairy",
+    "fromage": "Cheese",
     "boulangerie": "Bakery",
     "epicerie-salee": "Savoury groceries",
     "epicerie-sucree": "Sweet groceries",
