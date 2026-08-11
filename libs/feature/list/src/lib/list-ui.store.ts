@@ -60,6 +60,18 @@ const FAB_SLOP_PX = 8;
  */
 export type ListMenuState = 'closed' | 'open' | 'confirmingClear';
 
+/**
+ * Comment le corps de liste dispose les articles restants.
+ *
+ * `aisle` — le défaut : groupés par rayon, dans l'ordre de parcours du magasin,
+ * ce qui sert à faire les courses. `recent` — non groupés, du dernier ajouté au
+ * premier, ce qui sert à valider une rafale de saisie sans traquer chaque
+ * article dans son rayon.
+ */
+export type ViewMode = 'aisle' | 'recent';
+
+export const VIEW_MODES: readonly ViewMode[] = ['aisle', 'recent'];
+
 interface ListUiState {
   /** Saisie en cours dans la barre d'ajout. */
   readonly query: string;
@@ -86,6 +98,8 @@ interface ListUiState {
   readonly lastAdd: DictationAdd | null;
   /** Le menu de l'en-tête, celui qui porte « Vider la liste ». */
   readonly listMenu: ListMenuState;
+  /** Comment le corps de liste dispose les articles restants. */
+  readonly viewMode: ViewMode;
 }
 
 const initial: ListUiState = {
@@ -97,6 +111,7 @@ const initial: ListUiState = {
   undoable: null,
   lastAdd: null,
   listMenu: 'closed',
+  viewMode: 'aisle',
 };
 
 /**
@@ -206,6 +221,10 @@ export const ListUiStore = signalStore(
       },
       toggleChecked(): void {
         patchState(store, ({ showChecked }) => ({ showChecked: !showChecked }));
+      },
+      /** Bascule la disposition du corps de liste : par rayon, ou par récence. */
+      setViewMode(viewMode: ViewMode): void {
+        patchState(store, { viewMode });
       },
       toggleListMenu(): void {
         patchState(

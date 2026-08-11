@@ -28,13 +28,25 @@
       {{ 'list.remainingTotal' | transloco: { total: total() } }} }
     </p>
 
-    <a
-      class="sync"
-      routerLink="/synchronisation"
-      [attr.aria-label]="'list.syncLink' | transloco"
-    >
-      <sl-sync-badge [status]="syncStatus()" [pending]="syncPending()" />
-    </a>
+    <div class="status-actions">
+      <!-- La bascule d'affichage ne sert que s'il reste des articles à
+           disposer : tout coché, le corps montre « dans le panier », et il n'y
+           a plus rien à regrouper. -->
+      @if (0 < remaining()) {
+      <sl-view-switch
+        [mode]="ui.viewMode()"
+        (chosen)="ui.setViewMode($event)"
+      />
+      }
+
+      <a
+        class="sync"
+        routerLink="/synchronisation"
+        [attr.aria-label]="'list.syncLink' | transloco"
+      >
+        <sl-sync-badge [status]="syncStatus()" [pending]="syncPending()" />
+      </a>
+    </div>
   </div>
 
   <!-- Le compteur dit combien il reste, la barre dit combien est fait. Deux
@@ -67,7 +79,25 @@
       (pressed)="startAdding()"
     />
   </sl-empty-state>
-  } @for (group of groups(); track group.aisle) {
+  }
+
+  <!-- Deux dispositions des mêmes restants. Par rayon pour faire les courses ;
+       à plat et du dernier ajouté au premier pour valider une rafale de saisie
+       sans traquer chaque article dans son rayon. -->
+  @if ('recent' === ui.viewMode()) {
+  <ul class="card recent">
+    @for (item of recentItems(); track item.id) {
+    <li>
+      <sl-item-row
+        [item]="item"
+        [imageUrl]="images.urlFor(item.imageRef)"
+        (toggled)="toggle(item, $event)"
+        (removed)="remove(item)"
+      />
+    </li>
+    }
+  </ul>
+  } @else { @for (group of groups(); track group.aisle) {
   <h2 class="aisle" [attr.data-aisle]="group.aisle">
     <span aria-hidden="true">{{ group.emoji }}</span>
     {{ 'aisles.' + group.aisle | transloco }}
@@ -84,7 +114,7 @@
     </li>
     }
   </ul>
-  } @if (0 < checkedCount()) {
+  } } @if (0 < checkedCount()) {
   <section class="basket">
     <div class="basket-head">
       <button

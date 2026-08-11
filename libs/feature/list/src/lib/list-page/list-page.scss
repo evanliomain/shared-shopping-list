@@ -68,6 +68,15 @@ h1 {
   font-weight: 650;
 }
 
+/* Bascule d'affichage et pastille de synchro, groupées à droite de la ligne
+   d'état pour que le compteur garde tout le côté gauche. */
+.status-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sl-space-2);
+}
+
 /* La pastille tient dans une cible tactile sans en occuper la hauteur : le
    lien s'étend autour d'elle. */
 .sync {
@@ -150,6 +159,12 @@ main.dimmed {
    lesquelles en portent un — la première, non. */
 .card li + li sl-item-row {
   --sl-row-rule: var(--sl-border);
+}
+
+/* La vue par récence n'a pas de titre de rayon pour poser son air au-dessus :
+   la carte le prend elle-même, sinon elle affleurerait le bord de la liste. */
+.card.recent {
+  margin-block-start: var(--sl-space-3);
 }
 
 .basket {
