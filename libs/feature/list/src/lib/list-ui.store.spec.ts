@@ -15,6 +15,19 @@ describe('ListUiStore', () => {
     expect(ui.picking()).toBe(false);
     expect(ui.showChecked()).toBe(false);
     expect(ui.listMenu()).toBe('closed');
+    // Par rayon d'abord : c'est la vue des courses, celle qu'on veut en
+    // rouvrant l'application pour aller au magasin.
+    expect(ui.viewMode()).toBe('aisle');
+  });
+
+  it('bascule l’affichage entre rayon et récence', () => {
+    const ui = store();
+
+    ui.setViewMode('recent');
+    expect(ui.viewMode()).toBe('recent');
+
+    ui.setViewMode('aisle');
+    expect(ui.viewMode()).toBe('aisle');
   });
 
   it('ouvre le panneau dès la première frappe', () => {

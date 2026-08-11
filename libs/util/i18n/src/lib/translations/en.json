@@ -62,7 +62,12 @@
     },
     "clearListAction": "Clear",
     "unknownItem": "Unknown item",
-    "undoChecked": "{{label}} — in the basket"
+    "undoChecked": "{{label}} — in the basket",
+    "viewSwitch": "List display",
+    "view": {
+      "aisle": "By aisle",
+      "recent": "By recent addition"
+    }
   },
   "aisleOrder": {
     "title": "Aisle order",

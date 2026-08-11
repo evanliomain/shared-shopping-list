@@ -62,7 +62,12 @@
     },
     "clearListAction": "Vider",
     "unknownItem": "Article inconnu",
-    "undoChecked": "{{label}} — dans le panier"
+    "undoChecked": "{{label}} — dans le panier",
+    "viewSwitch": "Affichage de la liste",
+    "view": {
+      "aisle": "Par rayon",
+      "recent": "Par ajout récent"
+    }
   },
   "aisleOrder": {
     "title": "Ordre des rayons",

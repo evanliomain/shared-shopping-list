@@ -396,6 +396,55 @@ describe('ListPage', () => {
     });
   });
 
+  describe('bascule d’affichage', () => {
+    /** Le libellé de chaque ligne, dans l'ordre où l'écran les rend. */
+    function labels(fixture: ComponentFixture<ListPage>): string[] {
+      return rows(fixture).map(
+        (item) => item.querySelector('.label')?.textContent?.trim() ?? '',
+      );
+    }
+
+    /** Trois articles saisis à des instants croissants, dans deux rayons. */
+    function timeline(doc: Y.Doc): void {
+      for (const [label, category, when] of [
+        ['Lait', 'cremerie', NOW],
+        ['Pommes', 'fruits-legumes', NOW + 1000],
+        ['Yaourt', 'cremerie', NOW + 2000],
+      ] as const) {
+        put(doc, createProduct(doc, { label, category }, NOW), when);
+      }
+    }
+
+    it('groupe par rayon par défaut', async () => {
+      const { fixture } = await render({ seed: timeline });
+
+      // Fruits-légumes avant crèmerie dans le parcours par défaut, puis
+      // l'alphabétique à l'intérieur du rayon.
+      expect(fixture.nativeElement.querySelectorAll('h2.aisle').length).toBe(2);
+      expect(labels(fixture)).toEqual(['Pommes', 'Lait', 'Yaourt']);
+    });
+
+    it('passe à plat, du dernier ajouté au premier', async () => {
+      const { fixture } = await render({ seed: timeline });
+
+      // Le second segment : « par ajout récent ».
+      const radios = fixture.nativeElement.querySelectorAll(
+        'sl-view-switch [role="radio"]',
+      );
+      radios[1].click();
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.querySelectorAll('h2.aisle').length).toBe(0);
+      expect(labels(fixture)).toEqual(['Yaourt', 'Pommes', 'Lait']);
+    });
+
+    it('ne propose pas la bascule quand il n’y a rien à disposer', async () => {
+      const { fixture } = await render();
+
+      expect(fixture.nativeElement.querySelector('sl-view-switch')).toBeNull();
+    });
+  });
+
   describe('mode dictée', () => {
     it('ouvre le plein écran depuis la liste', async () => {
       const { fixture } = await render({ seed: courses });

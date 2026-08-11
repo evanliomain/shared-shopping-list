@@ -23,6 +23,7 @@ import {
   selectListName,
   selectLoaded,
   selectPendingByAisle,
+  selectPendingByRecency,
   selectItemViews,
   selectRemainingCount,
   ProductImages,
@@ -52,6 +53,7 @@ import { HistoryPane } from '../history-pane/history-pane';
 import { ItemRow } from '../item-row/item-row';
 import { ListMenu } from '../list-menu/list-menu';
 import { DictationAdd, ListUiStore } from '../list-ui.store';
+import { ViewSwitch } from '../view-switch/view-switch';
 
 @Component({
   selector: 'sl-list-page',
@@ -70,6 +72,7 @@ import { DictationAdd, ListUiStore } from '../list-ui.store';
     SyncBadge,
     ThemeSwitch,
     TranslocoPipe,
+    ViewSwitch,
   ],
   providers: [ListUiStore],
   templateUrl: './list-page.html',
@@ -93,6 +96,14 @@ export class ListPage {
 
   protected readonly loaded = this.store.selectSignal(selectLoaded);
   protected readonly groups = this.store.selectSignal(selectPendingByAisle);
+
+  /**
+   * Les mêmes articles restants, mais à plat et du dernier ajouté au premier :
+   * la disposition de validation, choisie depuis l'en-tête. Séparée des groupes
+   * plutôt que dérivée à l'affichage — chaque vue a son propre tri mémoïsé.
+   */
+  protected readonly recentItems =
+    this.store.selectSignal(selectPendingByRecency);
   protected readonly checkedItems = this.store.selectSignal(selectCheckedItems);
   protected readonly remaining = this.store.selectSignal(selectRemainingCount);
   protected readonly checkedCount = this.store.selectSignal(selectCheckedCount);
