@@ -22,7 +22,14 @@ describe('suggestCategory', () => {
     // Rayons Leclerc ajoutés : les alcools quittent « boissons » pour « cave »,
     // la rentrée a son rayon, et le non-alimentaire est couvert.
     ['Vin rouge', 'cave'],
-    ['Plateau de charcuterie', 'traiteur'],
+    ['Plateau de charcuterie', 'charcuterie'],
+    ['Saucisson sec', 'charcuterie'],
+    ['Jambon blanc', 'charcuterie'],
+    ['Camembert de Normandie', 'fromage'],
+    ['Comté 18 mois', 'fromage'],
+    // Le fromage blanc est un dessert laitier : il reste en crèmerie, même
+    // s'il porte le mot « fromage ».
+    ['Fromage blanc', 'cremerie'],
     ['Cahier grand format', 'fournitures'],
     ['Terreau universel', 'jardin'],
     ['Perceuse sans fil', 'bricolage'],
@@ -41,6 +48,11 @@ describe('suggestCategory', () => {
     ['Nappies size 4', 'bebe'],
     ['Cat food', 'animaux'],
     ['Red wine', 'cave'],
+    ['Sliced ham', 'charcuterie'],
+    ['Mild cheddar', 'fromage'],
+    // Even in English, the two-word « cottage cheese » stays in dairy, not
+    // on the cheese counter.
+    ['Cottage cheese', 'cremerie'],
     ['School notebook', 'fournitures'],
     ['Cordless drill', 'bricolage'],
     ['Football', 'sport'],
