@@ -358,6 +358,28 @@ describe('AddBar', () => {
       ).toContain('Terminé');
     });
 
+    it('retient la dernière pile à la fermeture, pour la fondre à la sortie', async () => {
+      // À la fermeture, `added` retombe à vide dans la même frame que `picking`
+      // côté page. Sans la pile figée, les pastilles s'effaceraient d'un coup —
+      // leur contenu retiré avant qu'`animate.leave` n'ait pu le fondre. Panneau
+      // fermé, `shownAdded` rejoue donc la dernière pile vue plutôt que la pile
+      // vive. On lit ici le signal que la vue sortante relit : jsdom ne joue pas
+      // l'animation de sortie, retire le bloc aussitôt, et la pile figée qu'il
+      // affiche le temps de fondre n'a alors aucune trace observable au DOM.
+      const fixture = await render([BASE], true, [ADDED]);
+      const shownAdded = () =>
+        (fixture.componentInstance as unknown as {
+          shownAdded: () => readonly ItemView[];
+        }).shownAdded();
+      expect(shownAdded()).toEqual([ADDED]);
+
+      fixture.componentRef.setInput('picking', false);
+      fixture.componentRef.setInput('added', []);
+      await fixture.whenStable();
+
+      expect(shownAdded()).toEqual([ADDED]);
+    });
+
     it('annonce l’article suivant dans le champ vidé', async () => {
       const { nativeElement } = await render([BASE], true, [ADDED]);
 
