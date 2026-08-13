@@ -679,7 +679,37 @@ describe('ListPage', () => {
 
       await type(fixture, 'Lait');
 
-      expect(fixture.nativeElement.querySelector('sl-dictation .hint')).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('sl-dictation .create'),
+      ).toBeNull();
+    });
+
+    it('crée un article que le flou rapproche d’un produit du catalogue', async () => {
+      // La régression : « Pois » ressemble à « Poires » que la recherche remonte,
+      // mais reste un produit à créer. La rangée happerait le voisin ; le bouton
+      // « Créer », rendu à la dictée, tranche pour la création.
+      const { fixture, dispatched } = await render({
+        seed: (doc) => createProduct(doc, { label: 'Poires' }, NOW),
+      });
+      await click(fixture, 'sl-dictation');
+      await type(fixture, 'Pois');
+
+      // La suggestion floue est bien là, et pourtant la création reste offerte.
+      expect(
+        fixture.nativeElement.querySelector('sl-dictation .suggestion'),
+      ).not.toBeNull();
+
+      await click(fixture, 'sl-dictation .create');
+
+      expect(dispatched).toEqual([
+        expect.objectContaining({
+          type: '[Liste] Produit créé et ajouté',
+          draft: { label: 'Pois' },
+          qty: 1,
+        }),
+      ]);
+      // Le champ repart à vide pour l'article suivant.
+      expect(field(fixture).value).toBe('');
     });
 
     it('éteint la rangée sur une saisie d’espaces', async () => {

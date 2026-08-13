@@ -321,6 +321,22 @@ export class ListPage {
   }
 
   /**
+   * « Créer «X» » de la dictée. La rangée de quantité valide la première
+   * suggestion tant qu'il en reste une ; ce bouton, lui, tranche pour la
+   * création — c'est la seule issue quand le flou remonte un produit voisin d'un
+   * libellé pourtant neuf. On pose l'ajout à l'unité et on note l'ajout, comme
+   * un ＋1, pour que le reçu du plein écran l'annonce et reste défaisable.
+   */
+  protected createFromDictation(label: string): void {
+    const trimmed = label.trim();
+    this.store.dispatch(
+      listActions.produitCrééEtAjouté({ draft: { label: trimmed }, qty: 1 }),
+    );
+    this.ui.noteAdd({ productId: null, label: trimmed, delta: 1 });
+    this.ui.clearQuery();
+  }
+
+  /**
    * ＋N de la dictée : valide l'article en cours avec ce compte. La première
    * suggestion si elle existe, une création sinon — la quantité voyage avec
    * l'ajout. La rangée étant éteinte sur un champ vide, `label` n'est jamais

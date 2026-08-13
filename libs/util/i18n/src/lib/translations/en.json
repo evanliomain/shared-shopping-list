@@ -92,7 +92,6 @@
   "dictation": {
     "title": "Dictation",
     "frequent": "Frequent",
-    "willCreate": "New: “{{label}}”",
     "addCount": {
       "one": "Add {{count}} item",
       "other": "Add {{count}} items"
