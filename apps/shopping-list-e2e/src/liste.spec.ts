@@ -296,6 +296,31 @@ test('ne propose pas de créer un doublon d’un produit connu', async ({
   ).toHaveCount(0);
 });
 
+test('crée un article hors historique, même proche d’un produit connu', async ({
+  page,
+}) => {
+  // « Poires » est au catalogue ; « Pois » lui ressemble — la recherche floue le
+  // remonte — mais reste un autre produit. Le bouton « Créer » doit permettre de
+  // l'ajouter sans reprendre le voisin. C'est ce que la refonte de l'ajout
+  // mobile avait perdu : la rangée de quantité happait alors la suggestion, et
+  // l'article neuf restait inatteignable.
+  await createArticle(page, 'Poires');
+
+  await input(page).fill('Pois');
+
+  // La suggestion « Poires » remonte bel et bien, et pourtant « Pois » reste à
+  // créer : les deux coexistent, à la dictée comme à la barre.
+  await expect(
+    page.locator('.suggestion').filter({ hasText: 'Poires' }),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: /Créer.*Pois/ }).click();
+
+  // L'article neuf entre dans la liste, distinct de son voisin resté unique.
+  await expect(row(page, 'Pois')).toBeVisible();
+  await expect(row(page, 'Poires')).toHaveCount(1);
+});
+
 test('la liste survit à un rechargement', async ({ page }) => {
   await createArticle(page, 'Pommes');
   await closeAdd(page);
