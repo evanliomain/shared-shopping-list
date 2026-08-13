@@ -76,8 +76,6 @@
   <div class="panel">
     @if (!hasQuery()) {
     <p class="kicker">{{ 'dictation.frequent' | transloco }}</p>
-    } @else if (0 === suggestions().length) {
-    <p class="hint">{{ 'dictation.willCreate' | transloco: { label: query() } }}</p>
     }
 
     <ul class="suggestions">
@@ -114,6 +112,17 @@
       </li>
       }
     </ul>
+
+    <!-- Le libellé en cours ne correspond exactement à aucun produit : on le
+         crée. Sans ce bouton, un produit proche remonté par le flou happait la
+         validation et l'article neuf restait inatteignable. C'est le pendant
+         mobile du « Créer » de la barre du bureau. -->
+    @if (canCreate()) {
+    <button type="button" class="create" (click)="created.emit(query())">
+      <span class="plus" aria-hidden="true">＋</span>
+      {{ 'addBar.create' | transloco: { label: query() } }}
+    </button>
+    }
   </div>
 
   <!-- La rangée de validation, collée au clavier. Elle n'arme rien : chaque

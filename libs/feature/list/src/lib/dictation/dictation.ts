@@ -55,6 +55,13 @@ export const QUICK_COUNTS: readonly number[] = [1, 2, 4];
  * porte le nombre, la validation et le retour au champ vide ; plus de mode à
  * retenir, donc plus de remise à zéro à surveiller. Entrée reste le ＋1.
  *
+ * Un tap sur une suggestion **complète** le champ sans valider ; c'est la rangée
+ * qui ajoute, sur la première suggestion s'il en reste une. Quand la saisie ne
+ * désigne exactement aucun produit connu (`canCreate`), un bouton **« Créer
+ * «X» »** paraît sous les suggestions — le pendant mobile de celui de la barre
+ * du bureau, sans lequel un article absent de l'historique mais proche d'un
+ * produit existant restait inatteignable.
+ *
  * Au repos c'est le disque vert du coin ; ouvert, le plein écran. La pile de
  * pastilles a disparu — un mur de vingt pastilles pousse le clavier hors de
  * l'écran et ne se relit jamais. À sa place, un **reçu d'une ligne** (le
@@ -99,6 +106,8 @@ export class Dictation {
   readonly retracted = input(false);
   readonly query = input.required<string>();
   readonly suggestions = input.required<readonly SuggestionView[]>();
+  /** Vrai quand la saisie ne correspond exactement à aucun produit connu. */
+  readonly canCreate = input.required<boolean>();
   readonly receipt = input<DictationReceipt | null>(null);
   /** Les lignes dictées depuis l'ouverture : le compteur, et la relecture. */
   readonly entries = input.required<readonly ItemView[]>();
@@ -113,6 +122,8 @@ export class Dictation {
   readonly picked = output<SuggestionView>();
   /** ＋N (ou Entrée pour ＋1) : valide l'article en cours avec ce compte. */
   readonly quantified = output<number>();
+  /** « Créer «X» » : le libellé en cours ne désigne aucun produit, on le crée. */
+  readonly created = output<string>();
   /** ✕ du reçu : le dernier article dicté ressort. */
   readonly undone = output<void>();
   /** ＋… puis « Ajouter » : l'article en cours prend cette quantité libre. */

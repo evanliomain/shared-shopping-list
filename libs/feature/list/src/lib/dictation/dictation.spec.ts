@@ -49,6 +49,7 @@ interface Options {
   readonly retracted?: boolean;
   readonly query?: string;
   readonly suggestions?: readonly SuggestionView[];
+  readonly canCreate?: boolean;
   readonly receipt?: DictationReceipt | null;
   readonly entries?: readonly ItemView[];
 }
@@ -76,6 +77,7 @@ describe('Dictation', () => {
     fixture.componentRef.setInput('retracted', options.retracted ?? false);
     fixture.componentRef.setInput('query', options.query ?? '');
     fixture.componentRef.setInput('suggestions', options.suggestions ?? [YAOURT]);
+    fixture.componentRef.setInput('canCreate', options.canCreate ?? false);
     fixture.componentRef.setInput('receipt', options.receipt ?? null);
     fixture.componentRef.setInput('entries', options.entries ?? []);
     fixture.componentRef.setInput('fabLabel', 'Ajouter un article');
@@ -210,19 +212,57 @@ describe('Dictation', () => {
       expect(nativeElement.querySelector('.kicker').textContent).toContain(
         'Fréquents',
       );
-      expect(nativeElement.querySelector('.hint')).toBeNull();
+      expect(nativeElement.querySelector('.create')).toBeNull();
     });
 
-    it('annonce la création quand rien ne correspond', async () => {
+    it('propose de créer un libellé que rien ne porte exactement', async () => {
       const { nativeElement } = await render({
         query: 'Rutabaga',
         suggestions: [],
+        canCreate: true,
       });
 
-      expect(nativeElement.querySelector('.hint').textContent).toContain(
+      expect(nativeElement.querySelector('.create').textContent).toContain(
         'Rutabaga',
       );
       expect(nativeElement.querySelector('.kicker')).toBeNull();
+    });
+
+    it('propose la création même quand le flou remonte un voisin', async () => {
+      // Le cas de la régression : « Pois » ressemble à « Poires » remonté par la
+      // recherche, mais reste un produit à créer. Sans ce bouton, la rangée
+      // happerait le voisin et l'article neuf resterait inatteignable.
+      const { nativeElement } = await render({
+        query: 'Pois',
+        suggestions: [YAOURT],
+        canCreate: true,
+      });
+
+      expect(nativeElement.querySelector('.suggestion')).not.toBeNull();
+      expect(nativeElement.querySelector('.create').textContent).toContain(
+        'Pois',
+      );
+    });
+
+    it('n’offre pas de créer ce que l’historique porte déjà', async () => {
+      const { nativeElement } = await render({
+        query: 'Yaourt nature',
+        canCreate: false,
+      });
+
+      expect(nativeElement.querySelector('.create')).toBeNull();
+    });
+
+    it('émet la création avec le libellé en cours', async () => {
+      const fixture = await render({ query: 'Pois', canCreate: true });
+      const created: string[] = [];
+      fixture.componentInstance.created.subscribe((label) =>
+        created.push(label),
+      );
+
+      fixture.nativeElement.querySelector('.create').click();
+
+      expect(created).toEqual(['Pois']);
     });
   });
 
